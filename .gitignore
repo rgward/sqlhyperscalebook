@@ -1,0 +1,5 @@
+# Local VS Code settings (per-window theme override, etc.) — not for readers.
+.vscode/
+
+# Personal VS Code workspace file (may carry local theme/settings) — not for readers.
+*.code-workspace
