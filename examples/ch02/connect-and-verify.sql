@@ -1,5 +1,5 @@
 /* ============================================================================
-   Inside Azure SQL Hyperscale — Chapter 2
+   Azure SQL Hyperscale Unveiled — Chapter 2
    connect-and-verify.sql : prove it's SQL Server, and prove it's Hyperscale.
    Run order              : after `provision-hyperscale.azcli` succeeds.
                             (Independent of 01-schemas..05-seed; safe to re-run.)

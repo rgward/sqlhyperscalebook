@@ -1,5 +1,5 @@
 /* ============================================================================
-   Inside Azure SQL Hyperscale — Chapter 2
+   Azure SQL Hyperscale Unveiled — Chapter 2
    03-views.sql    : the digital patient chart, as a computed projection.
    Run order       : 3 of 5  (after 02-tables.sql)
 

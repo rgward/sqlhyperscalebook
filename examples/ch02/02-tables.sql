@@ -1,5 +1,5 @@
 /* ============================================================================
-   Inside Azure SQL Hyperscale — Chapter 2
+   Azure SQL Hyperscale Unveiled — Chapter 2
    02-tables.sql   : the Ward General through-line schema (tables only)
    Run order       : 2 of 5
 

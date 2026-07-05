@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Inside Azure SQL Hyperscale — Chapter 2 §1
+# Azure SQL Hyperscale Unveiled — Chapter 2 (provisioning)
 # provision-hyperscale.azcli
 #
 # Create the Collier Health logical server and deploy the Ward General
 # Hyperscale database under it. Single command for the database itself; the
 # rest is plumbing (resource group, server, firewall, Entra admin).
 #
-# This is the canonical command-line walkthrough. The companion
-# `provision-hyperscale.bicep` does the same in IaC form (Ch 2 §1, "agent-
-# driven CLI path with Bicep side-by-side"). Portal screenshots live in the
-# prose; they are clarity aids, not the canonical path.
+# This is the canonical command-line walkthrough, driven by the
+# deploy-hyperscale skill (.github/skills/deploy-hyperscale/SKILL.md). Portal
+# screenshots live in the prose; they are clarity aids, not the canonical path.
 #
 # Prereqs:
 #   * Azure CLI 2.60+ (`az version`)
@@ -168,9 +167,8 @@ Done.
 Next:
   1. Run \`connect-and-verify.sql\` against $SRV.database.windows.net / $DB.
   2. Run 01-schemas.sql -> 05-seed.sql to materialise the through-line schema.
-  3. \`scale-up-down.azcli\` is the Ch 2 §4 demo.
 
-Pricing-model reminders (Ch 2 §1 — not numbers, but reasoning):
+Pricing-model reminders (Ch 2 — not numbers, but reasoning):
   * No SQL Server software license fee on Hyperscale.
   * Per-replica compute billing: primary + each HA replica + each named
     replica is its own meter. 1 HA = 2x compute, not 1x.

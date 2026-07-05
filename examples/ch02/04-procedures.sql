@@ -1,5 +1,5 @@
 /* ============================================================================
-   Inside Azure SQL Hyperscale — Chapter 2
+   Azure SQL Hyperscale Unveiled — Chapter 2
    04-procedures.sql : foundational read/write procedures for the chart.
    Run order         : 4 of 5  (after 03-views.sql)
 

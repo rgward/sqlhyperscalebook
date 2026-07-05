@@ -1,5 +1,5 @@
 /* ============================================================================
-   Inside Azure SQL Hyperscale — Chapter 2
+   Azure SQL Hyperscale Unveiled — Chapter 2
    verify-data.sql : verify the seed landed — row counts and reserved size.
    Run order       : after 05-seed.sql.
 

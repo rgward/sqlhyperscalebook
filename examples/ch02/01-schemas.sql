@@ -1,5 +1,5 @@
 /* ============================================================================
-   Inside Azure SQL Hyperscale — Chapter 2
+   Azure SQL Hyperscale Unveiled — Chapter 2
    01-schemas.sql  : create the two application schemas for Ward General Hospital
    Target          : the wardgeneral Hyperscale database (clinical.* / ops.*)
    Run order       : 1 of 5  (schemas -> tables -> views -> procedures -> seed)

@@ -1,5 +1,5 @@
 /* ============================================================================
-   Inside Azure SQL Hyperscale — Chapter 2
+   Azure SQL Hyperscale Unveiled — Chapter 2
    05-seed.sql      : reproducible synthetic seed for Ward General Hospital.
    Run order        : 5 of 5  (after 04-procedures.sql)
 
