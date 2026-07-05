@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+# =============================================================================
+# Inside Azure SQL Hyperscale — Chapter 2 §1
+# provision-hyperscale.azcli
+#
+# Create the Collier Health logical server and deploy the Ward General
+# Hyperscale database under it. Single command for the database itself; the
+# rest is plumbing (resource group, server, firewall, Entra admin).
+#
+# This is the canonical command-line walkthrough. The companion
+# `provision-hyperscale.bicep` does the same in IaC form (Ch 2 §1, "agent-
+# driven CLI path with Bicep side-by-side"). Portal screenshots live in the
+# prose; they are clarity aids, not the canonical path.
+#
+# Prereqs:
+#   * Azure CLI 2.60+ (`az version`)
+#   * Logged in (`az login` and `az account set -s <subscription>`)
+#   * You have Microsoft Entra object ID + display name for the user/group
+#     that will be the Entra admin. We enable MIXED auth here (SQL + Entra);
+#     Ch 8 hardens the server to Entra-only.
+# =============================================================================
+
+set -euo pipefail
+
+# ---------- Variables --------------------------------------------------------
+# All resources follow the locked Ch 2 naming convention:
+#   enterprise-shared  -> `collier`
+#   per-hospital       -> `ward`
+LOC="${LOC:-eastus2}"                        # region; pick one with ZRS backup
+RG="${RG:-rg-collierhealth}"
+SRV="${SRV:-collierhealth-$RANDOM}"          # logical server: globally unique
+DB="${DB:-wardgeneral}"                      # the Hyperscale database
+
+# Entra admin for the server. Replace with your tenant's values.
+ADMIN_DISPLAY_NAME="${ADMIN_DISPLAY_NAME:-Collier Health DBAs}"
+ADMIN_OBJECT_ID="${ADMIN_OBJECT_ID:?Set ADMIN_OBJECT_ID to the Entra group / user object id}"
+ADMIN_TYPE="${ADMIN_TYPE:-Group}"            # User | Group | ServicePrincipal
+
+# SQL admin login (mixed auth in Ch 2; Ch 8 moves to Entra-only). Set
+# SQL_ADMIN_PASSWORD in the environment; never hard-code it here.
+SQL_ADMIN_USER="${SQL_ADMIN_USER:-wardadmin}"
+SQL_ADMIN_PASSWORD="${SQL_ADMIN_PASSWORD:?Set SQL_ADMIN_PASSWORD for the mixed-auth SQL admin}"
+
+# Hyperscale shape. Ch 2 deploys exactly one: provisioned, single database,
+# one HA replica, zone redundant. Serverless and elastic pool are NAMED here
+# and DEPLOYED LATER (Ch 10 §7 and §11). See outline Locked Decision 4.
+SLO="${SLO:-HS_Gen5_8}"                          # 8 vCore Gen5 primary; changeable later
+HA_REPLICAS="${HA_REPLICAS:-1}"                  # required for zone redundancy
+ZONE_REDUNDANT="${ZONE_REDUNDANT:-true}"         # FIXED at create; cannot toggle later
+BACKUP_REDUNDANCY="${BACKUP_REDUNDANCY:-GeoZone}" # FIXED at create (Local|Zone|Geo|GeoZone)
+COLLATION="${COLLATION:-SQL_Latin1_General_CP1_CI_AS}"  # FIXED at create; decide now
+ALLOW_AZURE_SERVICES="${ALLOW_AZURE_SERVICES:-true}"    # dev/test convenience; disable for prod
+
+echo "Region:      $LOC"
+echo "RG:          $RG"
+echo "Server:      $SRV"
+echo "Database:    $DB"
+echo "Service tier: $SLO  (HA=$HA_REPLICAS, ZR=$ZONE_REDUNDANT)"
+echo "Backup:      $BACKUP_REDUNDANCY"
+echo
+
+# ---------- Capacity check (preamble) ----------------------------------------
+# Before we burn time on `az group create`, make sure Hyperscale + the chosen
+# shape are actually available in this region for this subscription.
+echo "--- Capacity check: Hyperscale availability in $LOC ---"
+az sql db list-editions \
+    --location "$LOC" \
+    --edition Hyperscale \
+    --service-objective "$SLO" \
+    --available \
+    -o table
+
+echo
+echo "--- Capacity check: SQL DB vCore quota in $LOC ---"
+az sql server list-usages --location "$LOC" -o table 2>/dev/null || true
+
+# ---------- 1. Resource group ------------------------------------------------
+echo
+echo "--- 1/4 Resource group: $RG ---"
+az group create --name "$RG" --location "$LOC" -o table
+
+# ---------- 2. Logical server (mixed auth: SQL + Entra) ---------------------
+# Mixed auth keeps a familiar SQL login for Ch 2's first steps and an Entra
+# admin alongside it. Ch 8 flips the server to Entra-only (--enable-ad-only-
+# auth true) as a hardening beat. Keep the SQL password in the environment.
+echo
+echo "--- 2/4 Logical server: $SRV (mixed SQL + Entra auth) ---"
+az sql server create \
+    --name "$SRV" \
+    --resource-group "$RG" \
+    --location "$LOC" \
+    --admin-user "$SQL_ADMIN_USER" \
+    --admin-password "$SQL_ADMIN_PASSWORD" \
+    --external-admin-principal-type "$ADMIN_TYPE" \
+    --external-admin-name "$ADMIN_DISPLAY_NAME" \
+    --external-admin-sid "$ADMIN_OBJECT_ID" \
+    -o table
+
+# ---------- 3. Firewall: allow Azure services + this client IP ---------------
+# "Allow Azure services" enables management-plane access for downstream demos
+# (Foundry, MCP servers, Functions). Lock this down for production.
+echo
+echo "--- 3/4 Firewall rules ---"
+# "Allow Azure services" (0.0.0.0) is convenient in dev/test so downstream
+# Azure services (Foundry, MCP servers, Functions) can reach the server. It is
+# broad exposure — disable for production. Gated on ALLOW_AZURE_SERVICES.
+if [ "$ALLOW_AZURE_SERVICES" = "true" ]; then
+  az sql server firewall-rule create \
+      --resource-group "$RG" \
+      --server "$SRV" \
+      --name AllowAllAzureIps \
+      --start-ip-address 0.0.0.0 \
+      --end-ip-address 0.0.0.0 \
+      -o table
+else
+  echo "Skipping 'Allow Azure services' rule (ALLOW_AZURE_SERVICES=$ALLOW_AZURE_SERVICES)."
+fi
+
+MY_IP="$(curl -s https://ifconfig.me)"
+echo "Client IP: $MY_IP"
+az sql server firewall-rule create \
+    --resource-group "$RG" \
+    --server "$SRV" \
+    --name "AllowClient-$(hostname)" \
+    --start-ip-address "$MY_IP" \
+    --end-ip-address "$MY_IP" \
+    -o table
+
+# ---------- 4. The Hyperscale database — the headline command ----------------
+# A single `az sql db create` deploys the Hyperscale database. The teaching
+# beats this command lands (Ch 2 §1):
+#   * --edition Hyperscale         : the service tier
+#   * --service-objective $SLO     : the vCore shape (Gen5_8 here)
+#   * --ha-replicas 1              : pre-provision one HA replica
+#                                     (required for ZR, and faster failover)
+#   * --zone-redundant true        : commit at create time; cannot be toggled
+#                                     in place on an existing database
+#   * --backup-storage-redundancy  : GeoZone = ZRS-resilient backups; also a
+#                                     create-time decision on Hyperscale
+echo
+echo "--- 4/4 Hyperscale database: $DB ---"
+az sql db create \
+    --name "$DB" \
+    --resource-group "$RG" \
+    --server "$SRV" \
+    --edition Hyperscale \
+    --service-objective "$SLO" \
+    --ha-replicas "$HA_REPLICAS" \
+    --zone-redundant "$ZONE_REDUNDANT" \
+    --backup-storage-redundancy "$BACKUP_REDUNDANCY" \
+    --collation "$COLLATION" \
+    -o table
+
+# ---------- Show what we got -------------------------------------------------
+echo
+echo "--- Database summary ---"
+az sql db show \
+    --name "$DB" \
+    --resource-group "$RG" \
+    --server "$SRV" \
+    --query "{name:name, edition:edition, sku:currentServiceObjectiveName, ha:highAvailabilityReplicaCount, zr:zoneRedundant, state:status}" \
+    -o table
+
+cat <<EOF
+
+Done.
+
+Next:
+  1. Run \`connect-and-verify.sql\` against $SRV.database.windows.net / $DB.
+  2. Run 01-schemas.sql -> 05-seed.sql to materialise the through-line schema.
+  3. \`scale-up-down.azcli\` is the Ch 2 §4 demo.
+
+Pricing-model reminders (Ch 2 §1 — not numbers, but reasoning):
+  * No SQL Server software license fee on Hyperscale.
+  * Per-replica compute billing: primary + each HA replica + each named
+    replica is its own meter. 1 HA = 2x compute, not 1x.
+  * Storage is billed on actual allocation (10 GB minimum, 10 GB increments).
+  * Backup storage is billed separately.
+  * AHB is NOT available for new Hyperscale databases; existing HS single
+    DBs with provisioned compute keep AHB only until December 2026
+    (see [Microsoft Learn — Hyperscale service tier], access date captured
+    at write time).
+
+EOF
