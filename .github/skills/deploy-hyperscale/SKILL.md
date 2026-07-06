@@ -1,17 +1,20 @@
 ---
 name: deploy-hyperscale
 description: >-
-  Guided deployment of an Azure SQL Hyperscale database for the book's
-  Collier Health / Ward General scenario. Interviews the reader on the key
-  create-time decisions (region, globally-unique server name, compute size,
-  zone redundancy + HA replica, backup-storage redundancy, admin auth),
-  then provisions the database, connects and proves it is SQL Server, builds
-  the through-line schema, and seeds a reasonable amount of synthetic data.
-  USE WHEN the reader says: "deploy my Hyperscale database", "set up
-  Hyperscale", "get started with Azure SQL Hyperscale", "provision a
-  Hyperscale database", "build the Ward General database", "walk me through
-  deploying Hyperscale". Scope is deploy + connect + schema + seed only;
-  scaling, replicas, restore and teardown are covered by later chapters.
+  Guided, step-by-step deployment of an Azure SQL Hyperscale database for the
+  book's Collier Health / Ward General scenario. Interviews the reader one
+  decision at a time on the create-time choices (region, globally-unique
+  server name, compute size, zone redundancy + HA replica, backup-storage
+  redundancy, collation, admin auth), then provisions the database with the
+  PowerShell + az CLI script, connects and proves it is SQL Server, builds the
+  through-line schema, and seeds synthetic data. USE WHEN the reader says any
+  of: "deploy / create / provision / set up / spin up / stand up my (or a)
+  Hyperscale database", "get started with Azure SQL Hyperscale", "build the
+  Ward General database", "deploy the Chapter 2 database", or "walk me through
+  deploying Hyperscale". Scope is deploy + connect + schema + seed ONLY. Do NOT
+  use for scaling compute, adding HA / named / geo replicas, point-in-time
+  restore, security hardening (Entra-only, CMK, auditing), or teardown /
+  cleanup — those are owned by later chapters and their own skills.
 ---
 
 # Deploy a Hyperscale database (guided)
@@ -26,8 +29,8 @@ server, `collierhealth`); **Ward General Hospital** is the flagship hospital
 
 ## Two ways to deploy (same script underneath)
 
-The deploy is a **parameterized, env-var-driven script**
-(`examples/ch02/provision-hyperscale.azcli`) with sensible defaults for every
+The deploy is a **parameterized, env-var-driven PowerShell script**
+(`examples/ch02/provision-hyperscale.ps1`) with sensible defaults for every
 value. There are two ways to drive it:
 
 - **Guided (this skill).** Ask Copilot to *"deploy my Hyperscale database"* — it
@@ -35,9 +38,10 @@ value. There are two ways to drive it:
   environment variable, validates as it goes, and runs the script at the end.
 - **By hand.** Skip the interview: set the variables yourself (each step names
   the one it sets; defaults live in the script) and run it directly. Set
-  `SQL_ADMIN_PASSWORD` securely first (see Step 8), then:
-  ```bash
-  LOC=... RG=... SRV=... ADMIN_OBJECT_ID=... bash examples/ch02/provision-hyperscale.azcli
+  `SQL_ADMIN_PASSWORD` securely first (see Step 8), then in PowerShell:
+  ```powershell
+  $env:LOC='eastus2'; $env:RG='rg-collierhealth'; $env:SRV='...'; $env:ADMIN_OBJECT_ID='...'
+  ./examples/ch02/provision-hyperscale.ps1
   ```
   You only override what you care about; everything else takes its default. The
   interview simply populates these same variables for you.
@@ -48,7 +52,7 @@ value. There are two ways to drive it:
 response is predictable and reproducible** (the book shows each one in order).
 
 Rules for the agent:
-- Work through **Steps 1–19 in order**, one at a time. Never batch or skip ahead.
+- Work through **Steps 1–20 in order**, one at a time. Never batch or skip ahead.
 - **Two kinds of step:** a **decision** (has a `Prompt:` — ask the single
   question, then **stop and wait** for the reader's answer) or **informational**
   (*shown, not asked* — state the fact and why in a sentence or two, then
@@ -56,12 +60,12 @@ Rules for the agent:
   only stop for decisions.
 - **Set each answer live, in the deploy terminal.** As each decision is answered,
   immediately set its environment variable in the **same terminal session**
-  (`$env:VAR=...` in PowerShell / `export VAR=...` in bash) — don't defer to the
-  end or rely on remembered values. Every step **and** Step 20 run in that **one**
+  (`$env:VAR=...` in PowerShell) — don't defer to the
+  end or rely on remembered values. Every step **and** Step 21 run in that **one**
   session, so the deploy uses the reader's actual choices, not the script defaults.
 - For steps marked **⚠️ FIXED AT CREATE**, state plainly that it cannot be changed
   later without redeploying (database copy, restore, or geo-replica).
-- **Create no Azure resource until Step 20** (the final confirmation). The
+- **Create no Azure resource until Step 21** (the final confirmation). The
   interview only gathers values.
 - The reader's **password is entered in the terminal, never in chat** and never
   written to a file.
@@ -95,9 +99,9 @@ On their OK:
 
 Prompt: "Deploy into `<active-subscription>` — yes, or name a different one?"
 
-> **Windows note:** `az login` works in any shell, but the deploy step (Step 20)
-> runs a **bash** script, so use a **bash** integrated terminal (Git Bash or WSL)
-> and run `az login` there so the whole flow shares one session.
+> **Windows note:** run everything in a **PowerShell 7 (pwsh)** integrated
+> terminal — `az login`, the interview, and the Step 21 deploy all share that
+> one session, so every `$env:` value set along the way is in scope at deploy.
 
 ### Step 2 — Permissions (gate, no variable)
 Tell: creating a server + database needs **Contributor** or a SQL-specific role
@@ -115,13 +119,13 @@ must clear three things for the book's growth arc:
   permanent, confirm the region offers premium-series **now**.
 
 Run these checks for the reader's candidate region:
-```bash
+```powershell
 # Current shape available + zone-redundant capable?
-az sql db list-editions -l <region> --edition Hyperscale --available \
+az sql db list-editions -l <region> --edition Hyperscale --available `
   --query "[0].supportedServiceLevelObjectives[?name=='HS_Gen5_8'].{slo:name, zoneRedundant:zoneRedundant}" -o table
 
 # Eventual premium-series scale target available (e.g. HS_PRMS_192)?
-az sql db list-editions -l <region> --edition Hyperscale --available \
+az sql db list-editions -l <region> --edition Hyperscale --available `
   --query "[0].supportedServiceLevelObjectives[?starts_with(name,'HS_PRMS')].name" -o table
 ```
 Standard-series Gen5 caps at **80 vCores**; premium-series is required beyond
@@ -140,9 +144,8 @@ reader's name.
 `az sql server check-name-availability` command, so resolve the FQDN: if it
 already resolves, the name is taken (ask for another); NXDOMAIN means it's very
 likely free. The definitive check still happens at create.
-```bash
-# PowerShell:  Resolve-DnsName <name>.database.windows.net   (resolves = taken)
-# bash:        nslookup <name>.database.windows.net
+```powershell
+# Resolve-DnsName <name>.database.windows.net   (resolves = taken; NXDOMAIN = likely free)
 ```
 Prompt: "Server name? [default `collierhealth-<suffix>` — I can generate one]"
 
@@ -156,23 +159,18 @@ Prompt: "SQL admin login? [default `wardadmin`]"
 
 ### Step 8 — SQL admin password (typed into the terminal, captured securely)  → `SQL_ADMIN_PASSWORD`
 The reader **types the password directly into the integrated terminal** — never
-into chat, and never inline in an `export …=…` (plaintext would land in terminal
-scrollback and shell history). Run the **shell-appropriate silent read** so it is
+into chat, and never inline in an `$env:X='...'` (plaintext would land in terminal
+scrollback and shell history). Run the **masked read** so it is
 not echoed:
-```bash
-# bash / WSL / Git Bash (the deploy shell):
-read -s -p "SQL admin password: " SQL_ADMIN_PASSWORD && export SQL_ADMIN_PASSWORD && echo
-```
 ```powershell
 # PowerShell (input masked):
 $s = Read-Host "SQL admin password" -AsSecureString
 Set-Item Env:SQL_ADMIN_PASSWORD (ConvertFrom-SecureString $s -AsPlainText)
 ```
-The agent runs the line matching the reader's terminal, then tells them to **type
-their password directly into the terminal and press Enter**. The **agent never
-sends, sees, or captures the value** — the terminal captures it into the env var.
-If they set it in PowerShell but deploy via bash, launch the bash script **from
-that same PowerShell session** so the child process inherits the variable.
+The agent runs this, then tells the reader to **type their password directly
+into the terminal and press Enter**. The **agent never sends, sees, or captures
+the value** — the terminal captures it into the env var, and Step 21 runs in the
+same PowerShell session so the deploy inherits it.
 Requirements: 8+ chars; 3 of {upper, lower, number, symbol}; not the login name.
 
 ### Step 9 — Entra admin  → `ADMIN_TYPE`, `ADMIN_DISPLAY_NAME`, `ADMIN_OBJECT_ID`
@@ -299,21 +297,42 @@ compatible and least surprising.
 
 Prompt: "Collation? [default `SQL_Latin1_General_CP1_CI_AS`]"
 
-## Step 20 — Confirm and deploy
+### Step 20 — Resource tags  → `TAGS`
+Tell: tags are `key=value` metadata for **governance, cost allocation, and
+incident response**. Azure's Cloud Adoption Framework groups them into
+**functional / classification / accounting / ownership** categories, and most
+orgs enforce a minimal set with Azure Policy. Tags are changeable later, but set
+them now so the resources are governed from birth. The script applies the **same
+tag set to the resource group, logical server, and database**.
+Recommended minimal set (CAF-aligned) — offer these defaults; let the reader edit.
+This Ch 2 deploy is a **follow-along test database**, so tags state what it IS now
+(a sandbox with synthetic data). In the scale chapter it is **promoted** —
+`environment=prod`, `criticality=mission-critical`, `dataClassification=confidential`
+(and in real life you'd stand up a *separate* prod instance, not relabel this one).
+- `environment` = `sandbox` (real options `dev` | `test` | `prod`)
+- `application` = `ward-general-ehr` (the workload this database serves)
+- `owner` = the team/principal accountable (defaults to the Entra admin)
+- `criticality` = `low` (a sandbox, not a live EHR)
+- `dataClassification` = `nonproduction` (the seed is synthetic / no PHI)
+- `costCenter` = the chargeback code (**no sensible default — ask if they want it**)
+Spaces aren't allowed in a tag passed on the command line — hyphenate values.
+Prompt: "Tags? Press Enter to accept the recommended set, or give
+`key=value` pairs (space-separated) to override."
+
+## Step 21 — Confirm and deploy
 
 Echo **every** choice back in a summary (region, RG, server, database, size, HA,
-zone redundancy, backup redundancy, collation, auth, firewall). Remind the reader
+zone redundancy, backup redundancy, collation, tags, auth, firewall). Remind the reader
 this creates **real, billable** resources. On explicit confirmation, run:
 
-```bash
-LOC=... RG=... SRV=... DB=... \
-ADMIN_TYPE=... ADMIN_DISPLAY_NAME="..." ADMIN_OBJECT_ID=... \
-SQL_ADMIN_USER=... SLO=... ZONE_REDUNDANT=... BACKUP_REDUNDANCY=... \
-COLLATION="..." ALLOW_AZURE_SERVICES=... \
-bash examples/ch02/provision-hyperscale.azcli
+```powershell
+# All decisions are already set as $env:* in this session (Steps 1–20),
+# including $env:SQL_ADMIN_PASSWORD from Step 8. Run the script:
+./examples/ch02/provision-hyperscale.ps1
 ```
 
-(`SQL_ADMIN_PASSWORD` is already exported in the terminal from Step 8.)
+(Every value comes from the `$env:*` variables set live during the interview; the
+script falls back to its own defaults for anything not set.)
 
 ## After the deploy
 
@@ -325,12 +344,38 @@ bash examples/ch02/provision-hyperscale.azcli
   `requestedBackupStorageRedundancy = <chosen>`.
 
 ### Connect and prove it's SQL Server (`examples/ch02/connect-and-verify.sql`)
-Use the MSSQL extension's `connect` tool to register the database, then run the
-verification queries.
-- `@@VERSION` returns a Microsoft SQL Azure build string.
-- `DATABASEPROPERTYEX(DB_NAME(),'Edition') = Hyperscale`.
-- `DATABASEPROPERTYEX(DB_NAME(),'ServiceObjective')` starts with `HS_`.
-- The schema-sanity query returns the expected base tables.
+**Guide the reader through this — do NOT do it for them.** Connecting the book's
+primary client (the MSSQL extension) with Microsoft Entra auth is a hands-on
+moment the reader performs themselves; the agent **instructs and confirms**, it
+does not connect or run the queries. (The extension's `connect` tool can't create
+that first Entra-authenticated connection anyway — only the reader's UI action can.)
+
+**Give the reader the exact connection details from the deploy** — fill these in
+from the interview values / `az sql db show`; never leave placeholders:
+- **Server / hostname:** `<SRV>.database.windows.net` (the globally-unique server
+  name from Step 5, i.e. `collierhealth-<suffix>.database.windows.net`)
+- **Database:** `<DB>` (the database from Step 12, i.e. `wardgeneral`)
+- **Authentication:** **Microsoft Entra** (Entra ID — Universal with MFA); the
+  signed-in user is the server's Entra admin, so **no SQL login or password**.
+- **Encryption / port:** Encrypt = true, 1433 (the extension's defaults).
+
+Tell the reader to:
+1. In the **MSSQL extension**, choose **Add Connection**, paste the **server
+   hostname** above, pick **Microsoft Entra** authentication (expect an MFA
+   browser / device-code prompt), and select database `<DB>`.
+2. Open `examples/ch02/connect-and-verify.sql` and run it against that connection.
+
+Then have them confirm the four checks — the *"prove it's SQL Server, prove it's
+Hyperscale"* payoff Ch 1 §6 points to:
+- **`@@VERSION`** → a *Microsoft SQL Azure* build string (it really is SQL Server).
+- **Edition / ServiceObjective** → `Edition = Hyperscale`, `ServiceObjective`
+  starts with `HS_` (e.g. `HS_Gen5_8`); `Updateability = READ_WRITE` on the primary.
+- **Resource limits** (`sys.dm_user_db_resource_governance`) → the SLO's CPU,
+  worker-thread, and **primary max log rate** (the Ch 10 write ceiling) in effect.
+- **Replica role** → the primary reports `READ_WRITE` (an HA / named replica is `READ_ONLY`).
+
+(Schema/table verification is **not** here — it lives in `verify-data.sql`, run
+after the schema build.)
 
 ### Build the schema and seed (`examples/ch02/01-schemas.sql` → `05-seed.sql`)
 Two schemas, 13 tables, the digital-patient-chart views, foundational
@@ -363,7 +408,7 @@ All under `examples/ch02/`:
 
 | File | Role |
 |---|---|
-| `provision-hyperscale.azcli` | canonical CLI provision (Step 20) |
+| `provision-hyperscale.ps1` | canonical CLI provision (Step 21) |
 | `connect-and-verify.sql` | prove-it's-SQL-Server |
 | `01-schemas.sql` | §3 `CREATE SCHEMA clinical / ops` |
 | `02-tables.sql` | §3 13 tables + indexes + bedside invariant |
