@@ -28,35 +28,53 @@ SELECT
     CAST(DATABASEPROPERTYEX(DB_NAME(), 'Edition')           AS NVARCHAR(50)) AS Edition,
     CAST(DATABASEPROPERTYEX(DB_NAME(), 'ServiceObjective')  AS NVARCHAR(50)) AS ServiceObjective,
     CAST(DATABASEPROPERTYEX(DB_NAME(), 'Updateability')     AS NVARCHAR(50)) AS Updateability,
+    CAST(DATABASEPROPERTYEX(DB_NAME(), 'Collation')         AS NVARCHAR(128)) AS Collation,
+    (SELECT compatibility_level FROM sys.databases WHERE database_id = DB_ID()) AS CompatibilityLevel, -- new HS DBs default to 170 (SQL 2025) -- measured 2026-07-06 (160 = SQL 2022). Change via ALTER DATABASE ... SET COMPATIBILITY_LEVEL = n
     CAST(DATABASEPROPERTYEX(DB_NAME(), 'IsXTPSupported')    AS BIT)          AS IsXTPSupported;
+    -- GOTCHA: IsXTPSupported = 1 on Hyperscale, but durable memory-optimized TABLES
+    -- are NOT supported here -- Hyperscale supports only a SUBSET of In-Memory OLTP
+    -- objects. The property reports engine capability, NOT that
+    -- CREATE TABLE ... WITH (MEMORY_OPTIMIZED = ON) will work (it fails on Hyperscale).
+    -- Memory-optimized objects are a migration blocker INTO Hyperscale (Ch 11 / Ch 10 §12).
+    -- Ref: Learn -- In-Memory OLTP in Azure SQL Database + Hyperscale known limitations.
 /* Expected on the wardgeneral primary:
      Edition          = Hyperscale
      ServiceObjective = HS_<series>_<vCores>     (e.g. HS_Gen5_8 or HS_PRMS_8)
      Updateability    = READ_WRITE
+     Collation        = SQL_Latin1_General_CP1_CI_AS   (the create-time choice)
+     CompatibilityLevel = 170 (SQL 2025 -- current new-database default; 160 = SQL 2022)
+     IsXTPSupported   = 1  (MISLEADING -- see GOTCHA above; no memory-optimized tables)
 */
 GO
 
 PRINT N'-- Resource limits in effect for this database ----------------------';
 SELECT
-    slo_name,                     -- INTERNAL governance name (reflects the physical
+    rg.slo_name,                  -- INTERNAL governance name (reflects the physical
                                   -- hardware mapping, e.g. Gen5-on-Gen8). Your SKU is
                                   -- the ServiceObjective above (HS_Gen5_8). Don't parse this.
-    cpu_limit,                    -- vCores (8 for HS_Gen5_8)
-    primary_pool_max_workers,     -- worker limit for the user resource POOL (=840 on HS_Gen5_8).
+    rg.cpu_limit,                 -- vCores (8 for HS_Gen5_8)
+    jo.process_memory_limit_mb,   -- SKU memory cap in MB for the SQL process (=42,520 MB ~= 41.5 GB
+                                  -- on HS_Gen5_8, ~5.2 GB/vCore -- standard-series Gen5). From the OS
+                                  -- job object -- the memory governor sibling of the caps below.
+    rg.primary_pool_max_workers,  -- worker limit for the user resource POOL (=840 on HS_Gen5_8).
                                   -- Sits just above the published workload-GROUP limit of ~800 --
                                   -- the "~100 concurrent workers/vCore" the docs cite and error 10928
                                   -- enforces (see sys.dm_resource_governor_workload_groups_history_ex.max_worker).
                                   -- (instance_max_worker_threads, ~1640, is the whole node's SQLOS pool --
                                   -- deliberately not shown; not your limit.) Read live usage as a %
                                   -- via sys.dm_db_resource_stats.max_worker_percent.
-    max_sessions,                 -- session limit for the user group (30,000 flat on Hyperscale)
-    primary_max_log_rate,         -- bytes/sec; / 1048576 = MiB/s (the WRITE ceiling,
+    rg.max_sessions,              -- session limit for the user group (30,000 flat on Hyperscale)
+    rg.primary_max_log_rate,      -- bytes/sec; / 1048576 = MiB/s (the WRITE ceiling,
                                   -- ~105 MiB/s on HS_Gen5_8 -- the Ch 10 log-rate governor)
-    primary_group_max_io,         -- max IOPS for the primary user workload group
-    max_db_max_size_in_mb         -- MB; / 1024 / 1024 = 128 TB Hyperscale ceiling
+    rg.primary_group_max_io,      -- max DATA IOPS for the primary user workload group (32,000 on
+                                  -- HS_Gen5_8). Data I/O only -- writes are capped separately by
+                                  -- primary_max_log_rate. Governed but NOT billed on the vCore model;
+                                  -- actual throughput also depends on remote page-server I/O.
+    rg.max_db_max_size_in_mb      -- MB; / 1024 / 1024 = 128 TB Hyperscale ceiling
                                   -- (you still pay only for ACTUAL allocation)
-FROM sys.dm_user_db_resource_governance
-WHERE database_id = DB_ID();
+FROM sys.dm_user_db_resource_governance rg
+CROSS JOIN sys.dm_os_job_object jo   -- one row; the compute replica's OS resource limits
+WHERE rg.database_id = DB_ID();
 GO
 
 PRINT N'-- Replica role (primary vs HA / geo / named replica) ---------------';

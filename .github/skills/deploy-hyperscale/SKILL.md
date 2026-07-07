@@ -46,6 +46,32 @@ value. There are two ways to drive it:
   You only override what you care about; everything else takes its default. The
   interview simply populates these same variables for you.
 
+## Before you start — prerequisites (verify, don't assume)
+
+Before Step 1, confirm the reader has the toolchain. If something's missing, say so
+and point them to it — don't start the interview against a broken setup.
+
+- **VS Code + GitHub Copilot Chat (agent mode)** — already present if you're reading this.
+- **PowerShell 7+ (`pwsh`)** — the scripts require it (Windows PowerShell 5.1 won't run
+  them); it must be the integrated terminal you use.
+- **Azure CLI 2.60+** (`az`) — Step 1 handles `az login`.
+- **MSSQL extension** (`ms-mssql.mssql`) — for the connect-and-verify step (reader-driven).
+- **Azure subscription** with rights to create a server + database, and a **Microsoft
+  Entra** account (the reader becomes the Entra admin).
+- Optional: **Azure MCP Server** (`ms-azuretools.vscode-azure-mcp-server`) — an
+  enhancement, not a requirement; the skill runs `az` through the terminal regardless.
+
+Non-destructive version check the agent can run first:
+```powershell
+$PSVersionTable.PSVersion   # need 7.x
+az version                  # need 2.60+
+```
+
+**Tools note:** the skill's real work runs through the **built-in terminal tool**
+that ships with Copilot agent mode (it runs `az` and `provision-hyperscale.ps1`).
+The only *optional* agent tool is the Azure MCP Server; the MSSQL extension is a
+client the reader drives, not an agent tool.
+
 ## How to run this skill — one decision at a time
 
 **This is a step-by-step interview. Follow it exactly so every prompt and
