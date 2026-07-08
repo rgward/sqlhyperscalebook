@@ -610,18 +610,33 @@ INSERT INTO clinical.MedicationOrder
 SELECT
     e.EncounterId,
     e.PatientId,
-    CHOOSE(((e.EncounterId * 7 + gs.value) % 12) + 1,
-        N'Lisinopril', N'Atorvastatin', N'Aspirin', N'Metoprolol',
-        N'Furosemide', N'Insulin glargine', N'Ceftriaxone', N'Azithromycin',
-        N'Ondansetron', N'Acetaminophen', N'Heparin', N'Pantoprazole'),
-    CHOOSE(((e.EncounterId * 11 + gs.value) % 6) + 1,
-           N'10 mg', N'40 mg', N'81 mg', N'1 g', N'4 mg', N'5000 units'),
-    CHOOSE(((e.EncounterId * 13 + gs.value) % 4) + 1,
-           N'PO', N'IV', N'SC', N'IM'),
+    m.MedicationName,
+    m.Dose,
+    m.Route,
     e.AttendingProviderId,
     DATEADD(MINUTE, gs.value * 60, e.AdmitTime)
 FROM clinical.Encounter e
 CROSS JOIN GENERATE_SERIES(1, 3) gs
+CROSS APPLY (
+    /* Dose + route are matched to the drug (a single lookup row) so there are
+       no nonsensical combinations like "Insulin glargine 81 mg PO". */
+    SELECT d.MedicationName, d.Dose, d.Route
+    FROM (VALUES
+        ( 1, N'Lisinopril',       N'10 mg',      N'PO'),
+        ( 2, N'Atorvastatin',     N'40 mg',      N'PO'),
+        ( 3, N'Aspirin',          N'81 mg',      N'PO'),
+        ( 4, N'Metoprolol',       N'25 mg',      N'PO'),
+        ( 5, N'Furosemide',       N'40 mg',      N'IV'),
+        ( 6, N'Insulin glargine', N'20 units',   N'SC'),
+        ( 7, N'Ceftriaxone',      N'1 g',        N'IV'),
+        ( 8, N'Azithromycin',     N'500 mg',     N'IV'),
+        ( 9, N'Ondansetron',      N'4 mg',       N'IV'),
+        (10, N'Acetaminophen',    N'650 mg',     N'PO'),
+        (11, N'Heparin',          N'5000 units', N'SC'),
+        (12, N'Pantoprazole',     N'40 mg',      N'IV')
+    ) d(idx, MedicationName, Dose, Route)
+    WHERE d.idx = ((e.EncounterId * 7 + gs.value) % 12) + 1
+) m
 WHERE ((e.EncounterId * 5 + gs.value) % 6) < 5;   -- ~2.5 per encounter
 GO
 
@@ -635,40 +650,66 @@ SELECT
     e.EncounterId,
     e.PatientId,
     e.AttendingProviderId,
-    CHOOSE(((e.EncounterId * 7 + gs.value) % 6) + 1,
-           N'CBC', N'BMP', N'CMP', N'Troponin I', N'Lipid Panel', N'TSH'),
-    DATEADD(MINUTE, gs.value * 30,   e.AdmitTime),
+    lab.TestName,
+    DATEADD(MINUTE, gs.value * 30,      e.AdmitTime),
     DATEADD(MINUTE, gs.value * 30 + 45, e.AdmitTime),
     JSON_OBJECT(
-        'panel'        : CHOOSE(((e.EncounterId * 7 + gs.value) % 6) + 1,
-                                N'CBC', N'BMP', N'CMP',
-                                N'Troponin I', N'Lipid Panel', N'TSH'),
-        'specimen'     : N'Whole blood, EDTA',
-        'instrument'   : N'Sysmex XN-1000',
-        'performedBy'  : CONCAT(N'tech-', (gs.value * 7) % 999),
-        'verifiedBy'   : CONCAT(N'MT-',  (gs.value * 11) % 99),
-        'analytes'     : JSON_ARRAY(
-            JSON_OBJECT('name': N'WBC',   'value': 7.4 + (((e.EncounterId * 3 + gs.value) % 30) / 10.0),
-                        'unit': N'K/uL', 'refLow': 4.5,  'refHigh': 11.0),
-            JSON_OBJECT('name': N'RBC',   'value': 4.6 + (((e.EncounterId * 5 + gs.value) % 15) / 10.0),
-                        'unit': N'M/uL', 'refLow': 4.5,  'refHigh': 5.9),
-            JSON_OBJECT('name': N'HGB',   'value': 13 + (((e.EncounterId * 7 + gs.value) % 40) / 10.0),
-                        'unit': N'g/dL', 'refLow': 12.0, 'refHigh': 17.0),
-            JSON_OBJECT('name': N'HCT',   'value': 40 + (((e.EncounterId * 11 + gs.value) % 80) / 10.0),
-                        'unit': N'%',    'refLow': 36.0, 'refHigh': 51.0),
-            JSON_OBJECT('name': N'PLT',   'value': 200 + ((e.EncounterId * 13 + gs.value) % 150),
-                        'unit': N'K/uL', 'refLow': 150,  'refHigh': 400),
-            JSON_OBJECT('name': N'GLU',   'value': 80 + ((e.EncounterId * 17 + gs.value) % 80),
-                        'unit': N'mg/dL','refLow': 70,   'refHigh': 100),
-            JSON_OBJECT('name': N'BUN',   'value': 10 + ((e.EncounterId * 19 + gs.value) % 20),
-                        'unit': N'mg/dL','refLow': 7,    'refHigh': 20),
-            JSON_OBJECT('name': N'CR',    'value': 0.9 + (((e.EncounterId * 23 + gs.value) % 10) / 10.0),
-                        'unit': N'mg/dL','refLow': 0.6,  'refHigh': 1.3)
-        )
+        'panel'       : lab.TestName,
+        'specimen'    : lab.Specimen,
+        'instrument'  : lab.Instrument,
+        'performedBy' : CONCAT(N'tech-', (gs.value * 7) % 999),
+        'verifiedBy'  : CONCAT(N'MT-',  (gs.value * 11) % 99),
+        /* Analytes match the ordered test: a Troponin carries a troponin, a    */
+        /* TSH a TSH, a Lipid Panel a lipid profile — not a generic CBC.         */
+        'analytes'    :
+            CASE k.ti
+                WHEN 1 THEN JSON_ARRAY(   -- CBC
+                    JSON_OBJECT('name': N'WBC', 'value': 7.4 + (((e.EncounterId * 3  + gs.value) % 30) / 10.0), 'unit': N'K/uL', 'refLow': 4.5,  'refHigh': 11.0),
+                    JSON_OBJECT('name': N'RBC', 'value': 4.6 + (((e.EncounterId * 5  + gs.value) % 15) / 10.0), 'unit': N'M/uL', 'refLow': 4.5,  'refHigh': 5.9),
+                    JSON_OBJECT('name': N'HGB', 'value': 13  + (((e.EncounterId * 7  + gs.value) % 40) / 10.0), 'unit': N'g/dL', 'refLow': 12.0, 'refHigh': 17.0),
+                    JSON_OBJECT('name': N'HCT', 'value': 40  + (((e.EncounterId * 11 + gs.value) % 80) / 10.0), 'unit': N'%',    'refLow': 36.0, 'refHigh': 51.0),
+                    JSON_OBJECT('name': N'PLT', 'value': 200 + ((e.EncounterId * 13 + gs.value) % 150),         'unit': N'K/uL', 'refLow': 150,  'refHigh': 400))
+                WHEN 2 THEN JSON_ARRAY(   -- BMP
+                    JSON_OBJECT('name': N'Na',  'value': 136 + ((e.EncounterId * 3  + gs.value) % 8),          'unit': N'mmol/L', 'refLow': 135, 'refHigh': 145),
+                    JSON_OBJECT('name': N'K',   'value': 3.6 + (((e.EncounterId * 5  + gs.value) % 14) / 10.0), 'unit': N'mmol/L', 'refLow': 3.5, 'refHigh': 5.1),
+                    JSON_OBJECT('name': N'Cl',  'value': 99  + ((e.EncounterId * 7  + gs.value) % 8),          'unit': N'mmol/L', 'refLow': 98,  'refHigh': 107),
+                    JSON_OBJECT('name': N'CO2', 'value': 23  + ((e.EncounterId * 11 + gs.value) % 6),          'unit': N'mmol/L', 'refLow': 22,  'refHigh': 29),
+                    JSON_OBJECT('name': N'BUN', 'value': 10  + ((e.EncounterId * 13 + gs.value) % 12),         'unit': N'mg/dL',  'refLow': 7,   'refHigh': 20),
+                    JSON_OBJECT('name': N'CR',  'value': 0.9 + (((e.EncounterId * 17 + gs.value) % 10) / 10.0), 'unit': N'mg/dL',  'refLow': 0.6, 'refHigh': 1.3),
+                    JSON_OBJECT('name': N'GLU', 'value': 85  + ((e.EncounterId * 19 + gs.value) % 30),         'unit': N'mg/dL',  'refLow': 70,  'refHigh': 100),
+                    JSON_OBJECT('name': N'CA',  'value': 8.8 + (((e.EncounterId * 23 + gs.value) % 14) / 10.0), 'unit': N'mg/dL',  'refLow': 8.5, 'refHigh': 10.2))
+                WHEN 3 THEN JSON_ARRAY(   -- CMP (BMP + hepatic)
+                    JSON_OBJECT('name': N'Na',  'value': 136 + ((e.EncounterId * 3  + gs.value) % 8),          'unit': N'mmol/L', 'refLow': 135, 'refHigh': 145),
+                    JSON_OBJECT('name': N'K',   'value': 3.6 + (((e.EncounterId * 5  + gs.value) % 14) / 10.0), 'unit': N'mmol/L', 'refLow': 3.5, 'refHigh': 5.1),
+                    JSON_OBJECT('name': N'BUN', 'value': 10  + ((e.EncounterId * 13 + gs.value) % 12),         'unit': N'mg/dL',  'refLow': 7,   'refHigh': 20),
+                    JSON_OBJECT('name': N'CR',  'value': 0.9 + (((e.EncounterId * 17 + gs.value) % 10) / 10.0), 'unit': N'mg/dL',  'refLow': 0.6, 'refHigh': 1.3),
+                    JSON_OBJECT('name': N'GLU', 'value': 85  + ((e.EncounterId * 19 + gs.value) % 30),         'unit': N'mg/dL',  'refLow': 70,  'refHigh': 100),
+                    JSON_OBJECT('name': N'ALT', 'value': 12  + ((e.EncounterId * 3  + gs.value) % 40),         'unit': N'U/L',    'refLow': 7,   'refHigh': 56),
+                    JSON_OBJECT('name': N'AST', 'value': 14  + ((e.EncounterId * 5  + gs.value) % 25),         'unit': N'U/L',    'refLow': 10,  'refHigh': 40),
+                    JSON_OBJECT('name': N'ALP', 'value': 50  + ((e.EncounterId * 7  + gs.value) % 90),         'unit': N'U/L',    'refLow': 44,  'refHigh': 147),
+                    JSON_OBJECT('name': N'TBIL','value': 0.3 + (((e.EncounterId * 11 + gs.value) % 9)  / 10.0), 'unit': N'mg/dL',  'refLow': 0.1, 'refHigh': 1.2),
+                    JSON_OBJECT('name': N'ALB', 'value': 3.8 + (((e.EncounterId * 13 + gs.value) % 12) / 10.0), 'unit': N'g/dL',   'refLow': 3.5, 'refHigh': 5.0))
+                WHEN 4 THEN JSON_ARRAY(   -- Troponin I (mostly normal, occasionally elevated)
+                    JSON_OBJECT('name': N'Troponin I', 'value': ((e.EncounterId * 7 + gs.value) % 6) / 100.0, 'unit': N'ng/mL', 'refLow': 0.00, 'refHigh': 0.04))
+                WHEN 5 THEN JSON_ARRAY(   -- Lipid Panel
+                    JSON_OBJECT('name': N'Total Cholesterol', 'value': 150 + ((e.EncounterId * 3  + gs.value) % 90),  'unit': N'mg/dL', 'refLow': 0,  'refHigh': 200),
+                    JSON_OBJECT('name': N'LDL',               'value': 80  + ((e.EncounterId * 5  + gs.value) % 80),  'unit': N'mg/dL', 'refLow': 0,  'refHigh': 100),
+                    JSON_OBJECT('name': N'HDL',               'value': 40  + ((e.EncounterId * 7  + gs.value) % 30),  'unit': N'mg/dL', 'refLow': 40, 'refHigh': 90),
+                    JSON_OBJECT('name': N'Triglycerides',     'value': 90  + ((e.EncounterId * 11 + gs.value) % 120), 'unit': N'mg/dL', 'refLow': 0,  'refHigh': 150))
+                WHEN 6 THEN JSON_ARRAY(   -- TSH
+                    JSON_OBJECT('name': N'TSH', 'value': 0.5 + (((e.EncounterId * 7 + gs.value) % 45) / 10.0), 'unit': N'mIU/L', 'refLow': 0.4, 'refHigh': 4.0))
+            END
     ),
     N'Resulted'
 FROM clinical.Encounter e
-CROSS JOIN GENERATE_SERIES(1, 5) gs;
+CROSS JOIN GENERATE_SERIES(1, 5) gs
+CROSS APPLY (VALUES ( ((e.EncounterId * 7 + gs.value) % 6) + 1 )) k(ti)
+CROSS APPLY (VALUES (
+    CHOOSE(k.ti, N'CBC', N'BMP', N'CMP', N'Troponin I', N'Lipid Panel', N'TSH'),
+    CHOOSE(k.ti, N'Whole blood, EDTA', N'Serum', N'Serum', N'Serum', N'Serum (fasting)', N'Serum'),
+    CHOOSE(k.ti, N'Sysmex XN-1000', N'Roche cobas c703', N'Roche cobas c703',
+                 N'Abbott Architect i2000', N'Roche cobas c703', N'Roche cobas e601')
+)) lab(TestName, Specimen, Instrument);
 GO
 
 /* ============================================================================
@@ -680,7 +721,7 @@ GO
 PRINT N'--- clinical.Observation (batched) ---';
 
 DECLARE @Scale      FLOAT = 1.0;
-DECLARE @ObsPerEnc  INT   = CAST(2700 * @Scale AS INT);  -- 5 types × 540 samples
+DECLARE @ObsPerEnc  INT   = CAST(2700 * @Scale AS INT);  -- 6 types × 450 samples
 DECLARE @BatchEncounters INT = 1000;
 DECLARE @MinEnc INT, @MaxEnc INT, @CurEnc INT, @Batch INT = 0;
 SELECT @MinEnc = MIN(EncounterId), @MaxEnc = MAX(EncounterId) FROM clinical.Encounter;
@@ -698,21 +739,23 @@ BEGIN
         DATEADD(MINUTE, gs.value * 15, e.AdmitTime),
         t.ObservationType,
         CASE t.ObservationType
-            WHEN N'HeartRate'     THEN  60 + ((gs.value + e.EncounterId * 3) % 60)
-            WHEN N'BloodPressure' THEN 110 + ((gs.value + e.EncounterId * 5) % 50)
-            WHEN N'SpO2'          THEN  90 + ((gs.value + e.EncounterId * 7) % 10)
-            WHEN N'Temperature'   THEN  36.5 + (((gs.value + e.EncounterId * 11) % 25) / 10.0)
-            WHEN N'RespRate'      THEN  12 + ((gs.value + e.EncounterId * 13) % 12)
+            WHEN N'HeartRate'   THEN  60 + ((gs.value + e.EncounterId * 3)  % 60)
+            WHEN N'SystolicBP'  THEN 110 + ((gs.value + e.EncounterId * 5)  % 50)
+            WHEN N'DiastolicBP' THEN  65 + ((gs.value + e.EncounterId * 7)  % 30)
+            WHEN N'SpO2'        THEN  90 + ((gs.value + e.EncounterId * 11) % 10)
+            WHEN N'Temperature' THEN  36.5 + (((gs.value + e.EncounterId * 13) % 25) / 10.0)
+            WHEN N'RespRate'    THEN  12 + ((gs.value + e.EncounterId * 17) % 12)
         END,
         t.Unit
     FROM clinical.Encounter e
-    CROSS JOIN GENERATE_SERIES(1, @ObsPerEnc / 5) gs
+    CROSS JOIN GENERATE_SERIES(1, @ObsPerEnc / 6) gs
     CROSS JOIN (VALUES
-        (N'HeartRate',     N'bpm'),
-        (N'BloodPressure', N'mmHg'),
-        (N'SpO2',          N'%'),
-        (N'Temperature',   N'C'),
-        (N'RespRate',      N'/min')
+        (N'HeartRate',   N'bpm'),
+        (N'SystolicBP',  N'mmHg'),
+        (N'DiastolicBP', N'mmHg'),
+        (N'SpO2',        N'%'),
+        (N'Temperature', N'C'),
+        (N'RespRate',    N'/min')
     ) t(ObservationType, Unit)
     WHERE e.EncounterId BETWEEN @CurEnc AND @CurEnc + @BatchEncounters - 1;
 

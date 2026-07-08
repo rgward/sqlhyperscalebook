@@ -6,13 +6,15 @@
    Surface area kept intentionally small:
      * clinical.GetPatientChart       — read by encounter id
      * clinical.GetPatientChartByBed  — read the active encounter on a bed
+     * clinical.SearchEncounters      — search encounters by optional filters (OPPO)
      * clinical.AdmitPatient          — open an encounter and occupy a bed
      * clinical.DischargePatient      — close the encounter and free the bed
      * clinical.RecordVitals          — append an observation
      * clinical.PlaceMedicationOrder  — append a medication order
      * clinical.FileLabResult         — append a lab result (JSON payload)
      * clinical.AddClinicalNote       — append a free-text note
-
+     * clinical.AddDiagnosis          — append a coded diagnosis
+     * clinical.RecordAllergy         — record a patient allergy (survives discharge)
    The admit/discharge procedures are the only multi-statement transactions
    in the book's through-line: each touches two tables (Encounter + Bed)
    and the pair must be atomic to keep the bedside invariant
@@ -30,29 +32,82 @@ SET NUMERIC_ROUNDABORT OFF;
 GO
 
 /* ---- Read: chart for a specific encounter ------------------------------ */
+/* Explicit column list (not SELECT *) so the result shape is a stable contract */
+/* for the app / DAB / MCP even if vPatientChart gains columns later.           */
 CREATE OR ALTER PROCEDURE clinical.GetPatientChart
     @EncounterId INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT *
+    SELECT
+        EncounterId, EncounterStatus, EncounterType, AdmitTime, DischargeTime, IntakeJson,
+        PatientId, MRN, PatientName, DateOfBirth, Sex, AgeYears,
+        DepartmentId, DepartmentName, UnitId, UnitName, BedId, BedNumber,
+        AttendingProviderId, AttendingProviderName, AttendingProviderRole,
+        Diagnoses, Medications, Allergies, LatestVitals, RecentLabs
     FROM clinical.vPatientChart
     WHERE EncounterId = @EncounterId;
 END;
 GO
 
 /* ---- Read: chart for whoever is currently in a bed --------------------- */
+/* Same explicit-column contract as GetPatientChart.                            */
 CREATE OR ALTER PROCEDURE clinical.GetPatientChartByBed
     @BedId INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT vpc.*
-    FROM clinical.vPatientChart AS vpc
-    WHERE vpc.BedId = @BedId
-      AND vpc.EncounterStatus = N'Active';
+    SELECT
+        EncounterId, EncounterStatus, EncounterType, AdmitTime, DischargeTime, IntakeJson,
+        PatientId, MRN, PatientName, DateOfBirth, Sex, AgeYears,
+        DepartmentId, DepartmentName, UnitId, UnitName, BedId, BedNumber,
+        AttendingProviderId, AttendingProviderName, AttendingProviderRole,
+        Diagnoses, Medications, Allergies, LatestVitals, RecentLabs
+    FROM clinical.vPatientChart
+    WHERE BedId = @BedId
+      AND EncounterStatus = N'Active';
+END;
+GO
+
+/* ---- Read: search encounters with optional filters --------------------- */
+/* The DAB / MCP "search" surface: every filter is optional. The              */
+/* (col = @p OR @p IS NULL) shape is exactly what SQL Server 2025's Optional   */
+/* Parameter Plan Optimization (OPPO) targets — on by default at database       */
+/* compatibility level 170 (the Hyperscale default). OPPO picks a seek when a  */
+/* filter is supplied and a scan when it is NULL, per execution, instead of    */
+/* one compromise plan for all. Demonstrated in Ch 10 §13 (IQP). Returns        */
+/* encounter summary rows; the caller opens a full chart via GetPatientChart.  */
+CREATE OR ALTER PROCEDURE clinical.SearchEncounters
+    @PatientId           INT          = NULL,
+    @DepartmentId        INT          = NULL,
+    @AttendingProviderId INT          = NULL,
+    @Status              NVARCHAR(20) = NULL,
+    @FromAdmit           DATETIME2(3) = NULL,
+    @ToAdmit             DATETIME2(3) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        e.EncounterId,
+        e.PatientId,
+        e.DepartmentId,
+        e.AttendingProviderId,
+        e.BedId,
+        e.EncounterType,
+        e.AdmitTime,
+        e.DischargeTime,
+        e.Status
+    FROM clinical.Encounter AS e
+    WHERE (@PatientId           IS NULL OR e.PatientId           = @PatientId)
+      AND (@DepartmentId        IS NULL OR e.DepartmentId        = @DepartmentId)
+      AND (@AttendingProviderId IS NULL OR e.AttendingProviderId = @AttendingProviderId)
+      AND (@Status              IS NULL OR e.Status              = @Status)
+      AND (@FromAdmit           IS NULL OR e.AdmitTime          >= @FromAdmit)
+      AND (@ToAdmit             IS NULL OR e.AdmitTime          <= @ToAdmit)
+    ORDER BY e.AdmitTime DESC;
 END;
 GO
 
@@ -110,10 +165,26 @@ BEGIN
         WHERE BedId = @BedId;
 
         COMMIT TRANSACTION;
+
+        /* Also return the new id as a single-row result set, so result-set-      */
+        /* oriented consumers (Data API Builder, the SQL MCP server) get it        */
+        /* without having to read an OUTPUT parameter. The @EncounterId OUTPUT     */
+        /* parameter is kept for the ADO.NET app (Ch 4).                           */
+        SELECT @EncounterId AS EncounterId;
     END TRY
     BEGIN CATCH
         IF XACT_STATE() <> 0
             ROLLBACK TRANSACTION;
+
+        /* A concurrent admit can win the race between the up-front check and
+           our INSERT; the filtered unique index UX_Encounter_ActiveBed then
+           rejects our INSERT (error 2627/2601). Translate that into the same
+           clean error the up-front check raises, so callers see one message
+           for the conflict regardless of which check detected it. Under the
+           Ch 10 concurrent load, this keeps the error surface tidy. */
+        IF ERROR_NUMBER() IN (2627, 2601)
+            THROW 50002, 'Bed already has an active encounter.', 1;
+
         THROW;
     END CATCH;
 END;
@@ -145,8 +216,11 @@ BEGIN
 
         UPDATE clinical.Encounter
         SET Status        = N'Discharged',
-            DischargeTime = SYSUTCDATETIME(),
-            BedId         = NULL          -- release the FK so the bed can be reused
+            DischargeTime = SYSUTCDATETIME()
+            /* BedId is intentionally KEPT — it preserves which bed the patient
+               occupied for this encounter. The bedside invariant
+               (UX_Encounter_ActiveBed) is filtered to Status='Active', so a
+               discharged encounter never conflicts when the bed is reused. */
         WHERE EncounterId = @EncounterId;
 
         IF @BedId IS NOT NULL
@@ -202,9 +276,9 @@ GO
 CREATE OR ALTER PROCEDURE clinical.PlaceMedicationOrder
     @EncounterId    INT,
     @MedicationName NVARCHAR(200),
+    @OrderedById    INT,
     @Dose           NVARCHAR(50)  = NULL,
-    @Route          NVARCHAR(50)  = NULL,
-    @OrderedById    INT
+    @Route          NVARCHAR(50)  = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -289,6 +363,63 @@ BEGIN
     IF @@ROWCOUNT = 0
     BEGIN
         THROW 50050, 'Unknown encounter.', 1;
+    END;
+END;
+GO
+
+/* ---- Write: add a coded diagnosis to an encounter ---------------------- */
+/* Single-statement DML — atomic on its own; no explicit transaction. */
+CREATE OR ALTER PROCEDURE clinical.AddDiagnosis
+    @EncounterId   INT,
+    @IcdCode       VARCHAR(10),
+    @DiagnosedById INT,
+    @Description    NVARCHAR(300) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO clinical.Diagnosis
+        (EncounterId, IcdCode, Description, DiagnosedById)
+    SELECT
+        e.EncounterId,
+        @IcdCode,
+        @Description,
+        @DiagnosedById
+    FROM clinical.Encounter AS e
+    WHERE e.EncounterId = @EncounterId;
+
+    IF @@ROWCOUNT = 0
+    BEGIN
+        THROW 50060, 'Unknown encounter.', 1;
+    END;
+END;
+GO
+
+/* ---- Write: record a patient allergy ----------------------------------- */
+/* Allergies attach to the PATIENT (they survive discharge), so this proc     */
+/* validates the patient, not an encounter. Single-statement DML — atomic.    */
+CREATE OR ALTER PROCEDURE clinical.RecordAllergy
+    @PatientId INT,
+    @Substance NVARCHAR(200),
+    @Severity  NVARCHAR(20),
+    @Reaction  NVARCHAR(200) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO clinical.Allergy
+        (PatientId, Substance, Reaction, Severity)
+    SELECT
+        p.PatientId,
+        @Substance,
+        @Reaction,
+        @Severity
+    FROM clinical.Patient AS p
+    WHERE p.PatientId = @PatientId;
+
+    IF @@ROWCOUNT = 0
+    BEGIN
+        THROW 50070, 'Unknown patient.', 1;
     END;
 END;
 GO

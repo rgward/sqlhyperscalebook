@@ -58,7 +58,9 @@ CREATE TABLE ops.Unit
     CONSTRAINT PK_Unit PRIMARY KEY CLUSTERED (UnitId),
     CONSTRAINT UQ_Unit_Name UNIQUE (Name),
     CONSTRAINT FK_Unit_Department
-        FOREIGN KEY (DepartmentId) REFERENCES ops.Department (DepartmentId)
+        FOREIGN KEY (DepartmentId) REFERENCES ops.Department (DepartmentId),
+    CONSTRAINT CK_Unit_Type
+        CHECK (UnitType IN (N'ICU', N'Med-Surg', N'ED', N'Telemetry', N'OR', N'L&D'))
 );
 GO
 
@@ -166,7 +168,9 @@ CREATE TABLE ops.Appointment
         FOREIGN KEY (ProviderId) REFERENCES ops.Provider (ProviderId),
     CONSTRAINT FK_Appointment_Department
         FOREIGN KEY (DepartmentId) REFERENCES ops.Department (DepartmentId),
-    CONSTRAINT CK_Appointment_Window CHECK (ScheduledEnd > ScheduledStart)
+    CONSTRAINT CK_Appointment_Window CHECK (ScheduledEnd > ScheduledStart),
+    CONSTRAINT CK_Appointment_Status
+        CHECK (Status IN (N'Scheduled', N'Completed', N'Cancelled', N'NoShow'))
 );
 GO
 
@@ -207,23 +211,56 @@ CREATE TABLE clinical.ClinicalNote
 GO
 
 /* ---- clinical.Observation  (the high-volume telemetry table) -------------- */
-/* Modest seed in Ch 2; grown to large volume in Ch 10 for the page-server /   */
-/* RBPEX / columnstore story. BIGINT key anticipates that growth.              */
+/* DESIGN DECISION — clustering key vs primary key (Ch 2 §6; decision log        */
+/* chatsessions/2026-07-07_ch02-schema-hardening-sqlsim-ch10-concurrency.md).    */
+/* Primary key and clustering key are INDEPENDENT choices — a PK is clustered     */
+/* only by default, not by rule. Real vitals arrive as a concurrent trickle from */
+/* device-integration engines (HL7 ORU / FHIR Observation), so this table sits   */
+/* on a high-concurrency INSERT path, and the two keys are split on purpose:      */
+/*                                                                                */
+/*   * PK = ObservationId (BIGINT IDENTITY), declared NONCLUSTERED. It is a       */
+/*     surrogate for identity/uniqueness ONLY — nothing seeks Observation by      */
+/*     ObservationId and no FK references it, so the nonclustered PK costs        */
+/*     effectively nothing.                                                       */
+/*   * CLUSTERED key = (EncounterId, RecordedAt, ObservationId). An ascending     */
+/*     IDENTITY clustered key (the default) would drive every concurrent insert   */
+/*     onto the same last page — a PAGELATCH_EX convoy. Leading with EncounterId  */
+/*     instead spreads inserts across the hundreds of concurrently-active         */
+/*     encounters (no global hot page) WITHOUT relying on                         */
+/*     OPTIMIZE_FOR_SEQUENTIAL_KEY (a convoy-manager, not a cure), and the same   */
+/*     key serves the "latest vitals per encounter" chart read as a seek.         */
+/*     It meets narrow / unique / static and trades "ever-increasing" on purpose  */
+/*     to distribute the write load. ObservationId is appended so the tuple is    */
+/*     unique (see the UNIQUE CLUSTERED index below).                             */
+/*                                                                                */
+/* Modest seed in Ch 2; Ch 10 adds a true clustered-columnstore *history archive* */
+/* + the ~1 TB grow. The live table is never converted to columnstore.           */
 CREATE TABLE clinical.Observation
 (
     ObservationId   BIGINT        NOT NULL IDENTITY(1, 1),
     EncounterId     INT           NOT NULL,
     PatientId       INT           NOT NULL,
     RecordedAt      DATETIME2(3)  NOT NULL,
-    ObservationType NVARCHAR(20)  NOT NULL,   -- HeartRate | BloodPressure | SpO2 | Temperature | RespRate
+    ObservationType NVARCHAR(20)  NOT NULL,   -- HeartRate | SystolicBP | DiastolicBP | SpO2 | Temperature | RespRate
     ValueNumeric    DECIMAL(9, 3) NULL,
     Unit            NVARCHAR(20)  NULL,
-    CONSTRAINT PK_Observation PRIMARY KEY CLUSTERED (ObservationId),
+    CONSTRAINT PK_Observation PRIMARY KEY NONCLUSTERED (ObservationId),
     CONSTRAINT FK_Observation_Encounter
         FOREIGN KEY (EncounterId) REFERENCES clinical.Encounter (EncounterId),
     CONSTRAINT FK_Observation_Patient
-        FOREIGN KEY (PatientId) REFERENCES clinical.Patient (PatientId)
+        FOREIGN KEY (PatientId) REFERENCES clinical.Patient (PatientId),
+    CONSTRAINT CK_Observation_Type
+        CHECK (ObservationType IN (N'HeartRate', N'SystolicBP', N'DiastolicBP', N'SpO2', N'Temperature', N'RespRate'))
 );
+GO
+
+/* Clustered key — see the DESIGN DECISION note on the table above. Declared     */
+/* UNIQUE (ObservationId makes the tuple unique) so SQL stores no 4-byte          */
+/* uniquifier and the optimizer knows each row is uniquely keyed. This replaces   */
+/* a separate nonclustered (EncounterId, RecordedAt) index — the clustered key    */
+/* already is that index.                                                         */
+CREATE UNIQUE CLUSTERED INDEX CIX_Observation_Encounter_RecordedAt
+    ON clinical.Observation (EncounterId, RecordedAt, ObservationId);
 GO
 
 /* ---- clinical.MedicationOrder -------------------------------------------- */
@@ -294,14 +331,17 @@ CREATE TABLE clinical.LabResult
 GO
 
 /* ---- Supporting nonclustered indexes (the joins every later chapter uses) - */
+/* Each chart section in 03-views.sql joins/groups on EncounterId (or          */
+/* PatientId for allergies). These indexes turn each section into a seek so a   */
+/* single-encounter chart read never scans a child table.                      */
 CREATE NONCLUSTERED INDEX IX_Encounter_PatientId
     ON clinical.Encounter (PatientId) INCLUDE (DepartmentId, AdmitTime, Status);
-CREATE NONCLUSTERED INDEX IX_Encounter_BedId
-    ON clinical.Encounter (BedId) INCLUDE (Status) WHERE BedId IS NOT NULL;
-CREATE NONCLUSTERED INDEX IX_Observation_Encounter_RecordedAt
-    ON clinical.Observation (EncounterId, RecordedAt);
 CREATE NONCLUSTERED INDEX IX_Note_Encounter
     ON clinical.ClinicalNote (EncounterId);
+CREATE NONCLUSTERED INDEX IX_Diagnosis_Encounter
+    ON clinical.Diagnosis (EncounterId);         -- vChartDiagnoses
+CREATE NONCLUSTERED INDEX IX_MedicationOrder_Encounter
+    ON clinical.MedicationOrder (EncounterId);   -- vChartMedications
 CREATE NONCLUSTERED INDEX IX_Appointment_Provider_Start
     ON ops.Appointment (ProviderId, ScheduledStart);
 CREATE NONCLUSTERED INDEX IX_Bed_UnitId

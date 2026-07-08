@@ -76,6 +76,59 @@ MSSQL extension or `sqlcmd`.
 Either way, **scripts never hard-code secrets** — they read them from
 environment variables or prompt you.
 
+### Running the SQL scripts (and re-running them)
+
+Run the five schema scripts **in order once**, then verify:
+
+| Step | Script | What it does |
+|---|---|---|
+| 1 | `01-schemas.sql` | Creates the `clinical` and `ops` schemas. |
+| 2 | `02-tables.sql` | Creates all 13 tables (keys, FKs, constraints, `json` columns). |
+| 3 | `03-views.sql` | Creates the `vPatientChart` chart views. |
+| 4 | `04-procedures.sql` | Creates the read/write procedures (admit, discharge, record vitals…). |
+| 5 | `05-seed.sql` | Seeds ~10 GB of fully synthetic data. Runs ~5–15 min (log-rate gated). |
+| ✓ | `verify-data.sql` | Read-only PASS/FAIL check. You want it to end with **`ALL CHECKS PASSED`**. |
+
+**You never drop the database to start over.** Each script is safe to re-run,
+but they differ in what they discard:
+
+- `01` is a guarded no-op on re-run.
+- **`02` drops and recreates the tables — this discards all data.** Re-run it
+  only when you've changed the schema.
+- `03` and `04` use `CREATE OR ALTER` — they redefine in place and touch no data.
+- **`05` truncates and reseeds — it reloads the data without changing the
+  schema.** This is the quick "give me fresh data" path.
+
+So: to reload just the data, re-run **`05` alone**; to rebuild after a schema
+change, re-run **`02`→`05`**. Dropping the *database* is never necessary and
+would needlessly discard your compute shape, HA replica, and firewall rules.
+
+### Why each script starts with `SET` options
+
+Every `.sql` file opens with the same seven-line block:
+
+```sql
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET NUMERIC_ROUNDABORT OFF;
+```
+
+Those seven are the **exact settings SQL Server requires** to create a filtered
+index, indexed view, computed-column index, or JSON index — if any one is wrong,
+the `CREATE` fails with **Msg 1934**. `02-tables.sql` needs them for its filtered
+unique index on `Encounter`, and `QUOTED_IDENTIFIER` / `ANSI_NULLS` are recorded
+on the object at creation, so they also apply to later work (like the JSON index
+added in a later chapter).
+
+The preamble is in **every** file for portability: **SSMS** already defaults most
+of these ON, but **`sqlcmd` defaults `QUOTED_IDENTIFIER` and `ARITHABORT` OFF**.
+With the preamble, the scripts behave identically whether you run them from the
+MSSQL extension, SSMS, or `sqlcmd` — so leave it in place and run each file whole.
+
 ## License
 
 License TBD (to be set with the publisher before public release).

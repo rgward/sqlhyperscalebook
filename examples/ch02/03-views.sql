@@ -77,6 +77,9 @@ GROUP BY m.EncounterId;
 GO
 
 /* ---- Latest vitals (most recent of each type per encounter) ------------ */
+/* Ranks all Observation rows; only efficient when the caller filters by      */
+/* encounter (the 04-procedures always do). Do not SELECT * FROM              */
+/* vPatientChart unfiltered at scale — it would rank the whole table.         */
 CREATE OR ALTER VIEW clinical.vChartLatestVitals
 AS
 WITH ranked AS
@@ -109,6 +112,7 @@ GROUP BY r.EncounterId;
 GO
 
 /* ---- Recent resulted labs (last 5 per encounter) ----------------------- */
+/* Ranks all resulted LabResult rows; filter by encounter (the procedures do). */
 CREATE OR ALTER VIEW clinical.vChartRecentLabs
 AS
 WITH ranked AS
@@ -162,8 +166,10 @@ SELECT
     p.FullName                                 AS PatientName,
     p.DateOfBirth,
     p.Sex,
-    DATEDIFF(YEAR, p.DateOfBirth, SYSUTCDATETIME()) AS AgeYears,
-    p.InsuranceJson,
+    DATEDIFF(YEAR, p.DateOfBirth, SYSUTCDATETIME())
+        - IIF((MONTH(p.DateOfBirth) > MONTH(SYSUTCDATETIME()))
+           OR (MONTH(p.DateOfBirth) = MONTH(SYSUTCDATETIME())
+               AND DAY(p.DateOfBirth) > DAY(SYSUTCDATETIME())), 1, 0) AS AgeYears,
 
     /* Location */
     d.DepartmentId,

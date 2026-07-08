@@ -404,22 +404,26 @@ Hyperscale"* payoff Ch 1 §6 points to:
 after the schema build.)
 
 ### Build the schema and seed (`examples/ch02/01-schemas.sql` → `05-seed.sql`)
-Two schemas, 13 tables, the digital-patient-chart views, foundational
-procedures, and a reproducible synthetic seed (no real PHI).
+**Guide the reader through this — do NOT run it for them.** Like connect-verify,
+this is reader-driven: the schema DDL *is* the lesson, so the reader runs each
+script and the book shows the excerpts. The agent states the run order, points to
+the files, and explains them on request — it does not execute them.
 
+Tell the reader to run these **in order** (MSSQL extension or `sqlcmd`; each opens
+with the `sqlcmd` SET-options preamble):
 ```
 01-schemas.sql    -- create schema clinical; create schema ops;
 02-tables.sql     -- 13 tables, FKs, filtered unique index for active beds
 03-views.sql      -- clinical.vPatientChart + per-section views
 04-procedures.sql -- GetPatientChart / AdmitPatient / DischargePatient / RecordVitals
-05-seed.sql       -- ~10 GB of synthetic data
+05-seed.sql       -- ~10 GB of synthetic data (log-rate gated; a few minutes)
 ```
-
-- The schema-sanity query lists 13 tables across `clinical.*` and `ops.*`.
-- Row counts from `05-seed.sql` match the documented volumes (within a few
-  percent). Reserved space is "a little over 10 GB." Seed runtime on
-  `HS_Gen5_8` is a few minutes (log-rate gated); lower the per-batch scale
-  factor at the top of `05-seed.sql` for a smoke test.
+Then have them run `verify-data.sql` — it **self-checks**: it prints per-table row
+counts + reserved size, then a **PASS/FAIL** result set (base tables present, no
+empty tables, `Observation` anchor floor, total-size floor) and **raises an error
+if the seed is incomplete**. Set its `@Scale` to match the seed run (default 1.0 =
+full seed). A clean run ends with **"ALL CHECKS PASSED"**; any `FAIL` turns red in
+SSMS / the client — the reader doesn't have to eyeball the numbers.
 
 ## Scope discipline
 
