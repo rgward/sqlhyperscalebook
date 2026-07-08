@@ -24,8 +24,12 @@
    script — readers stay at the volumes seeded here.
 
    This is the through-line dataset. **All data is fully synthetic. No real
-   PHI.** Recognisable names are *Seinfeld supporting cast* — used as flavour
-   to make the data memorable. Jerry does not appear in this dataset.
+   PHI.** It was **generated with AI assistance** and, while plausible, **may
+   not be a fully accurate representation of real medical, clinical, laboratory,
+   or billing data** — it is for illustration only and must not be used for any
+   clinical or diagnostic purpose. Recognisable names are *Seinfeld supporting
+   cast* — used as flavour to make the data memorable. Jerry does not appear in
+   this dataset.
 
    Knob (@Scale): the bulky tables Encounter (discharged), Appointment, and
    Observation each declare a local `@Scale FLOAT = 1.0` at the top of their
@@ -34,8 +38,10 @@
    (Department / Unit / Bed / named Providers / named Patients) is not
    scaled by @Scale — those are deterministic constants.
 
-   Run time: at @Scale = 1.0 expect ~5–15 minutes on a 4 vCore HS_Gen5
-   primary (log-rate gated; see Ch 10 §5 for why).
+   Run time: at @Scale = 1.0 the Observation load dominates. Measured
+   ~16 minutes on an HS_Gen5_8 primary (2026-07-08). The load is log-rate
+   gated (~105 MiB/s), so a larger vCore size does NOT shorten it — see
+   Ch 10 §5 for why.
 
    Idempotence: re-runnable. The script TRUNCATEs the synthesised tables
    and reseeds Patient / Provider / Department / Unit / Bed. Identity
@@ -64,6 +70,14 @@ GO
 
 /* ============================================================================
    Reset (idempotent re-run)
+   Leaf tables TRUNCATE (which also resets their IDENTITY to 1). The parent
+   tables are FK-referenced, so they can't be TRUNCATEd — DELETE instead, in
+   child-first order. We do NOT reseed identity: on the canonical 02 -> 05 run
+   the tables are freshly created by 02-tables.sql, so identity naturally
+   starts at 1. (Reseeding to 0 on a never-inserted table makes the first id 0;
+   and the FK inserts below join to ACTUAL ids via ROW_NUMBER, so they don't
+   depend on the id range anyway.) Re-running 05 alone continues the parents'
+   identity sequence — still valid; run 02 -> 05 for 1-based ids.
    ============================================================================ */
 PRINT N'--- Resetting tables ---';
 TRUNCATE TABLE clinical.Observation;
@@ -72,13 +86,13 @@ TRUNCATE TABLE clinical.MedicationOrder;
 TRUNCATE TABLE clinical.ClinicalNote;
 TRUNCATE TABLE clinical.Diagnosis;
 TRUNCATE TABLE clinical.Allergy;
-DELETE FROM ops.Appointment;            DBCC CHECKIDENT ('ops.Appointment',      RESEED, 0) WITH NO_INFOMSGS;
-DELETE FROM clinical.Encounter;         DBCC CHECKIDENT ('clinical.Encounter',   RESEED, 0) WITH NO_INFOMSGS;
-DELETE FROM clinical.Patient;           DBCC CHECKIDENT ('clinical.Patient',     RESEED, 0) WITH NO_INFOMSGS;
-DELETE FROM ops.Provider;               DBCC CHECKIDENT ('ops.Provider',         RESEED, 0) WITH NO_INFOMSGS;
-DELETE FROM ops.Bed;                    DBCC CHECKIDENT ('ops.Bed',              RESEED, 0) WITH NO_INFOMSGS;
-DELETE FROM ops.Unit;                   DBCC CHECKIDENT ('ops.Unit',             RESEED, 0) WITH NO_INFOMSGS;
-DELETE FROM ops.Department;             DBCC CHECKIDENT ('ops.Department',       RESEED, 0) WITH NO_INFOMSGS;
+DELETE FROM ops.Appointment;
+DELETE FROM clinical.Encounter;
+DELETE FROM clinical.Patient;
+DELETE FROM ops.Provider;
+DELETE FROM ops.Bed;
+DELETE FROM ops.Unit;
+DELETE FROM ops.Department;
 GO
 
 /* ============================================================================
@@ -195,25 +209,33 @@ FROM (VALUES
 JOIN ops.Department d ON d.Name = v.DeptName;
 GO
 
-/* Generated providers — fill out to ~150 across all departments. */
+/* Generated providers — fill out to ~150 across all departments.
+   Random name/role indices are materialised ONCE per row in CROSS APPLY r.
+   A NEWID() placed directly inside CHOOSE is re-evaluated per internal
+   comparison, so the index isn't stable and CHOOSE can fall through to NULL. */
 INSERT INTO ops.Provider (FullName, DepartmentId, Role, EntraObjectId)
 SELECT
     CONCAT(N'Dr. ',
-        CHOOSE(((gs.value * 7) % 20) + 1,
+        CHOOSE(r.fi,
                N'Alex',N'Sam',N'Jordan',N'Taylor',N'Morgan',N'Casey',
                N'Riley',N'Jamie',N'Dakota',N'Avery',N'Rowan',N'Quinn',
                N'Logan',N'Hayden',N'Drew',N'Emerson',N'Skyler',N'Reese',
                N'Phoenix',N'Sage'),
         N' ',
-        CHOOSE(((gs.value * 13) % 20) + 1,
+        CHOOSE(r.li,
                N'Adler',N'Brooks',N'Carter',N'Donovan',N'Ellis',N'Foster',
                N'Garner',N'Hayes',N'Iverson',N'Jensen',N'Klein',N'Larson',
                N'Mercer',N'Novak',N'Owens',N'Park',N'Quinn',N'Reyes',
                N'Sanders',N'Tucker')),
     d.DepartmentId,
-    CHOOSE(((gs.value * 11) % 4) + 1, N'Attending', N'Resident', N'Hospitalist', N'Fellow'),
+    CHOOSE(r.ri, N'Attending', N'Resident', N'Hospitalist', N'Fellow'),
     NEWID()
 FROM GENERATE_SERIES(1, 116) gs
+CROSS APPLY (SELECT
+    ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 20 + 1 AS fi,
+    ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 20 + 1 AS li,
+    ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 4  + 1 AS ri
+) r
 CROSS APPLY (
     SELECT TOP 1 DepartmentId
     FROM ops.Department
@@ -298,18 +320,24 @@ INSERT INTO clinical.Patient
 SELECT
     CONCAT(N'WG-', RIGHT(CONCAT(N'000000', gs.value + @Have), 7)),
     CONCAT(
-        CHOOSE(((gs.value * 7919)  % 24) + 1,
+        CHOOSE(r.fi,
             N'Avery',N'Bailey',N'Cameron',N'Devon',N'Eden',N'Finley',
             N'Gray',N'Harper',N'Indigo',N'Jules',N'Kai',N'Lane',
             N'Micah',N'Noa',N'Oakley',N'Parker',N'Quinn',N'Reagan',
-            N'Sage',N'Tate',N'Umber',N'Vail',N'Wren',N'Yael'),
+            N'Sage',N'Tate',N'Umber',N'Vail',N'Wren',N'Yael',
+            N'Amara',N'Bodhi',N'Celeste',N'Dario',N'Esme',N'Frankie',
+            N'Giselle',N'Hugo',N'Ivy',N'Jonah',N'Keira',N'Leon',
+            N'Mira',N'Nero',N'Odette',N'Priya'),
         N' ',
-        CHOOSE(((gs.value * 6151)  % 30) + 1,
+        CHOOSE(r.li,
             N'Adler',N'Barker',N'Conroy',N'Doyle',N'Esposito',N'Finch',
             N'Garber',N'Holcomb',N'Ingram',N'Jansen',N'Kobayashi',N'Lassiter',
             N'Maldonado',N'Nguyen',N'Okafor',N'Petrov',N'Quintero',N'Reyes',
             N'Sokolov',N'Tanaka',N'Underwood',N'Vasquez',N'Whitaker',N'Xiang',
-            N'Yousef',N'Zheng',N'Brennan',N'Caldwell',N'Donnelly',N'Eberhardt')),
+            N'Yousef',N'Zheng',N'Brennan',N'Caldwell',N'Donnelly',N'Eberhardt',
+            N'Abara',N'Bianchi',N'Castellanos',N'Dubois',N'Eriksson',N'Fitzgerald',
+            N'Goldberg',N'Haddad',N'Ishikawa',N'Johansson',N'Kowalski',N'Lindqvist',
+            N'Moreau',N'Nakamura',N'Okonkwo',N'Rossi',N'Silva',N'Tremblay')),
     DATEFROMPARTS(
         1930 + (ABS(CHECKSUM(NEWID())) % 80),
         1   + (ABS(CHECKSUM(NEWID())) %  12),
@@ -342,6 +370,9 @@ SELECT
         'claimsAddress'     : N'PO Box 9000, Madison WI'
     )
 FROM GENERATE_SERIES(1, 9970) gs
+CROSS APPLY (SELECT
+    ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 40 + 1 AS fi,
+    ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 48 + 1 AS li) r
 WHERE gs.value <= @Need;
 GO
 
@@ -375,15 +406,23 @@ DECLARE @ProvCount  INT = (SELECT COUNT(*) FROM ops.Provider);
 DECLARE @DeptCount  INT = (SELECT COUNT(*) FROM ops.Department);
 DECLARE @PatCount   INT = (SELECT COUNT(*) FROM clinical.Patient);
 
-/* Active encounters (one per bed) */
+/* Active encounters (one per bed).
+   FK ids are picked from ACTUAL parent rows via dense ROW_NUMBER joins, not
+   1 + (x % count). Parent identity values are NOT guaranteed to be 1-based or
+   contiguous: DBCC CHECKIDENT(RESEED, 0) on a freshly-emptied table yields
+   0-based ids (0..N-1), and Hyperscale can also gap identity — so assuming
+   1..N breaks the FKs. Joining on dense row-numbers is correct regardless of
+   the actual id range. */
+;WITH P AS (SELECT PatientId,    ROW_NUMBER() OVER (ORDER BY PatientId)    - 1 AS rn FROM clinical.Patient),
+      D AS (SELECT DepartmentId, ROW_NUMBER() OVER (ORDER BY DepartmentId) - 1 AS rn FROM ops.Department),
+      R AS (SELECT ProviderId,   ROW_NUMBER() OVER (ORDER BY ProviderId)   - 1 AS rn FROM ops.Provider)
 INSERT INTO clinical.Encounter
     (PatientId, DepartmentId, AttendingProviderId, BedId,
      EncounterType, AdmitTime, Status, IntakeJson)
 SELECT
-    /* spread patients/providers/depts deterministically */
-    1 + ((b.BedId * 1019) % @PatCount)                              AS PatientId,
-    1 + ((b.BedId * 7)    % @DeptCount)                             AS DepartmentId,
-    1 + ((b.BedId * 31)   % @ProvCount)                             AS AttendingProviderId,
+    P.PatientId,
+    D.DepartmentId,
+    R.ProviderId,
     b.BedId                                                         AS BedId,
     CHOOSE(((b.BedId * 17) % 3) + 1, N'Inpatient', N'ED', N'Inpatient') AS EncounterType,
     DATEADD(HOUR, -1 * ((b.BedId * 13) % 96), SYSUTCDATETIME())     AS AdmitTime,
@@ -410,13 +449,21 @@ SELECT
             'temperatureC'   : 36.5 + (((b.BedId * 3) % 30) / 10.0),
             'respRate'       : 12 + ((b.BedId * 5)  % 12)),
         'painScore'         : ((b.BedId * 7) % 11),
-        'allergiesAtIntake' : JSON_ARRAY(N'Penicillin', N'Latex'),
-        'currentMedications': JSON_ARRAY(
-                                  N'Lisinopril 10mg daily',
-                                  N'Atorvastatin 40mg nightly',
-                                  N'Aspirin 81mg daily'),
-        'pastMedicalHistory': JSON_ARRAY(N'Hypertension', N'Hyperlipidemia',
-                                         N'Type 2 Diabetes'),
+        'allergiesAtIntake' : CHOOSE(((b.BedId * 3) % 4) + 1,
+                                  JSON_ARRAY(N'Penicillin', N'Latex'),
+                                  JSON_ARRAY(N'NKDA'),
+                                  JSON_ARRAY(N'Sulfa'),
+                                  JSON_ARRAY(N'Shellfish', N'Iodine contrast')),
+        'currentMedications': CHOOSE(((b.BedId * 5) % 4) + 1,
+                                  JSON_ARRAY(N'Lisinopril 10mg daily', N'Atorvastatin 40mg nightly', N'Aspirin 81mg daily'),
+                                  JSON_ARRAY(N'Metformin 1000mg twice daily', N'Insulin glargine 20 units nightly'),
+                                  JSON_ARRAY(N'Metoprolol 25mg twice daily', N'Apixaban 5mg twice daily'),
+                                  JSON_ARRAY(N'Albuterol inhaler as needed', N'Furosemide 40mg daily')),
+        'pastMedicalHistory': CHOOSE(((b.BedId * 7) % 4) + 1,
+                                  JSON_ARRAY(N'Hypertension', N'Hyperlipidemia', N'Type 2 Diabetes'),
+                                  JSON_ARRAY(N'COPD', N'Chronic kidney disease'),
+                                  JSON_ARRAY(N'Atrial fibrillation', N'Prior stroke'),
+                                  JSON_ARRAY(N'Coronary artery disease', N'Heart failure')),
         'socialHistory'     : JSON_OBJECT(
             'tobacco' : CHOOSE(((b.BedId * 7) % 3) + 1,
                                 N'Never', N'Former, quit 2018', N'Current 1ppd'),
@@ -427,7 +474,10 @@ SELECT
         'triageNurseId'     : 47,
         'triageNotes'       : N'Patient ambulatory; cooperative. Cardiac monitor and ECG within 10 min per ED protocol.'
     )
-FROM ops.Bed b;
+FROM ops.Bed b
+JOIN P ON P.rn = (b.BedId * 1019) % @PatCount
+JOIN D ON D.rn = (b.BedId * 7)    % @DeptCount
+JOIN R ON R.rn = (b.BedId * 31)   % @ProvCount;
 
 PRINT N'--- clinical.Encounter (discharged) ---';
 
@@ -441,13 +491,16 @@ DECLARE @Active INT = (SELECT COUNT(*) FROM clinical.Encounter);
 DECLARE @Discharged INT = @EncounterCount - @Active;
 PRINT CONCAT(N'    active = ', @Active, N', discharged to add = ', @Discharged);
 
+;WITH P AS (SELECT PatientId,    ROW_NUMBER() OVER (ORDER BY PatientId)    - 1 AS rn FROM clinical.Patient),
+      D AS (SELECT DepartmentId, ROW_NUMBER() OVER (ORDER BY DepartmentId) - 1 AS rn FROM ops.Department),
+      R AS (SELECT ProviderId,   ROW_NUMBER() OVER (ORDER BY ProviderId)   - 1 AS rn FROM ops.Provider)
 INSERT INTO clinical.Encounter
     (PatientId, DepartmentId, AttendingProviderId, BedId,
      EncounterType, AdmitTime, DischargeTime, Status, IntakeJson)
 SELECT
-    1 + ((gs.value * 4001) % @PatCount)                                AS PatientId,
-    1 + ((gs.value * 17)   % @DeptCount)                               AS DepartmentId,
-    1 + ((gs.value * 23)   % @ProvCount)                               AS AttendingProviderId,
+    P.PatientId,
+    D.DepartmentId,
+    R.ProviderId,
     NULL                                                               AS BedId,
     CHOOSE(((gs.value * 5) % 3) + 1, N'Inpatient', N'ED', N'Outpatient') AS EncounterType,
     DATEADD(DAY, -1 * (1 + ((gs.value * 7) % 720)), SYSUTCDATETIME())  AS AdmitTime,
@@ -473,6 +526,9 @@ SELECT
             'respRate'       : 12 + ((gs.value * 5) % 8))
     )
 FROM GENERATE_SERIES(1, 80000) gs
+JOIN P ON P.rn = (gs.value * 4001) % @PatCount
+JOIN D ON D.rn = (gs.value * 17)   % @DeptCount
+JOIN R ON R.rn = (gs.value * 23)   % @ProvCount
 WHERE gs.value <= @Discharged;
 GO
 
@@ -497,12 +553,15 @@ DECLARE @PatCount  INT = (SELECT COUNT(*) FROM clinical.Patient);
 DECLARE @ProvCount INT = (SELECT COUNT(*) FROM ops.Provider);
 DECLARE @DeptCount INT = (SELECT COUNT(*) FROM ops.Department);
 
+;WITH P AS (SELECT PatientId,    ROW_NUMBER() OVER (ORDER BY PatientId)    - 1 AS rn FROM clinical.Patient),
+      R AS (SELECT ProviderId,   ROW_NUMBER() OVER (ORDER BY ProviderId)   - 1 AS rn FROM ops.Provider),
+      D AS (SELECT DepartmentId, ROW_NUMBER() OVER (ORDER BY DepartmentId) - 1 AS rn FROM ops.Department)
 INSERT INTO ops.Appointment
     (PatientId, ProviderId, DepartmentId, ScheduledStart, ScheduledEnd, Status)
 SELECT
-    1 + ((gs.value * 1009) % @PatCount),
-    1 + ((gs.value * 41)   % @ProvCount),
-    1 + ((gs.value * 7)    % @DeptCount),
+    P.PatientId,
+    R.ProviderId,
+    D.DepartmentId,
     DATEADD(MINUTE, ((gs.value * 17) % 1440) - 360,
         DATEADD(DAY, ((gs.value * 11) % 730) - 365, SYSUTCDATETIME())),
     DATEADD(MINUTE, ((gs.value * 17) % 1440) - 360 + 30,
@@ -510,6 +569,9 @@ SELECT
     CHOOSE(((gs.value * 13) % 4) + 1,
            N'Scheduled', N'Completed', N'Cancelled', N'NoShow')
 FROM GENERATE_SERIES(1, 120000) gs
+JOIN P ON P.rn = (gs.value * 1009) % @PatCount
+JOIN R ON R.rn = (gs.value * 41)   % @ProvCount
+JOIN D ON D.rn = (gs.value * 7)    % @DeptCount
 WHERE gs.value <= @AppointmentCount;
 GO
 
@@ -558,11 +620,22 @@ SELECT
             N'subjective fevers, chills, and productive cough with green sputum, ',
             N'lightheadedness with one episode of near-syncope while ambulating, ',
             N'new lower extremity swelling and warmth with mild calf tenderness, '),
-        N'denying recent trauma, with associated mild diaphoresis and a pain score of ',
-        CAST(((e.EncounterId * 7) % 10) + 1 AS NVARCHAR(2)),
-        N' out of 10. Patient endorses adherence to home medications including ',
-        N'lisinopril, atorvastatin, and low-dose aspirin. No new medications or supplements. ',
-        N'Family history significant for premature coronary artery disease. ',
+        CHOOSE(((e.EncounterId * 5 + gs.value) % 4) + 1,
+            N'symptoms worse in the evening and partially relieved by rest. ',
+            N'no clear precipitating factors and no prior similar episodes. ',
+            N'associated mild diaphoresis and an otherwise stable appetite. ',
+            N'gradual onset over several days with no red-flag features. '),
+        N'Pain scored ', CAST(((e.EncounterId * 7) % 10) + 1 AS NVARCHAR(2)), N' out of 10. ',
+        CHOOSE(((e.EncounterId * 11 + gs.value) % 4) + 1,
+            N'Adherent to home medications with no new agents or supplements. ',
+            N'Reports occasional missed doses of antihypertensive therapy. ',
+            N'Recently started a new medication prescribed by an outside provider. ',
+            N'Takes only as-needed analgesics at home. '),
+        CHOOSE(((e.EncounterId * 13) % 4) + 1,
+            N'Family history significant for premature coronary artery disease. ',
+            N'Family history notable for type 2 diabetes and stroke. ',
+            N'No significant family history elicited. ',
+            N'Family history of malignancy in a first-degree relative. '),
         CHAR(13), CHAR(10),
         N'Objective: T 37.', CAST(((e.EncounterId * 3) % 9) AS NVARCHAR(1)),
         N'C, HR ', CAST(60 + ((e.EncounterId * 7) % 50) AS NVARCHAR(3)),
@@ -570,12 +643,31 @@ SELECT
         N'/', CAST(65 + ((e.EncounterId * 11) % 25) AS NVARCHAR(3)),
         N', RR ', CAST(12 + ((e.EncounterId * 5) % 10) AS NVARCHAR(3)),
         N', SpO2 ', CAST(92 + ((e.EncounterId * 3) % 7) AS NVARCHAR(3)),
-        N'% on room air. Patient appears comfortable, in no acute distress. ',
-        N'HEENT atraumatic and normocephalic, mucous membranes moist. Neck supple, no JVD, no lymphadenopathy. ',
-        N'Cardiac auscultation reveals regular rate and rhythm with no murmurs, rubs, or gallops. ',
-        N'Pulmonary exam with clear breath sounds bilaterally, no rales or wheezing. ',
-        N'Abdomen soft, non-tender, non-distended with normoactive bowel sounds. ',
-        N'Extremities warm and well perfused with 2+ pulses bilaterally and no edema. ',
+        N'% on room air. ',
+        CHOOSE(((e.EncounterId * 17 + gs.value) % 4) + 1,
+            N'Patient appears comfortable, in no acute distress. ',
+            N'Patient appears fatigued but interactive and cooperative. ',
+            N'Patient is ill-appearing but hemodynamically stable. ',
+            N'Patient is alert and in mild distress from pain. '),
+        N'HEENT atraumatic and normocephalic, mucous membranes moist; neck supple without JVD. ',
+        CHOOSE(((e.EncounterId * 19 + gs.value) % 4) + 1,
+            N'Cardiac exam regular rate and rhythm without murmurs, rubs, or gallops. ',
+            N'Cardiac exam with a soft II/VI systolic ejection murmur at the base. ',
+            N'Cardiac rhythm irregularly irregular, consistent with atrial fibrillation. ',
+            N'Tachycardic but regular, with no appreciable murmur. '),
+        CHOOSE(((e.EncounterId * 23 + gs.value) % 4) + 1,
+            N'Lungs clear to auscultation bilaterally without rales or wheezing. ',
+            N'Bibasilar crackles noted, worse on the right. ',
+            N'Scattered expiratory wheezes throughout both lung fields. ',
+            N'Decreased breath sounds at the right base. '),
+        CHOOSE(((e.EncounterId * 29 + gs.value) % 3) + 1,
+            N'Abdomen soft, non-tender, with normoactive bowel sounds. ',
+            N'Abdomen with right lower quadrant tenderness and voluntary guarding. ',
+            N'Abdomen mildly distended, non-tender, without rebound. '),
+        CHOOSE(((e.EncounterId * 31 + gs.value) % 3) + 1,
+            N'Extremities warm and well perfused with 2+ pulses and no edema. ',
+            N'Bilateral lower extremity pitting edema to the knees. ',
+            N'Unilateral calf swelling and tenderness noted. '),
         N'Neurologic exam grossly intact, alert and oriented to person, place, time, and situation. ',
         CHAR(13), CHAR(10),
         N'Assessment: ',
@@ -583,18 +675,33 @@ SELECT
             N'Acute coronary syndrome ruled out by serial troponins; likely musculoskeletal chest pain. ',
             N'Community-acquired pneumonia, lower lobe, responding to empiric antibiotics. ',
             N'Acute appendicitis, post-operative day 1, recovering well after laparoscopic appendectomy. ',
-            N'Symptomatic anemia, likely iron-deficiency, transfusion requirement nil at this time. ',
+            N'Symptomatic anemia, likely iron-deficiency, with no transfusion requirement at this time. ',
             N'Decompensated heart failure with reduced ejection fraction, diuresing on IV furosemide. '),
-        N'Pertinent comorbidities including hypertension, hyperlipidemia, and type 2 diabetes well controlled. ',
-        N'No acute neurologic or surgical concerns identified during today''s evaluation. ',
+        CHOOSE(((e.EncounterId * 37) % 4) + 1,
+            N'Comorbid hypertension, hyperlipidemia, and type 2 diabetes, well controlled. ',
+            N'Comorbid COPD and stage 3 chronic kidney disease. ',
+            N'History of atrial fibrillation maintained on anticoagulation. ',
+            N'No significant chronic comorbidities identified. '),
         CHAR(13), CHAR(10),
-        N'Plan: Continue current medical management with telemetry monitoring overnight. ',
-        N'Repeat basic metabolic panel and complete blood count in the morning. ',
-        N'Cardiology consultation has been placed for risk stratification and outpatient follow-up. ',
-        N'Physical therapy evaluation for safe ambulation prior to discharge planning. ',
-        N'Patient and family educated on medication reconciliation, dietary sodium restriction, ',
-        N'and the importance of follow-up with primary care within seven days of discharge. ',
-        N'Discharge anticipated within 48 hours pending clinical stability and home services arrangement. '
+        N'Plan: ',
+        CHOOSE(((e.EncounterId * 41 + gs.value) % 4) + 1,
+            N'Continue current medical management with telemetry monitoring overnight. ',
+            N'Admit for intravenous antibiotics and supportive care. ',
+            N'Serial abdominal exams and NPO status pending surgical evaluation. ',
+            N'Diurese with IV furosemide and monitor daily weights. '),
+        CHOOSE(((e.EncounterId * 43 + gs.value) % 3) + 1,
+            N'Repeat basic metabolic panel and complete blood count in the morning. ',
+            N'Trend troponins and obtain a repeat electrocardiogram. ',
+            N'Obtain blood cultures prior to antibiotic escalation. '),
+        CHOOSE(((e.EncounterId * 47) % 3) + 1,
+            N'Cardiology consultation placed for risk stratification. ',
+            N'Surgery consulted for operative planning. ',
+            N'Case management engaged for discharge planning. '),
+        N'Patient and family educated on medication reconciliation and dietary modification. ',
+        CHOOSE(((e.EncounterId * 53) % 3) + 1,
+            N'Follow up with primary care within seven days. ',
+            N'Follow up in cardiology clinic in two weeks. ',
+            N'Return precautions reviewed; follow up as needed. ')
     )
 FROM clinical.Encounter e
 CROSS JOIN GENERATE_SERIES(1, 2) gs

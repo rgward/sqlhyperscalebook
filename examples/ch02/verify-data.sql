@@ -68,14 +68,36 @@ DECLARE @nTables INT = (SELECT COUNT(*) FROM #rc);
 INSERT @results VALUES (N'Base tables present', N'13',
     CONVERT(NVARCHAR(40), @nTables), IIF(@nTables = 13, N'PASS', N'FAIL'));
 
-DECLARE @nEmpty INT = (SELECT COUNT(*) FROM #rc WHERE rows_ = 0);
-INSERT @results VALUES (N'Tables with 0 rows', N'0',
-    CONVERT(NVARCHAR(40), @nEmpty), IIF(@nEmpty = 0, N'PASS', N'FAIL'));
+/* Per-table expected volumes (at @Scale). Fixed reference data does not scale;
+   the fact tables scale with @Scale via the encounter count. ClinicalNote is
+   ~1.5 notes/encounter = 60,000. */
+DECLARE @expected TABLE (sch NVARCHAR(20), tbl NVARCHAR(40), expected_ BIGINT);
+INSERT @expected VALUES
+    (N'ops',      N'Department',      12),
+    (N'ops',      N'Unit',            20),
+    (N'ops',      N'Bed',             400),
+    (N'ops',      N'Provider',        150),
+    (N'clinical', N'Patient',         10000),
+    (N'clinical', N'Allergy',         15000),
+    (N'clinical', N'Encounter',       CONVERT(BIGINT, 40000     * @Scale)),
+    (N'ops',      N'Appointment',     CONVERT(BIGINT, 120000    * @Scale)),
+    (N'clinical', N'Diagnosis',       CONVERT(BIGINT, 80000     * @Scale)),
+    (N'clinical', N'ClinicalNote',    CONVERT(BIGINT, 60000     * @Scale)),
+    (N'clinical', N'MedicationOrder', CONVERT(BIGINT, 100000    * @Scale)),
+    (N'clinical', N'LabResult',       CONVERT(BIGINT, 200000    * @Scale)),
+    (N'clinical', N'Observation',     CONVERT(BIGINT, 108000000 * @Scale));
 
-DECLARE @obs BIGINT = (SELECT ISNULL(MAX(rows_), 0) FROM #rc WHERE sch = N'clinical' AND tbl = N'Observation');
-DECLARE @obsMin BIGINT = CONVERT(BIGINT, 90000000 * @Scale);
-INSERT @results VALUES (N'Observation rows (anchor)', N'>= ' + CONVERT(NVARCHAR(40), @obsMin),
-    CONVERT(NVARCHAR(40), @obs), IIF(@obs >= @obsMin, N'PASS', N'FAIL'));
+/* Volume check: actual >= 95% of expected. The 5% tolerance absorbs the
+   approximate DMV row_count and minor per-encounter rounding. A partial load
+   (e.g. a table half-seeded) FAILs instead of slipping through. */
+INSERT @results
+SELECT
+    N'Rows: ' + e.sch + N'.' + e.tbl,
+    N'>= ' + CONVERT(NVARCHAR(40), CONVERT(BIGINT, e.expected_ * 0.95)),
+    CONVERT(NVARCHAR(40), ISNULL(r.rows_, 0)),
+    IIF(ISNULL(r.rows_, 0) >= CONVERT(BIGINT, e.expected_ * 0.95), N'PASS', N'FAIL')
+FROM @expected e
+LEFT JOIN #rc r ON r.sch = e.sch AND r.tbl = e.tbl;
 
 DECLARE @gb DECIMAL(10,2) = (SELECT CONVERT(DECIMAL(10,2), SUM(reserved_page_count) * 8.0 / 1024 / 1024) FROM sys.dm_db_partition_stats);
 DECLARE @gbMin DECIMAL(10,2) = CONVERT(DECIMAL(10,2), 10.0 * @Scale);

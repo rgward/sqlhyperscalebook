@@ -19,7 +19,11 @@ grows from one hospital to a national health system, which is what motivates eac
 Hyperscale capability as the book advances.
 
 **All data is synthetic. There is no real patient data (PHI) anywhere in this
-repository — ever.**
+repository — ever.** The dataset was **generated with AI assistance** and, while
+plausible, **may not be a fully accurate representation of real medical, clinical,
+laboratory, or billing data**. It is provided for **educational and illustrative
+purposes only** and must **not** be used for clinical, diagnostic, or any
+real-world healthcare decision-making.
 
 ## Layout
 
