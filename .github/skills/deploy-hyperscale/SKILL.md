@@ -30,7 +30,7 @@ server, `collierhealth`); **Ward General Hospital** is the flagship hospital
 ## Two ways to deploy (same script underneath)
 
 The deploy is a **parameterized, env-var-driven PowerShell script**
-(`examples/ch02/provision-hyperscale.ps1`) with sensible defaults for every
+(`examples/ch02-getting-started/provision-hyperscale.ps1`) with sensible defaults for every
 value. There are two ways to drive it:
 
 - **Guided (this skill).** Ask Copilot to *"deploy my Hyperscale database"* — it
@@ -41,7 +41,7 @@ value. There are two ways to drive it:
   `SQL_ADMIN_PASSWORD` securely first (see Step 8), then in PowerShell:
   ```powershell
   $env:LOC='eastus2'; $env:RG='rg-collierhealth'; $env:SRV='...'; $env:ADMIN_OBJECT_ID='...'
-  ./examples/ch02/provision-hyperscale.ps1
+  ./examples/ch02-getting-started/provision-hyperscale.ps1
   ```
   You only override what you care about; everything else takes its default. The
   interview simply populates these same variables for you.
@@ -151,8 +151,13 @@ az sql db list-editions -l <region> --edition Hyperscale --available `
   --query "[0].supportedServiceLevelObjectives[?name=='HS_Gen5_8'].{slo:name, zoneRedundant:zoneRedundant}" -o table
 
 # Eventual premium-series scale target available (e.g. HS_PRMS_192)?
-az sql db list-editions -l <region> --edition Hyperscale --available `
-  --query "[0].supportedServiceLevelObjectives[?starts_with(name,'HS_PRMS')].name" -o table
+# NOTE: filter client-side with -like, NOT a JMESPath starts_with(...). On
+# Windows `az` is a `az.cmd` batch wrapper, and the parentheses in a
+# starts_with(...) query get re-parsed by cmd and fail with
+# "].name was unexpected at this time." Keep the JMESPath parenthesis-free.
+$slos = az sql db list-editions -l <region> --edition Hyperscale --available `
+  --query "[0].supportedServiceLevelObjectives[].name" -o tsv
+$slos | Where-Object { $_ -like 'HS_PRMS*' }
 ```
 Standard-series Gen5 caps at **80 vCores**; premium-series is required beyond
 that, so a region with **no `HS_PRMS_*`** can't host the later scale-out.
@@ -354,7 +359,7 @@ this creates **real, billable** resources. On explicit confirmation, run:
 ```powershell
 # All decisions are already set as $env:* in this session (Steps 1–20),
 # including $env:SQL_ADMIN_PASSWORD from Step 8. Run the script:
-./examples/ch02/provision-hyperscale.ps1
+./examples/ch02-getting-started/provision-hyperscale.ps1
 ```
 
 (Every value comes from the `$env:*` variables set live during the interview; the
@@ -369,7 +374,7 @@ script falls back to its own defaults for anything not set.)
   `highAvailabilityReplicaCount = 1`, `zoneRedundant = <chosen>`, and
   `requestedBackupStorageRedundancy = <chosen>`.
 
-### Connect and prove it's SQL Server (`examples/ch02/connect-and-verify.sql`)
+### Connect and prove it's SQL Server (`examples/ch02-getting-started/connect-and-verify.sql`)
 **Guide the reader through this — do NOT do it for them.** Connecting the book's
 primary client (the MSSQL extension) with Microsoft Entra auth is a hands-on
 moment the reader performs themselves; the agent **instructs and confirms**, it
@@ -389,7 +394,7 @@ Tell the reader to:
 1. In the **MSSQL extension**, choose **Add Connection**, paste the **server
    hostname** above, pick **Microsoft Entra** authentication (expect an MFA
    browser / device-code prompt), and select database `<DB>`.
-2. Open `examples/ch02/connect-and-verify.sql` and run it against that connection.
+2. Open `examples/ch02-getting-started/connect-and-verify.sql` and run it against that connection.
 
 Then have them confirm the four checks — the *"prove it's SQL Server, prove it's
 Hyperscale"* payoff Ch 1 §6 points to:
@@ -403,7 +408,7 @@ Hyperscale"* payoff Ch 1 §6 points to:
 (Schema/table verification is **not** here — it lives in `verify-data.sql`, run
 after the schema build.)
 
-### Build the schema and seed (`examples/ch02/01-schemas.sql` → `05-seed.sql`)
+### Build the schema and seed (`examples/ch02-getting-started/01-schemas.sql` → `05-seed.sql`)
 **Guide the reader through this — do NOT run it for them.** Like connect-verify,
 this is reader-driven: the schema DDL *is* the lesson, so the reader runs each
 script and the book shows the excerpts. The agent states the run order, points to
@@ -434,7 +439,7 @@ on any step, answer in one sentence and keep moving.
 
 ## Files this skill runs
 
-All under `examples/ch02/`:
+All under `examples/ch02-getting-started/`:
 
 | File | Role |
 |---|---|
