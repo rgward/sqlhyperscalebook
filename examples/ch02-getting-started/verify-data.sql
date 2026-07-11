@@ -104,6 +104,42 @@ DECLARE @gbMin DECIMAL(10,2) = CONVERT(DECIMAL(10,2), 10.0 * @Scale);
 INSERT @results VALUES (N'Total reserved GB', N'>= ' + CONVERT(NVARCHAR(40), @gbMin),
     CONVERT(NVARCHAR(40), @gb), IIF(@gb >= @gbMin, N'PASS', N'FAIL'));
 
+/* -----------------------------------------------------------------------
+   Coherence checks — data quality, not just volume. These catch the class
+   of defect that a row-count check cannot see: a bedded patient charted in
+   the wrong department, or a clinical event stamped in the future. If the
+   generated seed drifts, these FAIL instead of passing on counts alone.
+   ----------------------------------------------------------------------- */
+
+/* Every active, bedded encounter must be charted in the department that owns
+   its bed's unit (a Cardiology bed => a Cardiology encounter). */
+DECLARE @deptMismatch INT = (
+    SELECT COUNT(*)
+    FROM clinical.Encounter e
+    JOIN ops.Bed  b ON b.BedId  = e.BedId
+    JOIN ops.Unit u ON u.UnitId = b.UnitId
+    WHERE e.Status = N'Active' AND u.DepartmentId <> e.DepartmentId);
+INSERT @results VALUES (N'Encounter dept = bed unit dept', N'0',
+    CONVERT(NVARCHAR(40), @deptMismatch), IIF(@deptMismatch = 0, N'PASS', N'FAIL'));
+
+/* No clinical event may be stamped in the future. */
+DECLARE @futureMed INT =
+    (SELECT COUNT(*) FROM clinical.MedicationOrder WHERE OrderedAt > SYSUTCDATETIME());
+INSERT @results VALUES (N'MedicationOrder not future', N'0',
+    CONVERT(NVARCHAR(40), @futureMed), IIF(@futureMed = 0, N'PASS', N'FAIL'));
+
+DECLARE @futureLab INT =
+    (SELECT COUNT(*) FROM clinical.LabResult
+      WHERE CollectedAt > SYSUTCDATETIME() OR ResultedAt > SYSUTCDATETIME());
+INSERT @results VALUES (N'LabResult not future', N'0',
+    CONVERT(NVARCHAR(40), @futureLab), IIF(@futureLab = 0, N'PASS', N'FAIL'));
+
+/* EXISTS short-circuits — no need to count all 108M observation rows. */
+DECLARE @futureObs INT =
+    IIF(EXISTS (SELECT 1 FROM clinical.Observation WHERE RecordedAt > SYSUTCDATETIME()), 1, 0);
+INSERT @results VALUES (N'Observation not future', N'none',
+    IIF(@futureObs = 0, N'none', N'found'), IIF(@futureObs = 0, N'PASS', N'FAIL'));
+
 SELECT CheckName, Expected, Actual, Status FROM @results;
 
 IF EXISTS (SELECT 1 FROM @results WHERE Status = N'FAIL')

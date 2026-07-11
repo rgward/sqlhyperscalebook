@@ -23,12 +23,19 @@ You can drive all of this through Copilot (ask it to *"deploy my Hyperscale
 database"* and it runs the `deploy-hyperscale` skill), or run the scripts by hand
 as described below.
 
+> **Tip — a third way to verify.** After the deploy, run
+> `verify-activity-log.ps1` for a control-plane check: it summarizes the Azure
+> Activity Log (every operation that built the database) and flags any failures.
+> That's the deploy proof; `connect-and-verify.sql` is the tier proof and
+> `verify-data.sql` is the data proof — same database, three angles.
+
 ## Files in this folder
 
 | File | Type | What it does |
 |---|---|---|
 | `provision-hyperscale.ps1` | PowerShell | Creates `rg-collierhealth`, the `collierhealth` logical server, and the `wardgeneral` Hyperscale database in one `az sql db create` — provisioned, single, **1 HA replica, zone-redundant, GeoZone backup**. Mixed SQL + Entra auth. Calls `estimate-cost.ps1` at the end. |
 | `estimate-cost.ps1` | PowerShell | Prints a live, itemized monthly cost estimate for the deployed shape from the public Azure Retail Prices API, plus the deploy-time cost-vs-resilience levers (drop the HA replica / zone redundancy ≈ −50% compute; Zone vs GeoZone backup). No dollar figures are hard-coded. |
+| `verify-activity-log.ps1` | PowerShell | Read-only control-plane check: summarizes the Azure **Activity Log** for `rg-collierhealth` (every operation ARM ran to build the database) — events by status, by operation, most-recent table, and a **failure flag**. A clean deploy shows all `Succeeded`. Widen the window with `$env:OFFSET='1d'` (default 6h). |
 | `connect-and-verify.sql` | SQL | Proves it's SQL Server: `@@VERSION`, `DATABASEPROPERTYEX`, service objective, and the governing limits (workers, sessions, log rate, IOPS, memory, 128 TB ceiling, collation, compatibility level) in human units. |
 | `01-schemas.sql` | SQL | Creates the `clinical` and `ops` schemas. |
 | `02-tables.sql` | SQL | Creates all 13 tables — clustered keys, FKs, constraints, and the three native `json` columns. |

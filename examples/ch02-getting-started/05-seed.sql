@@ -23,13 +23,27 @@
    Ch 10 grows clinical.Observation to ~1 TB via a one-time author-run grow
    script — readers stay at the volumes seeded here.
 
-   This is the through-line dataset. **All data is fully synthetic. No real
-   PHI.** It was **generated with AI assistance** and, while plausible, **may
-   not be a fully accurate representation of real medical, clinical, laboratory,
-   or billing data** — it is for illustration only and must not be used for any
-   clinical or diagnostic purpose. Recognisable names are *Seinfeld supporting
-   cast* — used as flavour to make the data memorable. Jerry does not appear in
-   this dataset.
+   ----------------------------------------------------------------------------
+   DISCLAIMER — PURELY FICTIONAL, FULLY SYNTHETIC DATA
+   ----------------------------------------------------------------------------
+   This is the through-line dataset for the book. Every value it produces is
+   PURELY FICTIONAL and FULLY SYNTHETIC. It contains NO real protected health
+   information (PHI) and does NOT represent any real person, patient, provider,
+   event, place, diagnosis, medication, lab result, insurer, or organization.
+   Any resemblance to a real individual or institution is coincidental.
+   Recognisable names are *Seinfeld* supporting cast, used purely as memorable
+   flavour to make the data easier to follow. Jerry does not appear.
+
+   This data was GENERATED WITH AI ASSISTANCE. Although plausible in shape, it
+   DOES NOT accurately represent real medical, clinical, laboratory,
+   pharmacological, or billing data IN ANY WAY. It exists SOLELY to illustrate
+   Azure SQL Hyperscale features in this book.
+
+   IT MUST NOT BE USED for any clinical, diagnostic, treatment, or other medical
+   purpose; nor to train, fine-tune, validate, or evaluate any machine-learning
+   or AI model; nor for any real-world healthcare decision of any kind. It is
+   provided for illustration and learning ONLY.
+   ----------------------------------------------------------------------------
 
    Knob (@Scale): the bulky tables Encounter (discharged), Appointment, and
    Observation each declare a local `@Scale FLOAT = 1.0` at the top of their
@@ -339,7 +353,7 @@ SELECT
             N'Goldberg',N'Haddad',N'Ishikawa',N'Johansson',N'Kowalski',N'Lindqvist',
             N'Moreau',N'Nakamura',N'Okonkwo',N'Rossi',N'Silva',N'Tremblay')),
     DATEFROMPARTS(
-        1930 + (ABS(CHECKSUM(NEWID())) % 80),
+        1930 + (ABS(CHECKSUM(NEWID())) % 96),
         1   + (ABS(CHECKSUM(NEWID())) %  12),
         1   + (ABS(CHECKSUM(NEWID())) %  28)),
     CASE WHEN gs.value % 2 = 0 THEN N'Female' ELSE N'Male' END,
@@ -413,19 +427,56 @@ DECLARE @PatCount   INT = (SELECT COUNT(*) FROM clinical.Patient);
    0-based ids (0..N-1), and Hyperscale can also gap identity — so assuming
    1..N breaks the FKs. Joining on dense row-numbers is correct regardless of
    the actual id range. */
-;WITH P AS (SELECT PatientId,    ROW_NUMBER() OVER (ORDER BY PatientId)    - 1 AS rn FROM clinical.Patient),
-      D AS (SELECT DepartmentId, ROW_NUMBER() OVER (ORDER BY DepartmentId) - 1 AS rn FROM ops.Department),
-      R AS (SELECT ProviderId,   ROW_NUMBER() OVER (ORDER BY ProviderId)   - 1 AS rn FROM ops.Provider)
+/* Active encounters, made COHERENT:
+   - Department comes from the bed's own unit (#1), so a Cardiology bed yields a
+     Cardiology encounter — never a mismatch.
+   - The attending is picked from that department (#5), falling back to any
+     provider so all 400 beds are filled.
+   - The patient fits the unit (#6): Peds units get children, OB units get
+     reproductive-age women, everything else gets adults. The three pools are
+     DISJOINT and matched to beds by row-number, so no patient occupies two beds. */
+;WITH BedBucket AS (
+    SELECT b.BedId, un.DepartmentId,
+           CASE dept.Name WHEN N'Pediatrics'            THEN 1
+                          WHEN N'Obstetrics-Gynecology' THEN 2
+                          ELSE 3 END AS bucket,
+           ROW_NUMBER() OVER (
+             PARTITION BY CASE dept.Name WHEN N'Pediatrics'            THEN 1
+                                         WHEN N'Obstetrics-Gynecology' THEN 2
+                                         ELSE 3 END
+             ORDER BY b.BedId) AS brn
+    FROM ops.Bed b
+    JOIN ops.Unit un         ON un.UnitId       = b.UnitId
+    JOIN ops.Department dept ON dept.DepartmentId = un.DepartmentId
+),
+PoolPeds AS (
+    SELECT PatientId, ROW_NUMBER() OVER (ORDER BY PatientId) AS prn
+    FROM clinical.Patient
+    WHERE DATEDIFF(YEAR, DateOfBirth, SYSUTCDATETIME()) <= 17
+),
+PoolOB AS (
+    SELECT PatientId, ROW_NUMBER() OVER (ORDER BY PatientId) AS prn
+    FROM clinical.Patient
+    WHERE Sex = N'Female'
+      AND DATEDIFF(YEAR, DateOfBirth, SYSUTCDATETIME()) BETWEEN 18 AND 50
+),
+PoolAdult AS (
+    SELECT PatientId, ROW_NUMBER() OVER (ORDER BY PatientId) AS prn
+    FROM clinical.Patient
+    WHERE DATEDIFF(YEAR, DateOfBirth, SYSUTCDATETIME()) >= 18
+      AND NOT (Sex = N'Female'
+               AND DATEDIFF(YEAR, DateOfBirth, SYSUTCDATETIME()) BETWEEN 18 AND 50)
+)
 INSERT INTO clinical.Encounter
     (PatientId, DepartmentId, AttendingProviderId, BedId,
      EncounterType, AdmitTime, Status, IntakeJson)
 SELECT
-    P.PatientId,
-    D.DepartmentId,
-    R.ProviderId,
+    pat.PatientId,
+    b.DepartmentId,
+    prov.ProviderId,
     b.BedId                                                         AS BedId,
     CHOOSE(((b.BedId * 17) % 3) + 1, N'Inpatient', N'ED', N'Inpatient') AS EncounterType,
-    DATEADD(HOUR, -1 * ((b.BedId * 13) % 96), SYSUTCDATETIME())     AS AdmitTime,
+    adm.AdmitTime                                                  AS AdmitTime,
     N'Active'                                                       AS Status,
     JSON_OBJECT(
         'chiefComplaint'    : CHOOSE(((b.BedId * 17) % 8) + 1,
@@ -469,15 +520,42 @@ SELECT
                                 N'Never', N'Former, quit 2018', N'Current 1ppd'),
             'alcohol' : N'Social',
             'drugs'   : N'Denied'),
-        'lastOralIntake'    : N'2026-11-04T18:30:00Z',
-        'advanceDirectives' : N'Full code',
-        'triageNurseId'     : 47,
-        'triageNotes'       : N'Patient ambulatory; cooperative. Cardiac monitor and ECG within 10 min per ED protocol.'
+        'lastOralIntake'    : CONVERT(NVARCHAR(19), DATEADD(HOUR, -1 * (2 + ((b.BedId * 5) % 10)), adm.AdmitTime), 126) + N'Z',
+        'advanceDirectives' : CHOOSE(((b.BedId * 7) % 3) + 1, N'Full code', N'DNR/DNI', N'DNR, will intubate'),
+        'triageNurseId'     : 40 + ((b.BedId * 3) % 20),
+        'triageNotes'       : CHOOSE(((b.BedId * 11) % 4) + 1,
+            N'Patient ambulatory; cooperative. Cardiac monitor and ECG within 10 min per ED protocol.',
+            N'Arrived via EMS on a stretcher; triaged directly to the treatment area.',
+            N'Alert and oriented; vitals stable at triage, placed in a monitored bed.',
+            N'Assisted to bed; reports moderate pain, analgesia ordered per protocol.')
     )
-FROM ops.Bed b
-JOIN P ON P.rn = (b.BedId * 1019) % @PatCount
-JOIN D ON D.rn = (b.BedId * 7)    % @DeptCount
-JOIN R ON R.rn = (b.BedId * 31)   % @ProvCount;
+FROM BedBucket b
+CROSS APPLY (SELECT DATEADD(HOUR, -1 * (1 + ((b.BedId * 13) % 95)), SYSUTCDATETIME()) AS AdmitTime) adm
+CROSS APPLY (
+    /* demographic-appropriate, DISTINCT patient per bed (disjoint pools). */
+    SELECT PatientId FROM PoolPeds
+        WHERE b.bucket = 1 AND prn = ((b.brn - 1) % (SELECT COUNT(*) FROM PoolPeds)) + 1
+    UNION ALL
+    SELECT PatientId FROM PoolOB
+        WHERE b.bucket = 2 AND prn = ((b.brn - 1) % (SELECT COUNT(*) FROM PoolOB)) + 1
+    UNION ALL
+    SELECT PatientId FROM PoolAdult
+        WHERE b.bucket = 3 AND prn = ((b.brn - 1) % (SELECT COUNT(*) FROM PoolAdult)) + 1
+) pat
+CROSS APPLY (
+    /* attending in the encounter's department; fall back to any provider. */
+    SELECT TOP 1 pr.ProviderId
+    FROM ops.Provider pr
+    ORDER BY IIF(pr.DepartmentId = b.DepartmentId, 0, 1),
+             (b.BedId * 31 + pr.ProviderId) % 97
+) prov
+/* Leave ~15% of beds unoccupied so the hospital runs at a realistic ~85%
+   census rather than a full house. (BedId*7)%20 is a uniform permutation;
+   keeping >= 3 retains 17/20 = 85% of beds as active admissions. The skipped
+   beds stay 'Available' (only beds with an active encounter are marked
+   Occupied below), and the discharged backfill still lands the total at
+   @EncounterCount. */
+WHERE (b.BedId * 7) % 20 >= 3;
 
 PRINT N'--- clinical.Encounter (discharged) ---';
 
@@ -492,21 +570,24 @@ DECLARE @Discharged INT = @EncounterCount - @Active;
 PRINT CONCAT(N'    active = ', @Active, N', discharged to add = ', @Discharged);
 
 ;WITH P AS (SELECT PatientId,    ROW_NUMBER() OVER (ORDER BY PatientId)    - 1 AS rn FROM clinical.Patient),
-      D AS (SELECT DepartmentId, ROW_NUMBER() OVER (ORDER BY DepartmentId) - 1 AS rn FROM ops.Department),
-      R AS (SELECT ProviderId,   ROW_NUMBER() OVER (ORDER BY ProviderId)   - 1 AS rn FROM ops.Provider)
+      D AS (SELECT DepartmentId, ROW_NUMBER() OVER (ORDER BY DepartmentId) - 1 AS rn FROM ops.Department)
 INSERT INTO clinical.Encounter
     (PatientId, DepartmentId, AttendingProviderId, BedId,
      EncounterType, AdmitTime, DischargeTime, Status, IntakeJson)
 SELECT
     P.PatientId,
     D.DepartmentId,
-    R.ProviderId,
+    prov.ProviderId,
     NULL                                                               AS BedId,
     CHOOSE(((gs.value * 5) % 3) + 1, N'Inpatient', N'ED', N'Outpatient') AS EncounterType,
-    DATEADD(DAY, -1 * (1 + ((gs.value * 7) % 720)), SYSUTCDATETIME())  AS AdmitTime,
+    /* Discharge 1-360 days ago (always past); admit is the stay length before
+       that. Anchoring on the discharge keeps DischargeTime — and every derived
+       Observation/Med/Lab timestamp — strictly in the past. */
     DATEADD(DAY,
-            -1 * (1 + ((gs.value * 7) % 720))
-              + (1 + ((gs.value * 3) % 6)),                            -- 1-7 day stay
+            -1 * ((1 + ((gs.value * 7) % 360)) + (1 + ((gs.value * 3) % 6))),  -- stay = 1-7 days
+            SYSUTCDATETIME())                                           AS AdmitTime,
+    DATEADD(DAY,
+            -1 * (1 + ((gs.value * 7) % 360)),
             SYSUTCDATETIME())                                           AS DischargeTime,
     N'Discharged'                                                       AS Status,
     JSON_OBJECT(
@@ -528,7 +609,12 @@ SELECT
 FROM GENERATE_SERIES(1, 80000) gs
 JOIN P ON P.rn = (gs.value * 4001) % @PatCount
 JOIN D ON D.rn = (gs.value * 17)   % @DeptCount
-JOIN R ON R.rn = (gs.value * 23)   % @ProvCount
+CROSS APPLY (
+    SELECT TOP 1 pr.ProviderId
+    FROM ops.Provider pr
+    ORDER BY IIF(pr.DepartmentId = D.DepartmentId, 0, 1),
+             (gs.value * 23 + pr.ProviderId) % 97
+) prov
 WHERE gs.value <= @Discharged;
 GO
 
@@ -554,24 +640,48 @@ DECLARE @ProvCount INT = (SELECT COUNT(*) FROM ops.Provider);
 DECLARE @DeptCount INT = (SELECT COUNT(*) FROM ops.Department);
 
 ;WITH P AS (SELECT PatientId,    ROW_NUMBER() OVER (ORDER BY PatientId)    - 1 AS rn FROM clinical.Patient),
-      R AS (SELECT ProviderId,   ROW_NUMBER() OVER (ORDER BY ProviderId)   - 1 AS rn FROM ops.Provider),
       D AS (SELECT DepartmentId, ROW_NUMBER() OVER (ORDER BY DepartmentId) - 1 AS rn FROM ops.Department)
 INSERT INTO ops.Appointment
     (PatientId, ProviderId, DepartmentId, ScheduledStart, ScheduledEnd, Status)
 SELECT
     P.PatientId,
-    R.ProviderId,
+    prov.ProviderId,
     D.DepartmentId,
-    DATEADD(MINUTE, ((gs.value * 17) % 1440) - 360,
-        DATEADD(DAY, ((gs.value * 11) % 730) - 365, SYSUTCDATETIME())),
-    DATEADD(MINUTE, ((gs.value * 17) % 1440) - 360 + 30,
-        DATEADD(DAY, ((gs.value * 11) % 730) - 365, SYSUTCDATETIME())),
-    CHOOSE(((gs.value * 13) % 4) + 1,
-           N'Scheduled', N'Completed', N'Cancelled', N'NoShow')
+    DATEADD(MINUTE, rnd.minOffset,
+        DATEADD(DAY, rnd.dayOffset, SYSUTCDATETIME())),
+    DATEADD(MINUTE, rnd.minOffset + 30,
+        DATEADD(DAY, rnd.dayOffset, SYSUTCDATETIME())),
+    /* Date and status are rolled from NEWID() — INDEPENDENT of the provider
+       assignment (which derives from gs.value). Decoupling them keeps the
+       appointment outcome from correlating with provider role, which would
+       otherwise be a synthetic-data artifact (both fields aliasing on gs.value
+       produced a fake 52%->68% loss spread by role). Distribution: past ->
+       ~75% Completed / ~13% Cancelled / ~12% NoShow; future -> ~85% Scheduled
+       / ~15% Cancelled. */
+    CASE
+        WHEN rnd.dayOffset < 0
+            THEN CASE WHEN rnd.statusRoll < 75 THEN N'Completed'
+                      WHEN rnd.statusRoll < 88 THEN N'Cancelled'
+                      ELSE                           N'NoShow'
+                 END
+        ELSE     CASE WHEN rnd.statusRoll < 85 THEN N'Scheduled'
+                      ELSE                           N'Cancelled'
+                 END
+    END
 FROM GENERATE_SERIES(1, 120000) gs
 JOIN P ON P.rn = (gs.value * 1009) % @PatCount
-JOIN R ON R.rn = (gs.value * 41)   % @ProvCount
 JOIN D ON D.rn = (gs.value * 7)    % @DeptCount
+CROSS APPLY (SELECT
+    (ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 730)  - 365 AS dayOffset,   -- -365..+364 days
+    (ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 1440) - 360 AS minOffset,   -- time-of-day spread
+    ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 100          AS statusRoll   -- 0..99
+) rnd
+CROSS APPLY (
+    SELECT TOP 1 pr.ProviderId
+    FROM ops.Provider pr
+    ORDER BY IIF(pr.DepartmentId = D.DepartmentId, 0, 1),
+             (gs.value * 41 + pr.ProviderId) % 97
+) prov
 WHERE gs.value <= @AppointmentCount;
 GO
 
@@ -721,7 +831,7 @@ SELECT
     m.Dose,
     m.Route,
     e.AttendingProviderId,
-    DATEADD(MINUTE, gs.value * 60, e.AdmitTime)
+    DATEADD(SECOND, gs.value * (DATEDIFF(SECOND, e.AdmitTime, COALESCE(e.DischargeTime, SYSUTCDATETIME())) / 4), e.AdmitTime)
 FROM clinical.Encounter e
 CROSS JOIN GENERATE_SERIES(1, 3) gs
 CROSS APPLY (
@@ -758,8 +868,8 @@ SELECT
     e.PatientId,
     e.AttendingProviderId,
     lab.TestName,
-    DATEADD(MINUTE, gs.value * 30,      e.AdmitTime),
-    DATEADD(MINUTE, gs.value * 30 + 45, e.AdmitTime),
+    DATEADD(SECOND, gs.value * (DATEDIFF(SECOND, e.AdmitTime, COALESCE(e.DischargeTime, SYSUTCDATETIME())) / 6), e.AdmitTime),
+    LEAST(DATEADD(MINUTE, 45, DATEADD(SECOND, gs.value * (DATEDIFF(SECOND, e.AdmitTime, COALESCE(e.DischargeTime, SYSUTCDATETIME())) / 6), e.AdmitTime)), COALESCE(e.DischargeTime, SYSUTCDATETIME())),
     JSON_OBJECT(
         'panel'       : lab.TestName,
         'specimen'    : lab.Specimen,
@@ -843,7 +953,7 @@ BEGIN
     SELECT
         e.EncounterId,
         e.PatientId,
-        DATEADD(MINUTE, gs.value * 15, e.AdmitTime),
+        DATEADD(SECOND, gs.value * (DATEDIFF(SECOND, e.AdmitTime, COALESCE(e.DischargeTime, SYSUTCDATETIME())) / (@ObsPerEnc / 6)), e.AdmitTime),
         t.ObservationType,
         CASE t.ObservationType
             WHEN N'HeartRate'   THEN  60 + ((gs.value + e.EncounterId * 3)  % 60)

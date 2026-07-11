@@ -374,6 +374,17 @@ script falls back to its own defaults for anything not set.)
   `highAvailabilityReplicaCount = 1`, `zoneRedundant = <chosen>`, and
   `requestedBackupStorageRedundancy = <chosen>`.
 
+**Control-plane proof (`examples/ch02-getting-started/verify-activity-log.ps1`).** For a
+third, independent check you *can* run for the reader (it's **read-only** — just an
+`az monitor activity-log` query), run this script. It summarizes the **Azure
+Activity Log** for the resource group — the record of every control-plane
+operation ARM ran to build the database — as events-by-status, events-by-operation,
+a most-recent table, and an explicit **failure flag**. A clean deploy shows all
+`Succeeded` and “No failed control-plane events.” Widen the window with
+`$env:OFFSET='1d'` (default 6h). This complements the **tier** proof
+(`connect-and-verify.sql`) and the **data** proof (`verify-data.sql`): same
+database, three angles — control plane, engine, data.
+
 ### Connect and prove it's SQL Server (`examples/ch02-getting-started/connect-and-verify.sql`)
 **Guide the reader through this — do NOT do it for them.** Connecting the book's
 primary client (the MSSQL extension) with Microsoft Entra auth is a hands-on
@@ -451,3 +462,4 @@ All under `examples/ch02-getting-started/`:
 | `04-procedures.sql` | §3 admit / discharge / record-vitals / read-chart |
 | `05-seed.sql` | §3 synthetic seed (~10 GB) |
 | `verify-data.sql` | post-seed row-count + reserved-size check |
+| `verify-activity-log.ps1` | control-plane deploy proof (read-only Activity Log summary) |
