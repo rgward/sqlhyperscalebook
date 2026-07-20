@@ -303,9 +303,9 @@ FROM (VALUES
     (N'Drake Stevens',          N'1965-10-14', N'Male',   N'thedrake@example.com',     N'+1-212-555-0102', N'New York',    N'10024', N'Varnsen Health'),
     (N'Pamela Rosenstein',      N'1969-01-23', N'Female', N'pamela@example.com',       N'+1-212-555-0185', N'New York',    N'10128', N'PennyPacker Health'),
     (N'James Bookman',          N'1942-06-08', N'Male',   N'jbookman@library.example', N'+1-212-555-0150', N'New York',    N'10016', N'Vandelay Mutual'),
-    (N'George Steinbrenner',    N'1930-07-04', N'Male',   N'boss@yankees.example',     N'+1-212-555-0110', N'New York',    N'10017', N'Varnsen Health'),
+    (N'Corky Ramirez',          N'1958-07-04', N'Male',   N'corky@example.com',        N'+1-212-555-0110', N'New York',    N'10017', N'Varnsen Health'),
     (N'Wendy Penewipple',       N'1967-12-30', N'Female', N'wendy@example.com',        N'+1-212-555-0173', N'New York',    N'10025', N'PennyPacker Health'),
-    (N'Carol Leifer',           N'1964-03-15', N'Female', N'carol@example.com',        N'+1-212-555-0166', N'New York',    N'10011', N'Vandelay Mutual'),
+    (N'Gail Cunningham',         N'1964-03-15', N'Female', N'gail@example.com',         N'+1-212-555-0166', N'New York',    N'10011', N'Vandelay Mutual'),
     (N'Aaron Beriak',           N'1968-08-19', N'Male',   N'aaron@example.com',        N'+1-212-555-0181', N'New York',    N'10010', N'Varnsen Health'),
     (N'Art Vandelay',           N'1958-11-11', N'Male',   N'art@vandelay.example',     N'+1-212-555-0100', N'New York',    N'10003', N'PennyPacker Health'),
     (N'H. E. Pennypacker',      N'1956-04-04', N'Male',   N'hep@pennypacker.example',  N'+1-212-555-0101', N'New York',    N'10002', N'Vandelay Mutual'),
@@ -983,6 +983,81 @@ END;
 GO
 
 /* ============================================================================
+   14. Bedside-chart extras — Symptoms, Care team, Imaging (active encounters).
+       Clinical notes are already seeded above (clinical.ClinicalNote); the
+       chart view just surfaces them. All synthetic.
+   ============================================================================ */
+PRINT N'--- clinical.Symptom / CareTeamMember / ImagingOrder (active encounters) ---';
+
+/* Symptoms: 1-3 presenting complaints per active encounter. */
+;WITH activeEnc AS (SELECT EncounterId FROM clinical.Encounter WHERE Status = N'Active')
+INSERT INTO clinical.Symptom (EncounterId, Description, Severity, NotedAt)
+SELECT
+    e.EncounterId, s.Description, s.Severity,
+    DATEADD(HOUR, -(ABS(CHECKSUM(NEWID())) % 48), SYSUTCDATETIME())
+FROM activeEnc AS e
+CROSS APPLY
+(
+    SELECT TOP (1 + ABS(CHECKSUM(NEWID())) % 3) v.Description, v.Severity
+    FROM (VALUES
+        (N'Chest pain', N'Moderate'), (N'Shortness of breath', N'Moderate'),
+        (N'Fever', N'Mild'), (N'Nausea', N'Mild'), (N'Abdominal pain', N'Moderate'),
+        (N'Headache', N'Mild'), (N'Dizziness', N'Mild'), (N'Cough', N'Mild'),
+        (N'Fatigue', N'Mild'), (N'Confusion', N'Severe'), (N'Palpitations', N'Moderate'),
+        (N'Weakness', N'Mild')
+    ) AS v(Description, Severity)
+    ORDER BY NEWID()
+) AS s;
+GO
+
+/* Care team: attending (primary) + up to 3 others with distinct roles. */
+INSERT INTO clinical.CareTeamMember (EncounterId, ProviderId, TeamRole, IsPrimary)
+SELECT e.EncounterId, e.AttendingProviderId, N'Attending', 1
+FROM clinical.Encounter AS e
+WHERE e.Status = N'Active';
+GO
+
+;WITH activeEnc AS (SELECT EncounterId, AttendingProviderId FROM clinical.Encounter WHERE Status = N'Active'),
+picks AS
+(
+    SELECT e.EncounterId, p.ProviderId,
+        ROW_NUMBER() OVER (PARTITION BY e.EncounterId ORDER BY NEWID()) AS rn
+    FROM activeEnc AS e
+    JOIN ops.Provider AS p ON p.ProviderId <> e.AttendingProviderId
+)
+INSERT INTO clinical.CareTeamMember (EncounterId, ProviderId, TeamRole, IsPrimary)
+SELECT EncounterId, ProviderId,
+    CASE rn WHEN 1 THEN N'Resident' WHEN 2 THEN N'Intern' WHEN 3 THEN N'Consultant' END, 0
+FROM picks
+WHERE rn <= 3;
+GO
+
+/* Imaging: ~half of active encounters get 1-2 studies. */
+;WITH activeEnc AS (
+    SELECT EncounterId, PatientId, AttendingProviderId
+    FROM clinical.Encounter WHERE Status = N'Active' AND EncounterId % 2 = 0
+)
+INSERT INTO clinical.ImagingOrder
+    (EncounterId, PatientId, Modality, BodySite, Status, OrderedById, OrderedAt, ResultedAt)
+SELECT
+    e.EncounterId, e.PatientId, m.Modality, m.BodySite,
+    CASE ABS(CHECKSUM(NEWID())) % 3 WHEN 0 THEN N'Completed' WHEN 1 THEN N'InProgress' ELSE N'Ordered' END,
+    e.AttendingProviderId,
+    DATEADD(HOUR, -(ABS(CHECKSUM(NEWID())) % 36), SYSUTCDATETIME()),
+    NULL
+FROM activeEnc AS e
+CROSS APPLY
+(
+    SELECT TOP (1 + ABS(CHECKSUM(NEWID())) % 2) v.Modality, v.BodySite
+    FROM (VALUES
+        (N'XR', N'Chest'), (N'CT', N'Head'), (N'CT', N'Abdomen/Pelvis'),
+        (N'MRI', N'Brain'), (N'US', N'Abdomen'), (N'XR', N'Pelvis'), (N'CT', N'Chest')
+    ) AS v(Modality, BodySite)
+    ORDER BY NEWID()
+) AS m;
+GO
+
+/* ============================================================================
    Final summary
    ============================================================================ */
 PRINT N'--- Row counts ---';
@@ -998,6 +1073,9 @@ UNION ALL SELECT N'clinical.Diagnosis',      COUNT(*) FROM clinical.Diagnosis
 UNION ALL SELECT N'clinical.ClinicalNote',   COUNT(*) FROM clinical.ClinicalNote
 UNION ALL SELECT N'clinical.MedicationOrder',COUNT(*) FROM clinical.MedicationOrder
 UNION ALL SELECT N'clinical.LabResult',      COUNT(*) FROM clinical.LabResult
+UNION ALL SELECT N'clinical.Symptom',        COUNT(*) FROM clinical.Symptom
+UNION ALL SELECT N'clinical.CareTeamMember', COUNT(*) FROM clinical.CareTeamMember
+UNION ALL SELECT N'clinical.ImagingOrder',   COUNT(*) FROM clinical.ImagingOrder
 UNION ALL SELECT N'clinical.Observation',    COUNT(*) FROM clinical.Observation;
 GO
 

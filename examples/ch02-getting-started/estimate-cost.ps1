@@ -8,7 +8,8 @@
 # numbers you see are generated live for your region/shape — nothing is frozen
 # in print (numbers age; the model does not).
 #
-# What it estimates (pay-as-you-go retail, USD):
+# What it estimates (pay-as-you-go retail, USD) for the deployed Hyperscale
+# shape:
 #   * Compute  = vCore rate x vCores x (primary + HA replicas) x 730 hours
 #   * Storage  = data-stored rate x allocated GB
 #   * Backup   = redundancy rate x billable GB (only the excess beyond one
@@ -122,7 +123,7 @@ Write-Host "----- Deploy-time cost levers (cost vs resilience tradeoffs) -----"
 if ($HaReplicas -ge 1) {
     $computeNoHa = $computeRate * $vCores * 1 * $HoursPerMonth
     $savePct = [int](100 * ($computeMonthly - $computeNoHa) / $computeMonthly)
-    Write-Host ("  Zone redundancy / HA: {0} HA replica(s) -> compute x{1} (per-replica billing)." -f $HaReplicas, (1 + $HaReplicas))
+    Write-Host ("  Hyperscale zone redundancy / HA: {0} HA replica(s) -> compute x{1} (per-replica billing)." -f $HaReplicas, (1 + $HaReplicas))
     Write-Host ("    Dropping to 0 HA / no zone redundancy cuts COMPUTE ~{0}%  ({1} -> {2})," -f $savePct, (USD $computeMonthly), (USD $computeNoHa))
     Write-Host  "    but you lose zone-failure survival (99.995 -> 99.99 SLA) and the hot standby's fast failover."
 }

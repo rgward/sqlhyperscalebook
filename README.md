@@ -1,6 +1,6 @@
-# Azure SQL Hyperscale — Book Examples
+# Azure SQL Hyperscale Unveiled — Book Examples
 
-Companion code for the forthcoming Apress book on **Azure SQL Hyperscale** by
+Companion code for the forthcoming Apress book **Azure SQL Hyperscale Unveiled** by
 **Bob Ward**. Every hands-on example in the book lives here, organized by chapter.
 
 > **Short link:** this repo is referenced throughout the book as

@@ -21,6 +21,9 @@ SET NUMERIC_ROUNDABORT OFF;
 GO
 
 /* ---- Drop in reverse dependency order (idempotent re-run) ---------------- */
+DROP TABLE IF EXISTS clinical.ImagingOrder;
+DROP TABLE IF EXISTS clinical.CareTeamMember;
+DROP TABLE IF EXISTS clinical.Symptom;
 DROP TABLE IF EXISTS clinical.LabResult;
 DROP TABLE IF EXISTS clinical.Allergy;
 DROP TABLE IF EXISTS clinical.MedicationOrder;
@@ -328,6 +331,78 @@ CREATE TABLE clinical.LabResult
     CONSTRAINT CK_Lab_Status
         CHECK (Status IN (N'Ordered', N'Collected', N'Resulted', N'Cancelled'))
 );
+GO
+
+/* ---- clinical.Symptom ---------------------------------------------------- */
+/* Presenting complaints for an encounter — a chart section.                   */
+CREATE TABLE clinical.Symptom
+(
+    SymptomId   INT           NOT NULL IDENTITY(1, 1),
+    EncounterId INT           NOT NULL,
+    Description NVARCHAR(200) NOT NULL,
+    Severity    NVARCHAR(20)  NULL,          -- Mild | Moderate | Severe
+    NotedAt     DATETIME2(3)  NOT NULL CONSTRAINT DF_Symptom_NotedAt DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_Symptom PRIMARY KEY CLUSTERED (SymptomId),
+    CONSTRAINT FK_Symptom_Encounter
+        FOREIGN KEY (EncounterId) REFERENCES clinical.Encounter (EncounterId),
+    CONSTRAINT CK_Symptom_Severity
+        CHECK (Severity IS NULL OR Severity IN (N'Mild', N'Moderate', N'Severe'))
+);
+CREATE NONCLUSTERED INDEX IX_Symptom_Encounter ON clinical.Symptom (EncounterId);
+GO
+
+/* ---- clinical.CareTeamMember --------------------------------------------- */
+/* Many providers per encounter, each with an encounter-scoped role. The        */
+/* Encounter.AttendingProviderId stays (that provider is also the IsPrimary=1    */
+/* Attending here); this table adds the rest of the team.                       */
+CREATE TABLE clinical.CareTeamMember
+(
+    CareTeamMemberId INT          NOT NULL IDENTITY(1, 1),
+    EncounterId      INT          NOT NULL,
+    ProviderId       INT          NOT NULL,
+    TeamRole         NVARCHAR(20) NOT NULL,  -- Intern|Resident|Associate|Attending|Consultant
+    IsPrimary        BIT          NOT NULL CONSTRAINT DF_CareTeam_IsPrimary DEFAULT 0,
+    CONSTRAINT PK_CareTeamMember PRIMARY KEY CLUSTERED (CareTeamMemberId),
+    CONSTRAINT FK_CareTeam_Encounter
+        FOREIGN KEY (EncounterId) REFERENCES clinical.Encounter (EncounterId),
+    CONSTRAINT FK_CareTeam_Provider
+        FOREIGN KEY (ProviderId) REFERENCES ops.Provider (ProviderId),
+    CONSTRAINT UQ_CareTeam UNIQUE (EncounterId, ProviderId),
+    CONSTRAINT CK_CareTeam_Role
+        CHECK (TeamRole IN (N'Intern', N'Resident', N'Associate', N'Attending', N'Consultant'))
+);
+CREATE NONCLUSTERED INDEX IX_CareTeam_Encounter ON clinical.CareTeamMember (EncounterId);
+GO
+
+/* ---- clinical.ImagingOrder ----------------------------------------------- */
+/* The third order type (with Medication + Lab). FindingsJson is a third         */
+/* native-json home (with Patient.InsuranceJson, Encounter.IntakeJson,           */
+/* LabResult.ResultJson).                                                        */
+CREATE TABLE clinical.ImagingOrder
+(
+    ImagingId    BIGINT        NOT NULL IDENTITY(1, 1),
+    EncounterId  INT           NOT NULL,
+    PatientId    INT           NOT NULL,
+    Modality     NVARCHAR(20)  NOT NULL,     -- XR | CT | MRI | US | Nuclear
+    BodySite     NVARCHAR(100) NULL,
+    Status       NVARCHAR(20)  NOT NULL CONSTRAINT DF_Imaging_Status DEFAULT N'Ordered',
+    OrderedById  INT           NOT NULL,
+    OrderedAt    DATETIME2(3)  NOT NULL CONSTRAINT DF_Imaging_OrderedAt DEFAULT SYSUTCDATETIME(),
+    ResultedAt   DATETIME2(3)  NULL,
+    FindingsJson JSON          NULL,
+    CONSTRAINT PK_ImagingOrder PRIMARY KEY CLUSTERED (ImagingId),
+    CONSTRAINT FK_Imaging_Encounter
+        FOREIGN KEY (EncounterId) REFERENCES clinical.Encounter (EncounterId),
+    CONSTRAINT FK_Imaging_Patient
+        FOREIGN KEY (PatientId) REFERENCES clinical.Patient (PatientId),
+    CONSTRAINT FK_Imaging_Provider
+        FOREIGN KEY (OrderedById) REFERENCES ops.Provider (ProviderId),
+    CONSTRAINT CK_Imaging_Modality
+        CHECK (Modality IN (N'XR', N'CT', N'MRI', N'US', N'Nuclear')),
+    CONSTRAINT CK_Imaging_Status
+        CHECK (Status IN (N'Ordered', N'InProgress', N'Completed', N'Cancelled'))
+);
+CREATE NONCLUSTERED INDEX IX_Imaging_Encounter ON clinical.ImagingOrder (EncounterId);
 GO
 
 /* ---- Supporting nonclustered indexes (the joins every later chapter uses) - */

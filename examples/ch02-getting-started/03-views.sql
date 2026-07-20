@@ -145,6 +145,93 @@ WHERE r.rn <= 5
 GROUP BY r.EncounterId;
 GO
 
+/* ---- Symptoms (presenting complaints per encounter) -------------------- */
+CREATE OR ALTER VIEW clinical.vChartSymptoms
+AS
+SELECT
+    s.EncounterId,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'description' : s.Description,
+            'severity'    : s.Severity,
+            'notedAt'     : s.NotedAt
+        )
+    ) AS Symptoms
+FROM clinical.Symptom AS s
+GROUP BY s.EncounterId;
+GO
+
+/* ---- Care team (providers on the encounter, with roles) ---------------- */
+CREATE OR ALTER VIEW clinical.vChartCareTeam
+AS
+SELECT
+    ct.EncounterId,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'providerId' : ct.ProviderId,
+            'name'       : pr.FullName,
+            'role'       : ct.TeamRole,
+            'isPrimary'  : ct.IsPrimary
+        )
+    ) AS CareTeam
+FROM clinical.CareTeamMember AS ct
+JOIN ops.Provider            AS pr ON pr.ProviderId = ct.ProviderId
+GROUP BY ct.EncounterId;
+GO
+
+/* ---- Imaging orders (last 5 per encounter) ----------------------------- */
+CREATE OR ALTER VIEW clinical.vChartImaging
+AS
+WITH ranked AS
+(
+    SELECT
+        i.EncounterId, i.Modality, i.BodySite, i.Status,
+        i.OrderedAt, i.ResultedAt, i.FindingsJson,
+        ROW_NUMBER() OVER (PARTITION BY i.EncounterId ORDER BY i.OrderedAt DESC) AS rn
+    FROM clinical.ImagingOrder AS i
+)
+SELECT
+    r.EncounterId,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'modality'   : r.Modality,
+            'bodySite'   : r.BodySite,
+            'status'     : r.Status,
+            'orderedAt'  : r.OrderedAt,
+            'resultedAt' : r.ResultedAt,
+            'findings'   : r.FindingsJson
+        )
+    ) AS Imaging
+FROM ranked AS r
+WHERE r.rn <= 5
+GROUP BY r.EncounterId;
+GO
+
+/* ---- Recent clinical notes (last 5 per encounter) ---------------------- */
+CREATE OR ALTER VIEW clinical.vChartNotes
+AS
+WITH ranked AS
+(
+    SELECT
+        n.EncounterId, n.NoteType, n.NoteText, n.AuthorProviderId, n.CreatedAt,
+        ROW_NUMBER() OVER (PARTITION BY n.EncounterId ORDER BY n.CreatedAt DESC) AS rn
+    FROM clinical.ClinicalNote AS n
+)
+SELECT
+    r.EncounterId,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'type'         : r.NoteType,
+            'text'         : r.NoteText,
+            'byProviderId' : r.AuthorProviderId,
+            'at'           : r.CreatedAt
+        )
+    ) AS RecentNotes
+FROM ranked AS r
+WHERE r.rn <= 5
+GROUP BY r.EncounterId;
+GO
+
 /* ---- The patient chart ------------------------------------------------- */
 /* Row per encounter. Joins the normalized facts to the per-section JSON   */
 /* projections. Use procedures in 04-procedures.sql to fetch by encounter  */
@@ -189,7 +276,11 @@ SELECT
     meds.Medications,
     allergy.Allergies,
     vit.LatestVitals,
-    lab.RecentLabs
+    lab.RecentLabs,
+    sym.Symptoms,
+    team.CareTeam,
+    img.Imaging,
+    note.RecentNotes
 FROM clinical.Encounter             AS e
 JOIN clinical.Patient               AS p   ON p.PatientId    = e.PatientId
 JOIN ops.Department                 AS d   ON d.DepartmentId = e.DepartmentId
@@ -200,7 +291,11 @@ LEFT JOIN clinical.vChartDiagnoses    AS diag    ON diag.EncounterId    = e.Enco
 LEFT JOIN clinical.vChartMedications  AS meds    ON meds.EncounterId    = e.EncounterId
 LEFT JOIN clinical.vChartAllergies    AS allergy ON allergy.PatientId   = p.PatientId
 LEFT JOIN clinical.vChartLatestVitals AS vit     ON vit.EncounterId     = e.EncounterId
-LEFT JOIN clinical.vChartRecentLabs   AS lab     ON lab.EncounterId     = e.EncounterId;
+LEFT JOIN clinical.vChartRecentLabs   AS lab     ON lab.EncounterId     = e.EncounterId
+LEFT JOIN clinical.vChartSymptoms     AS sym     ON sym.EncounterId     = e.EncounterId
+LEFT JOIN clinical.vChartCareTeam     AS team    ON team.EncounterId    = e.EncounterId
+LEFT JOIN clinical.vChartImaging      AS img     ON img.EncounterId     = e.EncounterId
+LEFT JOIN clinical.vChartNotes        AS note    ON note.EncounterId    = e.EncounterId;
 GO
 
 /* ---- Convenience: who is currently in which bed ------------------------ */
