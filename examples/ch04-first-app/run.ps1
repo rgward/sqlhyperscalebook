@@ -1,0 +1,105 @@
+#requires -Version 7.0
+<#
+    Ward General Hospital Digital Chart Application
+    run.ps1 : run the Blazor web app on https://localhost:7170 and open it in
+    your DEFAULT (external) browser.
+
+    Usage:
+      ./run.ps1                 # start the app and open the browser
+      ./run.ps1 -NoBrowser      # start, don't open a browser
+      ./run.ps1 -OpenOnly       # just open the browser (already running)
+      ./run.ps1 -SkipFirewall   # skip only the firewall check
+      ./run.ps1 -SkipPreflight  # skip the sign-in, firewall and database checks
+
+    The server and database are not hard-coded here. Leave -Server and
+    -Database alone and the pre-flight reads them from the same place the app
+    does -- src/WardGeneral.Web/appsettings.json -- so there is one place to
+    configure, not two that can drift apart.
+
+    Ctrl+C stops the app. (shutdown.ps1 is a backstop.)
+
+    The chat/agent panel needs the Data API Builder SQL MCP server on
+    http://localhost:5000. That is Chapter 6 — start it separately with
+    ../ch06/run-dab.ps1, in its own shell, before or after this script.
+#>
+[CmdletBinding()]
+param(
+    [string]$HttpsUrl = 'https://localhost:7170',
+    [string]$HttpUrl = 'http://localhost:5170',
+    [string]$Server,
+    [string]$Database,
+    [switch]$NoBrowser,
+    [switch]$OpenOnly,
+    [switch]$SkipFirewall,
+    [switch]$SkipPreflight
+)
+
+$ErrorActionPreference = 'Stop'
+$root = $PSScriptRoot
+$proj = Join-Path $root 'src' 'WardGeneral.Web' 'WardGeneral.Web.csproj'
+$port = ([Uri]$HttpsUrl).Port
+
+function Test-Listening([int]$p) {
+    try {
+        $c = [System.Net.Sockets.TcpClient]::new()
+        $c.Connect('localhost', $p); $c.Close(); return $true
+    }
+    catch { return $false }
+}
+
+# -- Just open the browser (app is already running) -------------------------
+if ($OpenOnly) {
+    Start-Process $HttpsUrl
+    Write-Host "Opened $HttpsUrl in your default browser." -ForegroundColor Green
+    return
+}
+
+if (-not (Test-Path $proj)) { throw "Web project not found: $proj" }
+
+# If something is already listening on the port, don't try to start a second
+# instance — just open the browser.
+if (Test-Listening $port) {
+    Write-Host "App already listening on $HttpsUrl — opening the browser." -ForegroundColor Yellow
+    Start-Process $HttpsUrl
+    return
+}
+
+# -- Pre-flight: prove the app can reach its data before we start it. Azure
+# sign-in, the server firewall (delegated to Chapter 2's script, which prompts
+# before adding a single named rule), and the database itself. A reader who is
+# not signed in otherwise gets a running app that throws on the first screen.
+if (-not $SkipPreflight) {
+    & (Join-Path $root 'preflight-run.ps1') -Server $Server -Database $Database -SkipFirewall:$SkipFirewall
+    if ($LASTEXITCODE -ne 0) {
+        throw "Run pre-flight failed. Fix the problems above, or re-run with -SkipPreflight."
+    }
+}
+
+$env:ASPNETCORE_ENVIRONMENT = 'Development'
+
+if (-not $NoBrowser) {
+    # Wait for the app to start listening, then open the default browser — in a
+    # background job so 'dotnet run' can hold the foreground.
+    Start-Job -Name 'wardgeneral-open-browser' -ArgumentList $HttpsUrl, $port -ScriptBlock {
+        param($url, $p)
+        foreach ($i in 1..120) {
+            try {
+                $c = [System.Net.Sockets.TcpClient]::new()
+                $c.Connect('localhost', $p); $c.Close()
+                Start-Process $url
+                return
+            }
+            catch { Start-Sleep -Milliseconds 500 }
+        }
+    } | Out-Null
+}
+
+$env:ASPNETCORE_URLS = "$HttpsUrl;$HttpUrl"
+Write-Host "Starting Ward General web app on $HttpsUrl (also $HttpUrl)..." -ForegroundColor Cyan
+Write-Host "Press Ctrl+C to stop." -ForegroundColor DarkGray
+try {
+    dotnet run --project $proj --no-launch-profile
+}
+finally {
+    Get-Job -Name 'wardgeneral-open-browser' -ErrorAction SilentlyContinue | Remove-Job -Force -ErrorAction SilentlyContinue
+}
