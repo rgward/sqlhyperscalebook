@@ -28,10 +28,12 @@ real-world healthcare decision-making.
 ## Layout
 
 ```
-.github/skills/     Copilot skills — open this repo in VS Code and Copilot can
-                    run them for you (e.g. "deploy my Hyperscale database")
-examples/ch02/      Getting started: provision, connect, build the schema, seed
-examples/ch03/      ... (added as chapters are completed)
+.github/skills/            Copilot skills — open this repo in VS Code and Copilot can
+                           run them for you (e.g. "deploy my Hyperscale database")
+examples/ch02-getting-started/  Getting started: provision, connect, build the schema, seed
+examples/ch03-architecture/     Architecture: read-only DMV scripts that make the
+                           Hyperscale tiers visible on the database from Chapter 2
+                           ... (more added as chapters are completed)
 ```
 
 Each chapter's scripts live under `examples/`; the Copilot **skills** that
