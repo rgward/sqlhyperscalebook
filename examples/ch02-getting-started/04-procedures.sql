@@ -46,7 +46,7 @@ BEGIN
         DepartmentId, DepartmentName, UnitId, UnitName, BedId, BedNumber,
         AttendingProviderId, AttendingProviderName, AttendingProviderRole,
         Diagnoses, Medications, Allergies, LatestVitals, RecentLabs,
-        Symptoms, CareTeam, Imaging, RecentNotes
+        Symptoms, CareTeam, Imaging, RecentNotes, NoteSignals
     FROM clinical.vPatientChart
     WHERE EncounterId = @EncounterId;
 END;
@@ -66,7 +66,7 @@ BEGIN
         DepartmentId, DepartmentName, UnitId, UnitName, BedId, BedNumber,
         AttendingProviderId, AttendingProviderName, AttendingProviderRole,
         Diagnoses, Medications, Allergies, LatestVitals, RecentLabs,
-        Symptoms, CareTeam, Imaging, RecentNotes
+        Symptoms, CareTeam, Imaging, RecentNotes, NoteSignals
     FROM clinical.vPatientChart
     WHERE BedId = @BedId
       AND EncounterStatus = N'Active';
