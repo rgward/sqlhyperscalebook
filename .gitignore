@@ -4,6 +4,11 @@
 # Personal VS Code workspace file (may carry local theme/settings) — not for readers.
 *.code-workspace
 
+# .NET build output. The Chapter 4 application is built in place by the reader,
+# which leaves bin/ and obj/ beside the sources. None of it is source.
+bin/
+obj/
+
 # ---------------------------------------------------------------------------
 # No binaries. This repo is public and ships SOURCE ONLY.
 #

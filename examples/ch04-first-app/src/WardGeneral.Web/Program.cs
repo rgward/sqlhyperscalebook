@@ -8,19 +8,19 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Data-access layer (talk verb: Secure it — Entra auth, no secrets).
+// Data-access layer — Entra auth, no secrets.
 // The connection factory reads WardGeneral:Server / WardGeneral:Database from config.
 builder.Services.AddSingleton<WardGeneralConnectionFactory>();
 builder.Services.AddScoped<ChartRepository>();
 builder.Services.AddScoped<ResearchRepository>();
 
-// Progressive-reveal feature flags — talk runs with all ON; the book flips them
+// Progressive-reveal feature flags — the book flips them one
 // per chapter (deploy the chapter's SQL, flip the flag) with no source edits.
 // See Options/FeatureFlags.cs.
 builder.Services.Configure<WardGeneral.Web.Options.FeatureFlags>(
     builder.Configuration.GetSection("Features"));
 
-// Row-Level Security "acting user" — talk verb: Secure it. On by default; the
+// Row-Level Security "acting user". On by default; the
 // default identity is Admin (all patients). The "Viewing as" selector on the unit
 // board picks a provider and the engine filters the board/charts to them — no
 // restart. See RlsOptions.cs / AccessContext.cs.
@@ -28,7 +28,7 @@ builder.Services.Configure<RlsOptions>(
     builder.Configuration.GetSection("RowLevelSecurity"));
 builder.Services.AddScoped<AccessContext>();
 
-// In-app clinical assistant — talk verb: Modernize it. Microsoft Agent Framework
+// In-app clinical assistant. Microsoft Agent Framework
 // agent whose tools are the DAB SQL MCP server (the same clinical.* procs the DAL
 // and VS Code Copilot use). Singleton (one agent, built once); per-circuit page
 // context grounds answers on the current view. See WardGeneral.Agent + AssistantDock.

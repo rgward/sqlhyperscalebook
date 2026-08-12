@@ -4,19 +4,17 @@ using Microsoft.Extensions.Configuration;
 namespace WardGeneral.Data;
 
 /// <summary>
-/// Talk verb: <b>Secure it</b>.
-///
 /// The single connection class the app reuses.
-/// The whole point of this file for the talk: <b>there is no secret here</b>. On-prem you
+///
+/// The whole point of this file: <b>there is no secret here</b>. On-prem you
 /// ship a SQL login + password in a connection string and guard it forever. Here the app
 /// authenticates to <c>wardgeneral</c> with <b>Microsoft Entra</b> — a managed identity in
 /// Azure, or the developer's <c>az login</c> / Visual Studio / VS Code identity locally —
 /// via <see cref="SqlAuthenticationMethod.ActiveDirectoryDefault"/>. No password, no key,
 /// no connection-string secret to leak.
 ///
-/// It also carries the app-side HA policy (<see cref="RetryPolicy"/>) and can hand back a
-/// read-only connection for read scale-out (see <paramref name="readOnly"/>) — talk verb
-/// <b>Make it HA</b>.
+/// It also carries the app-side transient-fault policy (<see cref="RetryPolicy"/>) and can
+/// hand back a read-only connection for read scale-out (see <paramref name="readOnly"/>).
 /// </summary>
 public sealed class WardGeneralConnectionFactory
 {
@@ -88,7 +86,7 @@ public sealed class WardGeneralConnectionFactory
     /// the same logical server) for the research page. All research reads — embedding the
     /// query and the DiskANN vector search over the note corpus — run on the replica's own
     /// (serverless) compute, so the OLTP primary is never touched. A named replica is
-    /// inherently read-only, so no <c>ApplicationIntent</c> is needed. Talk verb: <b>Scale it</b>.
+    /// inherently read-only, so no <c>ApplicationIntent</c> is needed.
     /// </summary>
     public SqlConnection CreateResearch()
     {

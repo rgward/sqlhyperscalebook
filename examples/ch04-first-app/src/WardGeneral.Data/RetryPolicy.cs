@@ -3,8 +3,6 @@ using Microsoft.Data.SqlClient;
 namespace WardGeneral.Data;
 
 /// <summary>
-/// Talk verb: <b>Make it HA</b> (app-side).
-///
 /// On-prem, HA is the platform's job to build (WSFC + Availability Groups) and the
 /// app mostly ignores it. On Hyperscale the platform owns failover — but the ONE
 /// thing the app still owns is <i>transient-fault handling</i>: during a scale

@@ -27,7 +27,7 @@ public sealed class ChartRepository
 
     /// <summary>
     /// <c>clinical.SearchEncounters</c> — every filter optional (OPPO). Reads can go to a
-    /// read-scale-out replica (<paramref name="readOnly"/>), talk verb <b>Make it HA</b>.
+    /// read-scale-out replica (<paramref name="readOnly"/>).
     /// </summary>
     public async Task<IReadOnlyList<EncounterSummary>> SearchEncountersAsync(
         string? status = null,
@@ -212,7 +212,7 @@ public sealed class ChartRepository
     /// <summary>
     /// The Unit board — beds for a unit from <c>ops.vBedCensus</c> (read directly, no proc).
     /// Occupied beds carry patient info; empty beds have nulls. Reads can go to a
-    /// read-scale-out replica (talk verb <b>Make it HA</b>).
+    /// read-scale-out replica.
     /// </summary>
     public async Task<IReadOnlyList<BedCensusRow>> GetUnitBoardAsync(
         string? unitName = null, bool occupiedOnly = true, bool readOnly = true, CancellationToken ct = default)

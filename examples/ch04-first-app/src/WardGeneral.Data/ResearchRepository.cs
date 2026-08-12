@@ -7,7 +7,7 @@ namespace WardGeneral.Data;
 /// <summary>
 /// Read-only semantic search over historical clinical notes, for the Research page.
 ///
-/// Talk verb: <b>Scale it</b> (read scale-out). This connects to the <b>serverless
+/// This connects to the <b>serverless
 /// named replica</b> (<c>wardgeneral-research</c>) via
 /// <see cref="WardGeneralConnectionFactory.CreateResearch"/> and calls
 /// <c>clinical.SearchSimilarNotes</c>. The <i>entire</i> workload — embedding the

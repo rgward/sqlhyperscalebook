@@ -21,7 +21,7 @@ public sealed record EncounterSummary(
 /// The digital patient chart returned by <c>clinical.GetPatientChart</c> /
 /// <c>clinical.GetPatientChartByBed</c> (projection of <c>clinical.vPatientChart</c>).
 ///
-/// Talk verb: <b>Modernize it — JSON</b>. Five sections come back as the native <c>json</c>
+/// Five sections come back as the native <c>json</c>
 /// type and are parsed here into strongly-typed collections: <see cref="Diagnoses"/>,
 /// <see cref="Medications"/>, <see cref="Allergies"/>, <see cref="LatestVitals"/>,
 /// <see cref="RecentLabs"/>.
