@@ -115,10 +115,7 @@ answered, is decided a layer below. The one thing `Web` owns outright is
 `FeatureFlags`, bound from configuration: it reveals each chapter's surface as
 that chapter's SQL is deployed, without a source edit. The data layer never sees
 it — a flag decides whether a card renders, not whether the procedure behind it
-works. Row-level security is the mirror image: `RlsOptions` and `AccessContext`
-are `WardGeneral.Data` types that carry the acting provider into the connection,
-so the filtering happens in the engine. `Web` only registers them and offers the
-*Viewing as* selector that sets one.
+works.
 
 ## Configuring the connection
 
