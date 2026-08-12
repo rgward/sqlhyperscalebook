@@ -11,16 +11,22 @@
       ./run.ps1 -SkipFirewall   # skip only the firewall check
       ./run.ps1 -SkipPreflight  # skip the sign-in, firewall and database checks
 
-    The server and database are not hard-coded here. Leave -Server and
-    -Database alone and the pre-flight reads them from the same place the app
-    does -- src/WardGeneral.Web/appsettings.json -- so there is one place to
-    configure, not two that can drift apart.
+    The server and database are not hard-coded here. Leave -Server and -Database
+    alone and the app reads them from the same layered configuration the
+    pre-flight does, highest first: the WardGeneral__Server / WardGeneral__Database
+    environment variables, then src/WardGeneral.Web/appsettings.Development.json
+    (git-ignored, where your values belong), then appsettings.json -- which ships
+    with an EMPTY server on purpose, so no live name is ever committed.
+
+    Passing -Server or -Database exports the matching environment variable, so the
+    override reaches the app and the pre-flight alike -- one place to configure,
+    not two that can drift apart.
 
     Ctrl+C stops the app. (shutdown.ps1 is a backstop.)
 
     The chat/agent panel needs the Data API Builder SQL MCP server on
     http://localhost:5000. That is Chapter 6 — start it separately with
-    ../ch06/run-dab.ps1, in its own shell, before or after this script.
+    ../ch06-agentic-ai/run-dab.ps1, in its own shell, before or after this script.
 #>
 [CmdletBinding()]
 param(
@@ -76,6 +82,14 @@ if (-not $SkipPreflight) {
 }
 
 $env:ASPNETCORE_ENVIRONMENT = 'Development'
+
+# -- Where the app points. ASP.NET Core maps WardGeneral:Server to the environment
+# variable WardGeneral__Server (':' becomes '__'), and environment variables outrank
+# appsettings.json. Exporting them here is what makes -Server reach the APP and not
+# just the pre-flight. Nothing is exported when the switches aren't used, so the
+# app's own config chain (appsettings.Development.json, then appsettings.json) wins.
+if ($Server) { $env:WardGeneral__Server = $Server }
+if ($Database) { $env:WardGeneral__Database = $Database }
 
 if (-not $NoBrowser) {
     # Wait for the app to start listening, then open the default browser — in a

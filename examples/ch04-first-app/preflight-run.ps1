@@ -19,9 +19,13 @@
 
     run.ps1 calls this automatically. Exit code 0 = ready. 1 = a failure.
 
-    With no arguments the server and database come from
-    src/WardGeneral.Web/appsettings.json, or from the WG_SERVER / WG_DATABASE
-    environment variables if those are set. Pass them explicitly to override.
+    With no arguments the server and database come from the same places the app
+    itself reads them, highest first: the WardGeneral__Server / WardGeneral__Database
+    environment variables, then src/WardGeneral.Web/appsettings.Development.json,
+    then appsettings.json. Pass them explicitly to override.
+
+    appsettings.json ships with an EMPTY server on purpose -- no live server name is
+    ever the committed default. Supplying one is the reader's first job.
 
     Usage:
       ./preflight-run.ps1
@@ -54,13 +58,37 @@ function Write-Check {
 
 Write-Host "`nWard General - run pre-flight`n" -ForegroundColor Cyan
 
-# One source of truth for where the app points: the same appsettings.json the
-# app itself reads. Parameters and WG_* environment variables override it.
-$settingsPath = Join-Path $root 'src' 'WardGeneral.Web' 'appsettings.json'
+# One source of truth for where the app points: the same configuration chain the
+# app itself reads, in the same order. Parameters override everything.
+$webDir = Join-Path $root 'src' 'WardGeneral.Web'
 if (-not $Server -or -not $Database) {
-    $settings = if (Test-Path $settingsPath) { Get-Content $settingsPath -Raw | ConvertFrom-Json }
-    if (-not $Server) { $Server = $env:WG_SERVER ?? $settings.WardGeneral.Server }
-    if (-not $Database) { $Database = $env:WG_DATABASE ?? $settings.WardGeneral.Database }
+    function Read-Setting {
+        param([string]$File, [string]$Name)
+        $path = Join-Path $webDir $File
+        if (-not (Test-Path $path)) { return $null }
+        $value = (Get-Content $path -Raw | ConvertFrom-Json).WardGeneral.$Name
+        if ([string]::IsNullOrWhiteSpace($value)) { return $null } else { return $value }
+    }
+
+    if (-not $Server) {
+        $Server = $env:WardGeneral__Server ?? (Read-Setting 'appsettings.Development.json' 'Server') `
+            ?? (Read-Setting 'appsettings.json' 'Server')
+    }
+    if (-not $Database) {
+        $Database = $env:WardGeneral__Database ?? (Read-Setting 'appsettings.Development.json' 'Database') `
+            ?? (Read-Setting 'appsettings.json' 'Database')
+    }
+}
+
+if (-not $Server) {
+    Write-Check fail 'Configuration' 'no server configured'
+    Write-Host ''
+    Write-Host '  Point the app at your Hyperscale database in any one of these:' -ForegroundColor Yellow
+    Write-Host '    ./run.ps1 -Server <your-server>.database.windows.net' -ForegroundColor DarkGray
+    Write-Host '    $env:WardGeneral__Server = ''<your-server>.database.windows.net''' -ForegroundColor DarkGray
+    Write-Host '    src/WardGeneral.Web/appsettings.Development.json  (git-ignored)' -ForegroundColor DarkGray
+    Write-Host ''
+    exit 1
 }
 
 # -- 1. Azure sign-in -------------------------------------------------------
