@@ -13,15 +13,25 @@ namespace WardGeneral.Web.Options;
 /// Chapter 4 features are <b>not</b> flags. The base chart — including the in-engine
 /// <c>REGEXP_*</c> note-signal card — is simply part of the app.
 ///
+/// A flagged surface is <b>greyed out, not hidden</b>. The reader can see that the app
+/// has more in it and which chapter unlocks each piece; the chapter that teaches it
+/// lights it up. Hiding would make the progressive reveal invisible.
+///
 /// The panels also self-hide when their backing SQL isn't deployed — the chart DAL
 /// reads the backing columns column-tolerantly (see <c>GetOptionalJson</c>), so a
 /// <c>false</c> flag and a not-yet-created view both degrade gracefully.
 /// </summary>
 public sealed class FeatureFlags
 {
-    /// <summary>AI assistance card — vector search + gpt-5 (Ch 5). Backing: <c>clinical.GenerateClinicalAssistance</c>.</summary>
+    /// <summary>
+    /// AI assistance card <i>and</i> the Research page (Ch 5). Backing:
+    /// <c>clinical.GenerateClinicalAssistance</c> and <c>clinical.SearchSimilarNotes</c>.
+    /// One flag for both because both ship in the same chapter and the same deploy set.
+    /// The <c>wardgeneral-research</c> named replica the Research page reads already
+    /// exists — it is provisioned in Ch 3 — so the proc is the only missing piece.
+    /// </summary>
     public bool AiAssistance { get; set; }
 
-    /// <summary>In-app clinical assistant dock (Ch 6 — Microsoft Agent Framework + DAB SQL MCP). Requires DAB running + an Azure OpenAI endpoint.</summary>
-    public bool Assistant { get; set; }
+    /// <summary>In-app clinical assistant dock — the chat icon (Ch 6 — Microsoft Agent Framework + DAB SQL MCP). Requires DAB running + an Azure OpenAI endpoint.</summary>
+    public bool AiAgent { get; set; }
 }

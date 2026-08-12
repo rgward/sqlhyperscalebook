@@ -13,10 +13,10 @@
     IOptions<FeatureFlags>, a singleton), so a config change needs a real
     restart, not a page refresh. Later chapters turn panels on with -Enable:
 
-        ./restart.ps1 -Enable AiAssistance              # Chapter 5
-        ./restart.ps1 -Enable Assistant                 # Chapter 6 (needs DAB)
+        ./restart.ps1 -Enable AiAssistance              # Chapter 5 (AI card + Research)
+        ./restart.ps1 -Enable AiAgent                   # Chapter 6 (chat icon; needs DAB)
         ./restart.ps1 -Enable RowLevelSecurity          # Chapter 8
-        ./restart.ps1 -Enable AiAssistance,Assistant    # more than one
+        ./restart.ps1 -Enable AiAssistance,AiAgent      # more than one
         ./restart.ps1                                   # back to the defaults
 
     Chapter 4 features are not flags -- the base chart, including the REGEXP_*
@@ -42,7 +42,7 @@ param(
     [string]$HttpUrl = 'http://localhost:5170',
     [string]$Server,
     [string]$Database,
-    [ValidateSet('AiAssistance', 'Assistant', 'RowLevelSecurity')]
+    [ValidateSet('AiAssistance', 'AiAgent', 'RowLevelSecurity')]
     [string[]]$Enable = @(),
     [switch]$NoBrowser,
     [switch]$SkipFirewall,
@@ -60,7 +60,7 @@ $ports = @(([Uri]$HttpsUrl).Port, ([Uri]$HttpUrl).Port)
 # reader still just names the flag. Set what was asked for, clear what wasn't.
 $flagVars = [ordered]@{
     AiAssistance     = 'Features__AiAssistance'
-    Assistant        = 'Features__Assistant'
+    AiAgent          = 'Features__AiAgent'
     RowLevelSecurity = 'RowLevelSecurity__Enabled'
 }
 

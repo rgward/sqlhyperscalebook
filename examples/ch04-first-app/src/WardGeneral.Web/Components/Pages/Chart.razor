@@ -68,8 +68,23 @@ else
     }
 
     <!-- AI assistance (advisory, on-demand): vector search + gpt-5, in-engine, audited -->
-    <!-- Feature-gated (Features:AiAssistance) so the book can reveal it in a later chapter -->
-    @if (Flags.AiAssistance)
+    <!-- Feature-gated (Features:AiAssistance). Greyed, not hidden, until Chapter 5 -->
+    @if (!Flags.AiAssistance)
+    {
+    <div class="card mt-3 card-locked">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">AI assistance <span class="badge bg-secondary">Ch 5</span></h5>
+                <button class="btn btn-outline-secondary btn-sm" disabled>Get AI assistance</button>
+            </div>
+            <p class="text-muted mt-2 mb-0">
+                Vector search over similar prior notes (RAG) + gpt-5, in-engine and audited.
+                Unlocks in Chapter 5, once <code>clinical.GenerateClinicalAssistance</code> is deployed.
+            </p>
+        </div>
+    </div>
+    }
+    else
     {
     <div class="card mt-3">
         <div class="card-body">

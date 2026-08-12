@@ -1,4 +1,8 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using Microsoft.Extensions.Options
+@using WardGeneral.Web.Options
+@inject IOptions<FeatureFlags> Features
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center gap-2" href="">
             <img src="ward-general-logo.svg" alt="Ward General" width="34" height="34" />
@@ -20,9 +24,22 @@
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="research">
-                <span class="bi bi-search-nav-menu" aria-hidden="true"></span> Research
-            </NavLink>
+            @if (Features.Value.AiAssistance)
+            {
+                <NavLink class="nav-link" href="research">
+                    <span class="bi bi-search-nav-menu" aria-hidden="true"></span> Research
+                </NavLink>
+            }
+            else
+            {
+                @* Greyed, not hidden: the reader sees what the app will become, and which
+                   chapter unlocks it. Ch 5 creates clinical.SearchSimilarNotes; the
+                   wardgeneral-research named replica already exists from Ch 3. *@
+                <span class="nav-link nav-link-locked" title="Unlocks in Chapter 5 — vector search over clinical notes">
+                    <span class="bi bi-search-nav-menu" aria-hidden="true"></span> Research
+                    <span class="locked-hint">Ch 5</span>
+                </span>
+            }
         </div>
     </nav>
 </div>

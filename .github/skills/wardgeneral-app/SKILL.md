@@ -161,17 +161,20 @@ warning appears, proceed (it's your machine); one-time fix: `dotnet dev-certs ht
 
 ### 5 — Turn on the optional panels (later chapters)
 Everything a later chapter teaches ships **off**, because the SQL behind it is
-deployed by that chapter and an empty panel is worse than no panel. Turn one on
+deployed by that chapter. A locked panel is **greyed out, not hidden** — the
+reader can see what the app becomes and which chapter unlocks it. Turn one on
 and restart:
 ```powershell
-./examples/ch04-first-app/restart.ps1 -Enable AiAssistance              # Ch 5 · AI assistance card
-./examples/ch04-first-app/restart.ps1 -Enable Assistant                 # Ch 6 · assistant dock (needs DAB)
+./examples/ch04-first-app/restart.ps1 -Enable AiAssistance              # Ch 5 · AI assistance card + Research page
+./examples/ch04-first-app/restart.ps1 -Enable AiAgent                   # Ch 6 · assistant chat icon (needs DAB)
 ./examples/ch04-first-app/restart.ps1 -Enable RowLevelSecurity          # Ch 8 · "Viewing as" + RLS filtering
-./examples/ch04-first-app/restart.ps1 -Enable AiAssistance,Assistant    # more than one
+./examples/ch04-first-app/restart.ps1 -Enable AiAssistance,AiAgent      # more than one
 ./examples/ch04-first-app/restart.ps1                                   # back to defaults
 ```
 The backing SQL: `AiAssistance` needs `06-ai-embeddings.sql` +
-`07-ai-assistance.sql` from `examples/ch05-ai-ready-sql/`; `Assistant` needs DAB
+`07-ai-assistance.sql` + `08-research-vector-search.sql` from
+`examples/ch05-ai-ready-sql/` (the `wardgeneral-research` named replica the
+Research page reads already exists — Ch 3 provisions it); `AiAgent` needs DAB
 running (`examples/ch06-agentic-ai/setup-dab.ps1`, then `run-dab.ps1`);
 `RowLevelSecurity` needs the Chapter 8 security policy deployed.
 
