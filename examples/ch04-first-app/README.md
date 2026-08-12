@@ -102,6 +102,21 @@ already exists: [Chapter 3](../ch03-architecture/README.md) provisions it and
 | `src/WardGeneral.Data` | Class library. Raw ADO.NET over `Microsoft.Data.SqlClient`, one method per stored procedure. No ORM. |
 | `src/WardGeneral.Agent` | The Chapter 6 assistant. Project-referenced by `Web` so it **compiles here in Chapter 4**; its UI stays locked until the `AiAgent` flag is on. |
 
+`WardGeneral.Web` is the presentation layer and nothing more. It is an ASP.NET
+Core Blazor application in **Interactive Server** render mode, so every component
+executes on the server and the browser holds a circuit rather than a copy of the
+application. Three routes make up the whole of it: the unit board at `/`, a
+patient chart at `/chart/{EncounterId}`, and the research screen at `/research`.
+Everything else is layout — `MainLayout`, `NavMenu`, `ChartCard`, the assistant
+dock — and none of it knows a connection string. The project takes
+`ChartRepository` and `ResearchRepository` by injection from `WardGeneral.Data`
+and asks them for a chart; where that chart comes from, and which replica
+answered, is decided a layer below. Two small services change what the screens do
+without changing code: `FeatureFlags`, bound from configuration, reveals each
+chapter's surface as that chapter's SQL is deployed, and `AccessContext` carries
+the acting provider so row-level security can filter the board and the chart
+inside the engine.
+
 ## Configuring the connection
 
 No password appears anywhere. The connection uses
