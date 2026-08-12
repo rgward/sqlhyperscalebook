@@ -762,7 +762,9 @@ INSERT INTO clinical.ClinicalNote
 SELECT
     e.EncounterId,
     e.AttendingProviderId,
-    CHOOSE((x.r_type % 3) + 1, N'Progress', N'Consult', N'Discharge'),
+    /* Never Discharge here — see the second pass below. A discharge summary is
+       written when the patient LEAVES, so it cannot be drawn at random. */
+    CHOOSE((x.r_type % 2) + 1, N'Progress', N'Consult'),
     CONCAT(
         N'Subjective: Patient reports ',
         CHOOSE(x.cond + 1,
@@ -874,6 +876,13 @@ SELECT
         e.AdmitTime)
 FROM clinical.Encounter e
 CROSS JOIN GENERATE_SERIES(1, 2) gs
+/* Hoisting the random draws into this CROSS APPLY is a CORRECTNESS requirement,
+   not tidiness. CHOOSE(idx, a, b, ...) compiles to CASE idx WHEN 1 THEN a ...,
+   and a simple CASE re-evaluates its input expression once per WHEN comparison.
+   Inline ABS(CHECKSUM(NEWID())) therefore draws a fresh number for every branch:
+   if no draw happens to match its own branch, CHOOSE returns NULL (25% of rows
+   for a two-arm CHOOSE, measured). A column reference from this derived table is
+   materialized once per row, so every CHOOSE below is safe. Do not inline these. */
 CROSS APPLY (SELECT
         cond     = (e.EncounterId * 7 + 1) % 10,   -- aligns with the primary (gs=1) diagnosis
         r_type   = ABS(CHECKSUM(NEWID())),
@@ -920,6 +929,35 @@ CROSS APPLY (SELECT
                          ELSE 2 + (x.r_pn % 5) END
     ) v
 WHERE ((e.EncounterId + gs.value) % 4) <> 0;   -- 1.5 notes per encounter
+GO
+
+/* ----------------------------------------------------------------------------
+   NoteType follows the encounter's state — it is not a random attribute.
+
+   A discharge summary is written when the patient leaves. Two consequences,
+   and the chart screen in Ch 4 shows both:
+
+     · an ACTIVE encounter — a patient still occupying a bed — can never carry
+       one. The INSERT above only ever writes Progress or Consult, so this is
+       true by construction rather than by correction.
+     · a DISCHARGED encounter's LAST note by CreatedAt *is* the discharge
+       summary, and only that one.
+
+   This runs as a second pass because ROW_NUMBER needs the rows to exist before
+   it can rank them. NoteText is untouched.
+   ---------------------------------------------------------------------------- */
+WITH ranked AS
+(
+    SELECT n.NoteType,
+           rn = ROW_NUMBER() OVER (PARTITION BY n.EncounterId
+                                   ORDER BY n.CreatedAt DESC, n.NoteId DESC)
+    FROM clinical.ClinicalNote AS n
+    JOIN clinical.Encounter    AS e ON e.EncounterId = n.EncounterId
+    WHERE e.DischargeTime IS NOT NULL
+)
+UPDATE ranked
+SET NoteType = N'Discharge'
+WHERE rn = 1;
 GO
 
 /* ============================================================================
@@ -1145,14 +1183,20 @@ INSERT INTO clinical.ImagingOrder
     (EncounterId, PatientId, Modality, BodySite, Status, OrderedById, OrderedAt, ResultedAt)
 SELECT
     e.EncounterId, e.PatientId, m.Modality, m.BodySite,
-    CASE ABS(CHECKSUM(NEWID())) % 3 WHEN 0 THEN N'Completed' WHEN 1 THEN N'InProgress' ELSE N'Ordered' END,
+    /* m.r_status, not an inline NEWID(). A simple CASE re-evaluates its input
+       expression once per WHEN comparison, so a nondeterministic input draws a
+       fresh number for each branch and skews the distribution badly (measured
+       33/26/41 instead of thirds). A column reference is evaluated once. */
+    CASE m.r_status % 3 WHEN 0 THEN N'Completed' WHEN 1 THEN N'InProgress' ELSE N'Ordered' END,
     e.AttendingProviderId,
     DATEADD(HOUR, -(ABS(CHECKSUM(NEWID())) % 36), SYSUTCDATETIME()),
     NULL
 FROM activeEnc AS e
 CROSS APPLY
 (
-    SELECT TOP (1 + ABS(CHECKSUM(NEWID())) % 2) v.Modality, v.BodySite
+    SELECT TOP (1 + ABS(CHECKSUM(NEWID())) % 2)
+           v.Modality, v.BodySite,
+           r_status = ABS(CHECKSUM(NEWID()))
     FROM (VALUES
         (N'XR', N'Chest'), (N'CT', N'Head'), (N'CT', N'Abdomen/Pelvis'),
         (N'MRI', N'Brain'), (N'US', N'Abdomen'), (N'XR', N'Pelvis'), (N'CT', N'Chest')
