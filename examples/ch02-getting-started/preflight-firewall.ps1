@@ -18,17 +18,21 @@
     /32 rule fails with 40615 anyway. For those, authorize the whole egress
     range with -Cidr (e.g. -Cidr 131.107.0.0/16).
 
+    -Server is the SHORT logical server name (the part before
+    .database.windows.net), and there is no default: this script edits a
+    firewall, and guessing which server to edit is not a favor.
+
     Usage:
-      ./preflight-firewall.ps1                       # detect IP, prompt, add/update a /32 rule
-      ./preflight-firewall.ps1 -Yes                  # no prompt
-      ./preflight-firewall.ps1 -WhatIf               # show change, make none
-      ./preflight-firewall.ps1 -Cidr 131.107.0.0/16  # authorize a whole egress range
+      ./preflight-firewall.ps1 -Server <name>                       # detect IP, prompt, add/update a /32 rule
+      ./preflight-firewall.ps1 -Server <name> -Yes                  # no prompt
+      ./preflight-firewall.ps1 -Server <name> -WhatIf               # show change, make none
+      ./preflight-firewall.ps1 -Server <name> -Cidr 131.107.0.0/16  # authorize a whole egress range
 
     Returns exit code 0 when the client is (or becomes) allowed; non-zero on error.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$Server = '<your-server>',
+    [string]$Server,
     [string]$ResourceGroup = 'rg-collierhealth',
     [string]$RuleName,
     [string]$Cidr,
@@ -37,6 +41,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
+
+if ([string]::IsNullOrWhiteSpace($Server)) {
+    Write-Host "-Server is required: the short logical server name, e.g. -Server myserver" -ForegroundColor Red
+    Write-Host "List yours with:  az sql server list -o table" -ForegroundColor Yellow
+    exit 2
+}
 
 function Convert-IpToUInt([string]$ip) {
     $b = ([System.Net.IPAddress]::Parse($ip)).GetAddressBytes()
