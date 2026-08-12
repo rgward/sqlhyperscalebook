@@ -111,11 +111,14 @@ Everything else is layout — `MainLayout`, `NavMenu`, `ChartCard`, the assistan
 dock — and none of it knows a connection string. The project takes
 `ChartRepository` and `ResearchRepository` by injection from `WardGeneral.Data`
 and asks them for a chart; where that chart comes from, and which replica
-answered, is decided a layer below. Two small services change what the screens do
-without changing code: `FeatureFlags`, bound from configuration, reveals each
-chapter's surface as that chapter's SQL is deployed, and `AccessContext` carries
-the acting provider so row-level security can filter the board and the chart
-inside the engine.
+answered, is decided a layer below. The one thing `Web` owns outright is
+`FeatureFlags`, bound from configuration: it reveals each chapter's surface as
+that chapter's SQL is deployed, without a source edit. The data layer never sees
+it — a flag decides whether a card renders, not whether the procedure behind it
+works. Row-level security is the mirror image: `RlsOptions` and `AccessContext`
+are `WardGeneral.Data` types that carry the acting provider into the connection,
+so the filtering happens in the engine. `Web` only registers them and offers the
+*Viewing as* selector that sets one.
 
 ## Configuring the connection
 
