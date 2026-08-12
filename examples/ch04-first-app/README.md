@@ -15,6 +15,40 @@ Microsoft Entra connection.
 This is the only example folder with a **build** step. Everything else in the
 book is SQL or PowerShell.
 
+## Requirements
+
+Everything below is for building and running the Chapter 4 app itself. The
+locked surfaces need more — an Azure OpenAI deployment for Chapter 5, Data API
+Builder for Chapter 6 — but none of that is required here. The table in the
+next section names what each one wants when you get to it.
+
+**To build:**
+
+| Requirement | Why |
+|---|---|
+| **.NET 10 SDK** or later | All three projects target `net10.0`. An older SDK fails with `NETSDK1045`, which reads like a project error rather than a missing install. Check with `dotnet --list-sdks`. |
+| **PowerShell 7** | Every script here opens with `#requires -Version 7.0`. Windows PowerShell 5.1 will not run them. |
+| A trusted **HTTPS developer certificate** | `dotnet dev-certs https --trust`. Without it the browser rejects the certificate and drops the Blazor circuit, which looks like an app bug. |
+
+Nothing in the build touches Azure. You can compile the solution on a machine
+with no sign-in and no database.
+
+**To run:**
+
+| Requirement | Why |
+|---|---|
+| **Azure CLI**, signed in with `az login` | The connection uses `ActiveDirectoryDefault`, and `DefaultAzureCredential` resolves that same sign-in. There is no password. |
+| An identity that can reach the database | The app connects as **you**, not as a service account. Chapter 2 makes you the server's Entra admin, which is enough. |
+| **`wardgeneral` with the Chapter 2 schema *and* its seed data** | Schema without seed gives you a working app with empty screens — a confusing place to land. |
+| A **firewall rule** for this client's IP on the logical server | Otherwise the first data load times out. |
+| Ports **7170** and **5170** free | Kestrel binds both. `shutdown.ps1` frees them. |
+| A real browser | Not the VS Code Simple Browser — see the note under *Running it*. |
+
+You do not have to check these by hand. `build.ps1` runs `preflight-build.ps1`
+and `run.ps1` runs `preflight-run.ps1`, which verify all of it — including
+counting patients to prove the seed ran — and name the fix for anything
+missing. Run either on its own the first time you sit down with the code.
+
 ## What this is — and isn't
 
 The app is the book's through-line. It is written **once, here**, and never
