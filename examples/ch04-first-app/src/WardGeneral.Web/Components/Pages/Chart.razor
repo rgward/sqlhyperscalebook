@@ -296,7 +296,7 @@ else
             _assist = null;
             _assistError = null;
             PageCtx.EncounterId = EncounterId;   // ground the assistant on this patient
-            _chart = await Repo.GetPatientChartAsync(EncounterId, readOnly: true);
+            _chart = await Repo.GetPatientChartAsync(EncounterId);
         }
         catch (Exception ex) { _error = ex.Message; }
         finally { _loading = false; }

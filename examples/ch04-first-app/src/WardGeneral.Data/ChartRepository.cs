@@ -26,8 +26,7 @@ public sealed class ChartRepository
     }
 
     /// <summary>
-    /// <c>clinical.SearchEncounters</c> — every filter optional (OPPO). Reads can go to a
-    /// read-scale-out replica (<paramref name="readOnly"/>).
+    /// <c>clinical.SearchEncounters</c> — every filter optional (OPPO).
     /// </summary>
     public async Task<IReadOnlyList<EncounterSummary>> SearchEncountersAsync(
         string? status = null,
@@ -36,10 +35,9 @@ public sealed class ChartRepository
         int? attendingProviderId = null,
         DateTime? fromAdmit = null,
         DateTime? toAdmit = null,
-        bool readOnly = true,
         CancellationToken ct = default)
     {
-        await using var conn = _connections.Create(readOnly);
+        await using var conn = _connections.Create();
         await OpenWithContextAsync(conn, ct);
 
         await using var cmd = NewProc(conn, "clinical.SearchEncounters");
@@ -70,18 +68,18 @@ public sealed class ChartRepository
     }
 
     /// <summary><c>clinical.GetPatientChart</c> — full chart for one encounter.</summary>
-    public Task<PatientChart?> GetPatientChartAsync(int encounterId, bool readOnly = true, CancellationToken ct = default) =>
-        ReadChartAsync("clinical.GetPatientChart", ("@EncounterId", SqlDbType.Int, (object)encounterId), readOnly, ct);
+    public Task<PatientChart?> GetPatientChartAsync(int encounterId, CancellationToken ct = default) =>
+        ReadChartAsync("clinical.GetPatientChart", ("@EncounterId", SqlDbType.Int, (object)encounterId), ct);
 
     /// <summary><c>clinical.GetPatientChartByBed</c> — active encounter on a bed.</summary>
-    public Task<PatientChart?> GetPatientChartByBedAsync(int bedId, bool readOnly = true, CancellationToken ct = default) =>
-        ReadChartAsync("clinical.GetPatientChartByBed", ("@BedId", SqlDbType.Int, (object)bedId), readOnly, ct);
+    public Task<PatientChart?> GetPatientChartByBedAsync(int bedId, CancellationToken ct = default) =>
+        ReadChartAsync("clinical.GetPatientChartByBed", ("@BedId", SqlDbType.Int, (object)bedId), ct);
 
-    /// <summary><c>clinical.RecordVitals</c> — append one observation (write → primary).</summary>
+    /// <summary><c>clinical.RecordVitals</c> — append one observation.</summary>
     public async Task RecordVitalsAsync(
         int encounterId, string observationType, decimal valueNumeric, string? unit = null, CancellationToken ct = default)
     {
-        await using var conn = _connections.Create(readOnly: false);
+        await using var conn = _connections.Create();
         await OpenWithContextAsync(conn, ct);
 
         await using var cmd = NewProc(conn, "clinical.RecordVitals");
@@ -93,11 +91,11 @@ public sealed class ChartRepository
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
-    /// <summary><c>clinical.AddClinicalNote</c> — append a free-text note (write → primary).</summary>
+    /// <summary><c>clinical.AddClinicalNote</c> — append a free-text note.</summary>
     public async Task AddClinicalNoteAsync(
         int encounterId, int authorProviderId, string noteType, string noteText, CancellationToken ct = default)
     {
-        await using var conn = _connections.Create(readOnly: false);
+        await using var conn = _connections.Create();
         await OpenWithContextAsync(conn, ct);
 
         await using var cmd = NewProc(conn, "clinical.AddClinicalNote");
@@ -113,14 +111,14 @@ public sealed class ChartRepository
     /// <c>clinical.GenerateClinicalAssistance</c> — advisory AI for the attending: a
     /// <b>suggested</b> triage flag (to confirm/override) plus a grounded summary. Vector
     /// search (RAG) over similar prior notes + gpt-5, all in-engine; every call is audited
-    /// server-side (<c>clinical.AIAssistanceLog</c>). Routed to the <b>primary</b> — it needs
-    /// the embeddings, the Foundry credential, and writes the audit row. On-demand only
+    /// server-side (<c>clinical.AIAssistanceLog</c>). It needs the embeddings, the Foundry
+    /// credential, and it writes the audit row. On-demand only
     /// (a gpt-5 call costs tokens and takes seconds), so give it a generous command timeout.
     /// </summary>
     public async Task<AssistanceResult?> GetClinicalAssistanceAsync(
         int encounterId, CancellationToken ct = default)
     {
-        await using var conn = _connections.Create(readOnly: false);
+        await using var conn = _connections.Create();
         await OpenWithContextAsync(conn, ct);
 
         await using var cmd = NewProc(conn, "clinical.GenerateClinicalAssistance");
@@ -144,9 +142,9 @@ public sealed class ChartRepository
     // ---- helpers ---------------------------------------------------------
 
     private async Task<PatientChart?> ReadChartAsync(
-        string proc, (string Name, SqlDbType Type, object Value) key, bool readOnly, CancellationToken ct)
+        string proc, (string Name, SqlDbType Type, object Value) key, CancellationToken ct)
     {
-        await using var conn = _connections.Create(readOnly);
+        await using var conn = _connections.Create();
         await OpenWithContextAsync(conn, ct);
 
         await using var cmd = NewProc(conn, proc);
@@ -191,9 +189,9 @@ public sealed class ChartRepository
     }
 
     /// <summary>Distinct unit names for the Unit-board selector (reads <c>ops.vBedCensus</c>).</summary>
-    public async Task<IReadOnlyList<string>> GetUnitsAsync(bool readOnly = true, CancellationToken ct = default)
+    public async Task<IReadOnlyList<string>> GetUnitsAsync(CancellationToken ct = default)
     {
-        await using var conn = _connections.Create(readOnly);
+        await using var conn = _connections.Create();
         await OpenWithContextAsync(conn, ct);
 
         await using var cmd = new SqlCommand(
@@ -211,13 +209,12 @@ public sealed class ChartRepository
 
     /// <summary>
     /// The Unit board — beds for a unit from <c>ops.vBedCensus</c> (read directly, no proc).
-    /// Occupied beds carry patient info; empty beds have nulls. Reads can go to a
-    /// read-scale-out replica.
+    /// Occupied beds carry patient info; empty beds have nulls.
     /// </summary>
     public async Task<IReadOnlyList<BedCensusRow>> GetUnitBoardAsync(
-        string? unitName = null, bool occupiedOnly = true, bool readOnly = true, CancellationToken ct = default)
+        string? unitName = null, bool occupiedOnly = true, CancellationToken ct = default)
     {
-        await using var conn = _connections.Create(readOnly);
+        await using var conn = _connections.Create();
         await OpenWithContextAsync(conn, ct);
 
         const string sql = @"
@@ -282,9 +279,9 @@ ORDER BY UnitName, BedNumber;";
     /// Admin scope (so the full list appears); the RLS filter on this query is harmless
     /// there because Admin sees every encounter.
     /// </summary>
-    public async Task<IReadOnlyList<ProviderOption>> GetProvidersAsync(bool readOnly = true, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ProviderOption>> GetProvidersAsync(CancellationToken ct = default)
     {
-        await using var conn = _connections.Create(readOnly);
+        await using var conn = _connections.Create();
         await OpenWithContextAsync(conn, ct);
 
         await using var cmd = new SqlCommand(@"

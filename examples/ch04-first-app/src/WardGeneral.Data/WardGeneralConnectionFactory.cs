@@ -13,8 +13,13 @@ namespace WardGeneral.Data;
 /// via <see cref="SqlAuthenticationMethod.ActiveDirectoryDefault"/>. No password, no key,
 /// no connection-string secret to leak.
 ///
-/// It also carries the app-side transient-fault policy (<see cref="RetryPolicy"/>) and can
-/// hand back a read-only connection for read scale-out (see <paramref name="readOnly"/>).
+/// It also carries the app-side transient-fault policy (<see cref="RetryPolicy"/>).
+///
+/// Note what is <i>not</i> here: the chart app reads and writes the <b>primary</b> replica and
+/// nothing else. The HA secondary exists because the database is zone redundant and it is the
+/// automatic failover target — not as a place for this app to send reads. The one workload that
+/// does move off the primary is research, and it goes to a read-only <b>named replica</b> through
+/// <see cref="CreateResearch"/>.
 /// </summary>
 public sealed class WardGeneralConnectionFactory
 {
@@ -52,11 +57,10 @@ public sealed class WardGeneralConnectionFactory
     public string ResearchTarget => $"{_researchDatabase} @ {_server}";
 
     /// <summary>
-    /// Build a connection. When <paramref name="readOnly"/> is true the connection asks the
-    /// gateway to route it to a read-scale-out replica (<c>ApplicationIntent=ReadOnly</c>) —
-    /// an app connection-string change, not an app rewrite.
+    /// Build a connection to <c>wardgeneral</c> on the <b>primary</b> replica. Every read and
+    /// every write the application performs goes through this one connection.
     /// </summary>
-    public SqlConnection Create(bool readOnly = false)
+    public SqlConnection Create()
     {
         var builder = new SqlConnectionStringBuilder
         {
@@ -69,7 +73,7 @@ public sealed class WardGeneralConnectionFactory
             Authentication = SqlAuthenticationMethod.ActiveDirectoryDefault,
             ConnectTimeout = 30,
             ApplicationName = "wardgeneral-app",
-            ApplicationIntent = readOnly ? ApplicationIntent.ReadOnly : ApplicationIntent.ReadWrite
+            ApplicationIntent = ApplicationIntent.ReadWrite
         };
 
         var connection = new SqlConnection(builder.ConnectionString)
