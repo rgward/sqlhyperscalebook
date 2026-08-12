@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 60 1000 620" width="1000" height="620" font-family="Segoe UI, Arial, sans-serif">
+  <!-- ================================================================= -->
+  <!-- Figure 3-x. A page server, zoomed in  (Ch 3 §4 sub-figure)         -->
+  <!-- Drill-in on ONE page server box in Figure 3-1 — companion to       -->
+  <!-- ch03-figure-primary-compute.svg (§2) and ch03-figure-02-log-       -->
+  <!-- service.svg (§3). Built from ch03-figure-page-server.spec.md;      -->
+  <!-- decisions confirmed 2026-08-09: redundancy replica uses the same   -->
+  <!-- offset "stack" rectangle convention as Figure 3-1 (no separate     -->
+  <!-- label); page-server-side durability write is labeled plainly as    -->
+  <!-- "background write-down" — source-verified 2026-08-09: it is a       -->
+  <!-- background task on the page server that keeps RBPEX in sync with   -->
+  <!-- Azure Storage so cold pages can be evicted and re-read. It is NOT  -->
+  <!-- the SQL Server checkpoint. Do not label this edge "checkpoint".    -->
+  <!-- No embedded title (caption lives in the manuscript).               -->
+  <!-- Palette + marker convention: tools/authoring-architecture-figures  -->
+  <!-- ================================================================= -->
+  <defs>
+    <marker id="mDataDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/></marker>
+    <marker id="mDataUp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/></marker>
+    <marker id="mDataLeft" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/></marker>
+    <marker id="mDataRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/></marker>
+    <marker id="mLogLeft" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/></marker>
+    <marker id="mLogRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/></marker>
+    <marker id="mStoreDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#5F6B7A"/></marker>
+    <marker id="mStoreUp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#5F6B7A"/></marker>
+    <marker id="mStoreLeft" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#5F6B7A"/></marker>
+    <marker id="mStoreRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#5F6B7A"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="700" fill="#FFFFFF"/>
+
+  <!-- ============ BAND A: compute replica (the requester) ============ -->
+  <rect x="60" y="76" width="540" height="130" rx="10" fill="#FFFFFF" stroke="#333333" stroke-width="1.8"/>
+  <text x="80" y="102" font-size="14" font-weight="700" fill="#333333">Compute replica</text>
+  <text x="80" y="118" font-size="9" fill="#6B7280">primary, HA, or named &#8212; every replica checks its own caches first</text>
+  <rect x="100" y="130" width="230" height="54" rx="6" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.5"/>
+  <text x="215" y="154" text-anchor="middle" font-size="11" font-weight="600" fill="#0072C6">Buffer pool</text>
+  <text x="215" y="170" text-anchor="middle" font-size="8" fill="#6B7280">in memory</text>
+  <rect x="350" y="130" width="210" height="54" rx="6" fill="#FFFFFF" stroke="#008575" stroke-width="1.5"/>
+  <text x="455" y="154" text-anchor="middle" font-size="11" font-weight="600" fill="#008575">RBPEX</text>
+  <text x="455" y="170" text-anchor="middle" font-size="8" fill="#6B7280">local SSD</text>
+  <text x="330" y="199" text-anchor="middle" font-size="8.5" font-style="italic" fill="#6B7280">a miss in both is the only thing that goes remote:</text>
+
+  <!-- GetPage@LSN: the star of this figure — thicker line, bigger label -->
+  <path d="M330,206 L330,246" stroke="#0072C6" stroke-width="3" fill="none" stroke-dasharray="7 5"
+        marker-start="url(#mDataUp)" marker-end="url(#mDataDown)"/>
+  <text x="344" y="221" font-size="11" font-weight="700" fill="#0072C6">GetPage@LSN (RBIO)</text>
+  <text x="344" y="235" font-size="8.5" font-style="italic" fill="#6B7280">request / response</text>
+
+  <!-- ====== BAND B: the page server (offset stack = redundancy replica) ====== -->
+  <!-- back rect = the redundancy replica peeking out; front rect = the page server itself -->
+  <rect x="66" y="245" width="540" height="180" rx="10" fill="#FFFFFF" stroke="#008575" stroke-width="1.6"/>
+  <rect x="60" y="250" width="540" height="180" rx="10" fill="#FFFFFF" stroke="#008575" stroke-width="2.2"/>
+  <text x="80" y="274" font-size="14" font-weight="700" fill="#008575">Page server N</text>
+  <text x="80" y="289" font-size="8.5" fill="#6B7280">owns one &#8804; 128 GB data file &#183; the stack behind it is the redundancy replica</text>
+  <rect x="536" y="258" width="44" height="17" rx="4" fill="#0072C6"/>
+  <text x="558" y="270.5" text-anchor="middle" font-size="8.5" font-weight="700" fill="#FFFFFF">SQL</text>
+
+  <!-- one combined cache box — buffer pool + Dynamic RBPEX, kept brief -->
+  <rect x="100" y="304" width="460" height="100" rx="6" fill="#FFFFFF" stroke="#008575" stroke-width="1.5"/>
+  <text x="330" y="332" text-anchor="middle" font-size="11.5" font-weight="600" fill="#008575">Buffer pool + Dynamic RBPEX</text>
+  <text x="330" y="350" text-anchor="middle" font-size="8.5" fill="#6B7280">memory + local-SSD cache over this slice</text>
+  <text x="330" y="368" text-anchor="middle" font-size="8.5" font-style="italic" fill="#6B7280">normally covers the slice; cold pages may be evicted</text>
+  <text x="330" y="388" text-anchor="middle" font-size="8.5" fill="#6B7280">populated by log apply &#8212; so a GetPage@LSN is normally already a hit</text>
+
+  <!-- ===================== LOG SERVICE (right column) ===================== -->
+  <rect x="660" y="250" width="280" height="86" rx="9" fill="#FFFFFF" stroke="#D83B01" stroke-width="2"/>
+  <text x="800" y="278" text-anchor="middle" font-size="13" font-weight="700" fill="#D83B01">Log service (XLOG)</text>
+  <text x="800" y="296" text-anchor="middle" font-size="9" fill="#6B7280">disseminates only this slice&#8217;s log</text>
+  <text x="800" y="312" text-anchor="middle" font-size="9" font-style="italic" fill="#6B7280">the primary is the sole writer of log</text>
+
+  <!-- log apply: one-way, filtered to this page server's partition -->
+  <path d="M660,296 L608,296" stroke="#C0198C" stroke-width="2" fill="none" marker-end="url(#mLogLeft)"/>
+  <text x="630" y="287" text-anchor="middle" font-size="9" font-weight="600" fill="#C0198C">log apply</text>
+
+  <!-- ============ GetPage@LSN focus callout (top right) ============ -->
+  <rect x="660" y="76" width="280" height="130" rx="8" fill="#F7FBFF" stroke="#0072C6" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="676" y="98" font-size="11" font-weight="700" fill="#0072C6">GetPage@LSN &#8212; the only remote hop</text>
+  <text x="676" y="120" font-size="9" fill="#374151">Compute asks the page server that owns the</text>
+  <text x="676" y="133" font-size="9" fill="#374151">page for a version at or above the LSN it needs.</text>
+  <text x="676" y="154" font-size="9" fill="#374151">Surfaces as <tspan font-weight="600">page_server_reads</tspan> and as a</text>
+  <text x="676" y="167" font-size="9" fill="#374151"><tspan font-weight="600">PAGEIOLATCH_*</tspan> wait.</text>
+  <text x="676" y="188" font-size="9" font-style="italic" fill="#6B7280">Not metered by the governed Max Data IOPS &#8212;</text>
+  <text x="676" y="200" font-size="9" font-style="italic" fill="#6B7280">that ceiling counts local SSD only.</text>
+
+  <!-- ============ background write-down / cold read + seeding up ============ -->
+  <path d="M330,430 L330,470" stroke="#5F6B7A" stroke-width="2" fill="none"
+        marker-start="url(#mStoreUp)" marker-end="url(#mStoreDown)"/>
+  <text x="344" y="446" font-size="9" font-weight="600" fill="#5F6B7A">background write-down</text>
+  <text x="344" y="459" font-size="8.5" font-style="italic" fill="#6B7280">cold read &#183; seeding &#8212; neither blocks serving</text>
+
+  <!-- ===== BAND C: Azure Storage durable tier — same visual language as Figure 3-1 ===== -->
+  <!-- CORRECTED 2026-08-09 (engine source + tests). An earlier draft drew ONE segmented   -->
+  <!-- cylinder spanning three page servers, captioned "one data file spans multiple page  -->
+  <!-- servers". That is BACKWARDS. sys.database_files stamps every data file with         -->
+  <!-- max_size = 16777216 pages = 128 GB, exactly the size of a page-server slice, so a   -->
+  <!-- file can never span two page servers. Many page servers scale a large DATABASE,     -->
+  <!-- never a large FILE. Draw three WHOLE files, this page server's highlighted.         -->
+  <rect x="60" y="474" width="540" height="124" rx="9" fill="none" stroke="#5F6B7A" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="74" y="492" font-size="11" font-weight="700" fill="#4B5563">Azure Storage &#8212; the durable tier</text>
+
+  <!-- neighbouring file, owned by page server N-1 -->
+  <path d="M90,516 V552 A55,7 0 0 0 200,552 V516" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="1.3"/>
+  <ellipse cx="145" cy="516" rx="55" ry="7" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="1.3"/>
+  <text x="145" y="538" text-anchor="middle" font-size="8.5" fill="#9CA3AF">page server N&#8722;1</text>
+  <text x="145" y="550" text-anchor="middle" font-size="8" fill="#9CA3AF">its own file</text>
+
+  <!-- THIS page server's file -->
+  <path d="M250,516 V552 A80,8 0 0 0 410,552 V516" fill="#EEF6F4" stroke="#008575" stroke-width="2"/>
+  <ellipse cx="330" cy="516" rx="80" ry="8" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <text x="330" y="537" text-anchor="middle" font-size="9.5" font-weight="700" fill="#008575">this page server&#8217;s file</text>
+  <text x="330" y="550" text-anchor="middle" font-size="8" fill="#6B7280">&#8804; 128 GB, all of it</text>
+
+  <!-- neighbouring file, owned by page server N+1 -->
+  <path d="M460,516 V552 A55,7 0 0 0 570,552 V516" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="1.3"/>
+  <ellipse cx="515" cy="516" rx="55" ry="7" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="1.3"/>
+  <text x="515" y="538" text-anchor="middle" font-size="8.5" fill="#9CA3AF">page server N+1</text>
+  <text x="515" y="550" text-anchor="middle" font-size="8" fill="#9CA3AF">its own file</text>
+
+  <!-- ===================== READING THIS FIGURE ===================== -->
+  <rect x="660" y="370" width="280" height="228" rx="8" fill="#FBFDFF" stroke="#9CA3AF" stroke-width="1.1" stroke-dasharray="5 4"/>
+  <text x="676" y="392" font-size="10" font-weight="700" fill="#374151">Reading this figure</text>
+  <text x="676" y="413" font-size="9" fill="#374151">&#183; The read path is buffer pool &#8594; RBPEX &#8594; page</text>
+  <text x="684" y="426" font-size="9" fill="#374151">server. Only the last hop leaves the node.</text>
+  <text x="676" y="447" font-size="9" fill="#374151">&#183; This page server only ever sees log for its own</text>
+  <text x="684" y="460" font-size="9" fill="#374151">slice &#8212; the log service filters before it sends.</text>
+  <text x="676" y="481" font-size="9" fill="#374151">&#183; Compute never writes to Azure Storage. Pages</text>
+  <text x="684" y="494" font-size="9" fill="#374151">become durable when a background task on this</text>
+  <text x="684" y="507" font-size="9" fill="#374151">page server writes them down &#8212; not the SQL</text>
+  <text x="684" y="520" font-size="9" fill="#374151">Server checkpoint you know.</text>
+  <text x="676" y="541" font-size="9" fill="#374151">&#183; The stack behind the page server is its</text>
+  <text x="684" y="554" font-size="9" fill="#374151">redundancy replica &#8212; availability, not a read</text>
+  <text x="684" y="567" font-size="9" fill="#374151">target like an HA or named replica.</text>
+
+  <!-- ===================== LEGEND (two rows — labels are long) ===================== -->
+  <line x1="60" y1="618" x2="940" y2="618" stroke="#E5E7EB" stroke-width="1"/>
+  <path d="M70,638 L110,638" stroke="#0072C6" stroke-width="2.5" fill="none" stroke-dasharray="7 5"
+        marker-start="url(#mDataLeft)" marker-end="url(#mDataRight)"/>
+  <text x="118" y="642" font-size="10" fill="#374151">GetPage@LSN (request / response)</text>
+  <path d="M460,638 L500,638" stroke="#C0198C" stroke-width="2" fill="none" marker-end="url(#mLogRight)"/>
+  <text x="508" y="642" font-size="10" fill="#374151">Log apply (one-way, filtered)</text>
+
+  <path d="M70,666 L110,666" stroke="#5F6B7A" stroke-width="2" fill="none"
+        marker-start="url(#mStoreLeft)" marker-end="url(#mStoreRight)"/>
+  <text x="118" y="670" font-size="10" fill="#374151">Write-down / cold read (two-way)</text>
+  <rect x="460" y="659" width="14" height="14" rx="3" fill="#FFFFFF" stroke="#008575" stroke-width="1.5"/>
+  <text x="480" y="670" font-size="10" fill="#374151">Local SSD</text>
+  <rect x="620" y="659" width="14" height="14" rx="3" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.5"/>
+  <text x="640" y="670" font-size="10" fill="#374151">In memory</text>
+</svg>

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760" role="img" aria-labelledby="title desc">
+  <title id="title">The Road to Azure SQL Hyperscale</title>
+  <desc id="desc">Five-point timeline: SQL Azure, Azure SQL Database v12, Project Socrates, Hyperscale Public Preview, and Hyperscale GA, with a bottom problem statement.</desc>
+  <defs>
+    <style>
+      .bg { fill: #ffffff; }
+      .title { font-family: Arial, sans-serif; font-size: 42px; font-weight: 700; fill: #0f2740; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 21px; font-weight: 600; fill: #304f6f; }
+      .rail { stroke: #a5bfd8; stroke-width: 10; stroke-linecap: round; }
+      .rail-accent { stroke: #1f5f9e; stroke-width: 10; stroke-linecap: round; }
+      .node { fill: #ffffff; stroke: #1f5f9e; stroke-width: 6; }
+      .dot { fill: #1f5f9e; }
+      .card { fill: #f2f7fd; stroke: #9fb9d3; stroke-width: 4; rx: 16; }
+      .year { font-family: Arial, sans-serif; font-size: 20px; font-weight: 700; fill: #1f5f9e; }
+      .head { font-family: Arial, sans-serif; font-size: 21px; font-weight: 700; fill: #0f2740; }
+      .body { font-family: Arial, sans-serif; font-size: 17px; font-weight: 500; fill: #274767; }
+      .problem { fill: #e7f2fd; stroke: #6e99c3; stroke-width: 4; }
+      .problem-head { font-family: Arial, sans-serif; font-size: 24px; font-weight: 700; fill: #0f2740; text-anchor: middle; }
+      .problem-body { font-family: Arial, sans-serif; font-size: 18px; font-weight: 500; fill: #274767; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1600" height="760"/>
+  <text class="title" x="800" y="64" text-anchor="middle">The Road to Azure SQL Hyperscale</text>
+  <text class="subtitle" x="800" y="98" text-anchor="middle">Five milestones, one outcome: a cloud database that could scale past old monolithic limits.</text>
+
+  <line class="rail-accent" x1="180" y1="320" x2="1460" y2="320"/>
+
+  <circle class="node" cx="180" cy="320" r="27"/>
+  <circle class="dot" cx="180" cy="320" r="11"/>
+  <rect class="card" x="30" y="118" width="300" height="160" rx="16"/>
+  <text class="year" x="62" y="158">2010</text>
+  <text class="head" x="62" y="196">SQL Azure launches</text>
+  <text class="body" x="62" y="232">The cloud SQL service starts.</text>
+
+  <circle class="node" cx="500" cy="320" r="27"/>
+  <circle class="dot" cx="500" cy="320" r="11"/>
+  <rect class="card" x="350" y="362" width="300" height="160" rx="16"/>
+  <text class="year" x="382" y="402">2015</text>
+  <text class="head" x="382" y="440">v12 of Azure SQL DB</text>
+  <text class="body" x="382" y="476">The service matures, but scale</text>
+  <text class="body" x="382" y="508">limits still show up.</text>
+
+  <circle class="node" cx="820" cy="320" r="27"/>
+  <circle class="dot" cx="820" cy="320" r="11"/>
+  <rect class="card" x="670" y="118" width="300" height="160" rx="16"/>
+  <text class="year" x="702" y="158">2016</text>
+  <text class="head" x="702" y="196">Project Socrates</text>
+  <text class="body" x="702" y="232">SQL reimagined for the cloud.</text>
+
+  <circle class="node" cx="1140" cy="320" r="27"/>
+  <circle class="dot" cx="1140" cy="320" r="11"/>
+  <rect class="card" x="990" y="362" width="300" height="160" rx="16"/>
+  <text class="year" x="1022" y="402">2018</text>
+  <text class="head" x="1022" y="440">Public Preview</text>
+  <text class="body" x="1022" y="476">Hyperscale opens to customers</text>
+  <text class="body" x="1022" y="508">for real-world validation.</text>
+
+  <circle class="node" cx="1460" cy="320" r="27"/>
+  <circle class="dot" cx="1460" cy="320" r="11"/>
+  <rect class="card" x="1290" y="118" width="300" height="160" rx="16"/>
+  <text class="year" x="1322" y="158">2019</text>
+  <text class="head" x="1322" y="196">GA Launch</text>
+  <text class="body" x="1322" y="232">Azure SQL Hyperscale</text>
+  <text class="body" x="1322" y="264">is generally available.</text>
+
+  <rect class="problem" x="160" y="596" width="1280" height="120" rx="14"/>
+  <text class="problem-head" x="800" y="640">Problem statement</text>
+  <text class="problem-body" x="800" y="690">A monolithic DBaaS architecture could not deliver elasticity, very large size, and high availability at the same time.</text>
+</svg>

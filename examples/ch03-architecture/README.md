@@ -12,6 +12,12 @@ transaction flows across them, on the live **Ward General Hospital** database
 > assume that database already exists (see
 > [Chapter 2](../ch02-getting-started/README.md)).
 
+![Azure SQL Hyperscale architecture](../../figures/ch03-architecture/ch03-figure-01-architecture.svg)
+
+The chapter's other figures — primary compute, the log service, page servers,
+file and storage, replicas, and one transaction followed across every tier —
+are in [`figures/ch03-architecture/`](../../figures/ch03-architecture/).
+
 ## What this is — and isn't
 
 This is **architectural illustration only**. The queries show that the tiers

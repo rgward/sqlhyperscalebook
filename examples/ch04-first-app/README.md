@@ -12,6 +12,11 @@ Microsoft Entra connection.
 > exists with its schema and seed data (see
 > [Chapter 2](../ch02-getting-started/README.md)).
 
+![The Ward General application architecture](../../figures/ch04-first-app/ch04-figure-01-application-architecture-wide.svg)
+
+The ghosted boxes are what Chapters 5 and 6 add. Those chapters redraw this same
+figure on the same grid, so nothing moves — the additions simply become real.
+
 This is the only example folder with a **build** step. Everything else in the
 book is SQL or PowerShell.
 

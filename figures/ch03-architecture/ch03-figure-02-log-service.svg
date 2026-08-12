@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" font-family="Segoe UI, Arial, sans-serif">
+  <!-- ================================================================= -->
+  <!-- Figure 3-2. The log service (XLOG), zoomed in  (Ch 3 §3)          -->
+  <!-- Drill-in on the single XLOG box of Figure 3-1. Built from          -->
+  <!-- ch03-figure-02-log-service.spec.md (source-verified 2026-08-06).   -->
+  <!-- No embedded title (caption lives in the manuscript).               -->
+  <!-- Every log arrow rides RBIO EXCEPT destage N4→N10 and the           -->
+  <!-- long-term-log fallback read N10→N2 (plain storage I/O).            -->
+  <!-- Palette + marker convention: tools/authoring-architecture-figures  -->
+  <!-- ================================================================= -->
+  <defs>
+    <marker id="mLogDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/></marker>
+    <marker id="mLogUp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/></marker>
+    <marker id="mLogRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/></marker>
+    <marker id="mLogLeft" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/></marker>
+    <marker id="mDataDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/></marker>
+    <marker id="mDataUp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/></marker>
+    <marker id="mCtlUp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#B15C00"/></marker>
+    <marker id="mCtlLeft" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#B15C00"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <!-- ===================== BAND A: primary (writer) ===================== -->
+  <rect x="470" y="44" width="300" height="54" rx="7" fill="#FFFFFF" stroke="#444444" stroke-width="2"/>
+  <text x="620" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#444444">Primary compute replica</text>
+  <text x="620" y="85" text-anchor="middle" font-size="10" fill="#666666">the only writer of log</text>
+
+  <!-- callouts (the chapter's argument) -->
+  <text x="150" y="118" font-size="10.5" font-style="italic" fill="#444444">One writer, one log.</text>
+  <text x="150" y="135" font-size="9.5" font-style="italic" fill="#6B7280">A transaction is durable once its log lands.</text>
+
+  <!-- ===================== XLOG SERVICE FRAME ===================== -->
+  <rect x="55" y="150" width="780" height="402" rx="9" fill="none" stroke="#9AA5B1" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="72" y="170" font-size="11" font-weight="700" fill="#6B7280">Log service (XLOG)</text>
+  <text x="470" y="543" font-size="8.5" font-style="italic" fill="#9CA3AF">one primary instance per database &#183; volatile in-memory state</text>
+  <text x="470" y="561" font-size="8" font-style="italic" fill="#9CA3AF">scaled to page-server/replica fan-out and the promised log rate</text>
+
+  <!-- N3 landing zone -->
+  <rect x="90" y="200" width="195" height="66" rx="7" fill="#FFFFFF" stroke="#C0198C" stroke-width="1.8"/>
+  <text x="187" y="225" text-anchor="middle" font-size="12" font-weight="700" fill="#C0198C">Landing zone</text>
+  <text x="187" y="240" text-anchor="middle" font-size="8.5" fill="#666666">fast durable log staging area</text>
+  <text x="187" y="251" text-anchor="middle" font-size="8.5" fill="#666666">(Azure Premium Storage)</text>
+
+  <!-- N2 log block broker cache -->
+  <rect x="340" y="194" width="255" height="80" rx="7" fill="#FFFFFF" stroke="#C0198C" stroke-width="2.2"/>
+  <text x="467" y="222" text-anchor="middle" font-size="12" font-weight="700" fill="#C0198C">Log block broker cache</text>
+  <text x="467" y="240" text-anchor="middle" font-size="9" fill="#666666">in-memory + local SSD &#183; most recent log blocks</text>
+
+  <!-- N4 destage -->
+  <rect x="90" y="306" width="195" height="58" rx="7" fill="#FFFFFF" stroke="#C0198C" stroke-width="1.8"/>
+  <text x="187" y="330" text-anchor="middle" font-size="12" font-weight="700" fill="#C0198C">Destage</text>
+  <text x="187" y="348" text-anchor="middle" font-size="9" fill="#666666">landing zone &#8594; long-term log</text>
+
+  <!-- N5 log rate governance (control) -->
+  <rect x="340" y="308" width="255" height="58" rx="7" fill="#FFFFFF" stroke="#B15C00" stroke-width="1.8"/>
+  <text x="467" y="332" text-anchor="middle" font-size="12" font-weight="700" fill="#B15C00">Log rate governance</text>
+  <text x="467" y="350" text-anchor="middle" font-size="9" fill="#666666">token-bucket throttle on log ingest</text>
+
+  <!-- N11 log leases (control) -->
+  <rect x="340" y="396" width="255" height="54" rx="7" fill="#FFFFFF" stroke="#B15C00" stroke-width="1.8"/>
+  <text x="467" y="418" text-anchor="middle" font-size="12" font-weight="700" fill="#B15C00">Log leases</text>
+  <text x="467" y="436" text-anchor="middle" font-size="9" fill="#666666">pin log a consumer still needs</text>
+
+  <!-- read-fallback callout -->
+  <text x="420" y="605" font-size="9.5" font-style="italic" fill="#6B7280">Read fallback: broker cache &#8594; landing zone &#8594; long-term log</text>
+
+  <!-- ===================== CONSUMERS FRAME ===================== -->
+  <rect x="895" y="180" width="325" height="290" rx="9" fill="none" stroke="#9AA5B1" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="911" y="200" font-size="11" font-weight="700" fill="#6B7280">Log consumers</text>
+  <!-- N6 page servers -->
+  <rect x="915" y="214" width="285" height="52" rx="7" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.6"/>
+  <text x="1057" y="236" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0072C6">Page servers</text>
+  <text x="1057" y="252" text-anchor="middle" font-size="9" fill="#666666">apply log to their own data</text>
+  <!-- N7 HA replicas -->
+  <rect x="915" y="274" width="285" height="52" rx="7" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.6"/>
+  <text x="1057" y="296" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0072C6">HA replicas (0&#8211;4)</text>
+  <text x="1057" y="312" text-anchor="middle" font-size="9" fill="#666666">continuous redo</text>
+  <!-- N8 named replicas -->
+  <rect x="915" y="334" width="285" height="52" rx="7" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.6"/>
+  <text x="1057" y="356" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0072C6">Named replicas (up to 30)</text>
+  <text x="1057" y="372" text-anchor="middle" font-size="9" fill="#666666">continuous redo &#183; read-only</text>
+  <!-- N9 geo-replicas -->
+  <rect x="915" y="394" width="285" height="52" rx="7" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.6"/>
+  <text x="1057" y="416" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0072C6">Geo-replicas</text>
+  <text x="1057" y="432" text-anchor="middle" font-size="9" fill="#666666">cross-region log feed</text>
+
+  <!-- ===================== BAND E: long-term log ===================== -->
+  <rect x="90" y="576" width="310" height="62" rx="7" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.8"/>
+  <text x="245" y="603" text-anchor="middle" font-size="12" font-weight="700" fill="#0072C6">Long-term log in Azure Storage</text>
+  <text x="245" y="621" text-anchor="middle" font-size="9" fill="#666666">backup &#183; restore &#183; point-in-time</text>
+
+  <!-- ===================== EDGES ===================== -->
+  <!-- E1 primary -> RBIO service endpoint: the ONLY thing the primary talks to (two-way: write down / recovery read up) -->
+  <path d="M600,98 L600,160" fill="none" stroke="#C0198C" stroke-width="3" marker-start="url(#mLogUp)" marker-end="url(#mLogDown)"/>
+  <circle cx="600" cy="160" r="3.5" fill="#C0198C"/>
+  <text x="578" y="116" text-anchor="end" font-size="10" font-weight="700" fill="#C0198C">log write at commit</text>
+  <text x="578" y="131" text-anchor="end" font-size="8" font-style="italic" fill="#6B7280">recovery read &#183; restart/failover only</text>
+  <text x="592" y="148" text-anchor="end" font-size="7.5" font-style="italic" fill="#6B7280">RBIO service endpoint</text>
+  <!-- E1a RBIO endpoint -> landing zone (durable write; the log service fans out internally, not the primary) -->
+  <path d="M600,160 L600,168 L187,168 L187,200" fill="none" stroke="#C0198C" stroke-width="2.2" marker-end="url(#mLogDown)"/>
+  <text x="390" y="160" text-anchor="middle" font-size="9" font-weight="600" fill="#C0198C">durable write</text>
+  <!-- E1b RBIO endpoint -> broker cache (publish; same internal fan-out) -->
+  <path d="M600,160 L600,188 L467,188 L467,194" fill="none" stroke="#C0198C" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#mLogDown)"/>
+  <text x="530" y="183" text-anchor="middle" font-size="8.5" fill="#C0198C">publish to cache</text>
+  <!-- E3 landing zone -> destage -->
+  <path d="M187,266 L187,306" fill="none" stroke="#C0198C" stroke-width="1.8" marker-end="url(#mLogDown)"/>
+  <!-- E4 destage -> long-term log (data color, NOT RBIO) -->
+  <path d="M187,364 L187,576" fill="none" stroke="#0072C6" stroke-width="1.8" marker-end="url(#mDataDown)"/>
+  <text x="196" y="450" font-size="9" fill="#0072C6">long-term log</text>
+  <!-- E5 broker cache -> consumers (one arrow + comb stubs) -->
+  <path d="M595,232 L760,232 L760,315 L893,315" fill="none" stroke="#C0198C" stroke-width="2" marker-end="url(#mLogRight)"/>
+  <text x="700" y="220" font-size="10" font-weight="600" fill="#C0198C">log blocks</text>
+  <path d="M903,240 L903,420" fill="none" stroke="#C0198C" stroke-width="1.4"/>
+  <path d="M903,240 L913,240" fill="none" stroke="#C0198C" stroke-width="1.4" marker-end="url(#mLogRight)"/>
+  <path d="M903,300 L913,300" fill="none" stroke="#C0198C" stroke-width="1.4" marker-end="url(#mLogRight)"/>
+  <path d="M903,360 L913,360" fill="none" stroke="#C0198C" stroke-width="1.4" marker-end="url(#mLogRight)"/>
+  <path d="M903,420 L913,420" fill="none" stroke="#C0198C" stroke-width="1.4" marker-end="url(#mLogRight)"/>
+  <!-- E6 landing zone -> broker cache (fallback tier 2) -->
+  <path d="M285,232 L340,232" fill="none" stroke="#C0198C" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#mLogRight)"/>
+  <text x="312" y="214" text-anchor="middle" font-size="7" fill="#C0198C">miss &#8594; read from</text>
+  <text x="312" y="223" text-anchor="middle" font-size="7" fill="#C0198C">landing zone</text>
+  <!-- E7 long-term log -> broker cache (fallback tier 3, data color) -->
+  <path d="M300,576 L300,290 L467,290 L467,274" fill="none" stroke="#0072C6" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#mDataUp)"/>
+  <text x="383" y="282" text-anchor="middle" font-size="7" fill="#0072C6">miss &#8594; read from long-term log</text>
+  <!-- E8 consumers -> log leases (lease held) -->
+  <path d="M895,425 L600,425" fill="none" stroke="#B15C00" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#mCtlLeft)"/>
+  <text x="700" y="417" font-size="9" fill="#B15C00">lease held</text>
+  <!-- E9 log leases -> destage (gates truncation) -->
+  <path d="M340,423 L312,423 L312,335 L285,335" fill="none" stroke="#B15C00" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#mCtlLeft)"/>
+  <text x="320" y="378" font-size="9" fill="#B15C00">gates truncation</text>
+  <!-- E10 log rate governance -> primary (back-pressure); routed around the right side, clear of the RBIO-endpoint cluster -->
+  <path d="M595,337 L820,337 L820,71 L770,71" fill="none" stroke="#B15C00" stroke-width="1.8" marker-end="url(#mCtlLeft)"/>
+  <text x="750" y="250" text-anchor="end" font-size="9" fill="#B15C00">back-pressure</text>
+  <text x="750" y="263" text-anchor="end" font-size="7.5" font-style="italic" fill="#6B7280">throttled at generation, on primary</text>
+
+  <!-- C2 callout (rotated, in the frame gap) -->
+  <text x="868" y="195" font-size="9.5" font-style="italic" fill="#6B7280" text-anchor="middle" transform="rotate(-90 868 195)">Consumers pull via RBIO &#183; never written to</text>
+</svg>
