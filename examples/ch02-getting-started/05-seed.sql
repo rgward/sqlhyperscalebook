@@ -508,21 +508,23 @@ SELECT
             'temperatureC'   : 36.5 + (((b.BedId * 3) % 30) / 10.0),
             'respRate'       : 12 + ((b.BedId * 5)  % 12)),
         'painScore'         : ((b.BedId * 7) % 11),
-        'allergiesAtIntake' : CHOOSE(((b.BedId * 3) % 4) + 1,
+        /* JSON_QUERY is required: CHOOSE/CASE resolve to nvarchar across their    */
+        /* branches, which would embed these arrays as escaped strings (type 1).   */
+        'allergiesAtIntake' : JSON_QUERY(CHOOSE(((b.BedId * 3) % 4) + 1,
                                   JSON_ARRAY(N'Penicillin', N'Latex'),
                                   JSON_ARRAY(N'NKDA'),
                                   JSON_ARRAY(N'Sulfa'),
-                                  JSON_ARRAY(N'Shellfish', N'Iodine contrast')),
-        'currentMedications': CHOOSE(((b.BedId * 5) % 4) + 1,
+                                  JSON_ARRAY(N'Shellfish', N'Iodine contrast'))),
+        'currentMedications': JSON_QUERY(CHOOSE(((b.BedId * 5) % 4) + 1,
                                   JSON_ARRAY(N'Lisinopril 10mg daily', N'Atorvastatin 40mg nightly', N'Aspirin 81mg daily'),
                                   JSON_ARRAY(N'Metformin 1000mg twice daily', N'Insulin glargine 20 units nightly'),
                                   JSON_ARRAY(N'Metoprolol 25mg twice daily', N'Apixaban 5mg twice daily'),
-                                  JSON_ARRAY(N'Albuterol inhaler as needed', N'Furosemide 40mg daily')),
-        'pastMedicalHistory': CHOOSE(((b.BedId * 7) % 4) + 1,
+                                  JSON_ARRAY(N'Albuterol inhaler as needed', N'Furosemide 40mg daily'))),
+        'pastMedicalHistory': JSON_QUERY(CHOOSE(((b.BedId * 7) % 4) + 1,
                                   JSON_ARRAY(N'Hypertension', N'Hyperlipidemia', N'Type 2 Diabetes'),
                                   JSON_ARRAY(N'COPD', N'Chronic kidney disease'),
                                   JSON_ARRAY(N'Atrial fibrillation', N'Prior stroke'),
-                                  JSON_ARRAY(N'Coronary artery disease', N'Heart failure')),
+                                  JSON_ARRAY(N'Coronary artery disease', N'Heart failure'))),
         'socialHistory'     : JSON_OBJECT(
             'tobacco' : CHOOSE(((b.BedId * 7) % 3) + 1,
                                 N'Never', N'Former, quit 2018', N'Current 1ppd'),
@@ -1021,7 +1023,8 @@ SELECT
         'verifiedBy'  : CONCAT(N'MT-',  (gs.value * 11) % 99),
         /* Analytes match the ordered test: a Troponin carries a troponin, a    */
         /* TSH a TSH, a Lipid Panel a lipid profile — not a generic CBC.         */
-        'analytes'    :
+        /* JSON_QUERY is required: CASE resolves to nvarchar across its branches. */
+        'analytes'    : JSON_QUERY(
             CASE k.ti
                 WHEN 1 THEN JSON_ARRAY(   -- CBC
                     JSON_OBJECT('name': N'WBC', 'value': 7.4 + (((e.EncounterId * 3  + gs.value) % 30) / 10.0), 'unit': N'K/uL', 'refLow': 4.5,  'refHigh': 11.0),
@@ -1058,7 +1061,7 @@ SELECT
                     JSON_OBJECT('name': N'Triglycerides',     'value': 90  + ((e.EncounterId * 11 + gs.value) % 120), 'unit': N'mg/dL', 'refLow': 0,  'refHigh': 150))
                 WHEN 6 THEN JSON_ARRAY(   -- TSH
                     JSON_OBJECT('name': N'TSH', 'value': 0.5 + (((e.EncounterId * 7 + gs.value) % 45) / 10.0), 'unit': N'mIU/L', 'refLow': 0.4, 'refHigh': 4.0))
-            END
+            END)
     ),
     N'Resulted'
 FROM clinical.Encounter e
