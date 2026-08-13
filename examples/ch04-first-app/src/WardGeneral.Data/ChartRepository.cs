@@ -7,10 +7,12 @@ using WardGeneral.Data.Models;
 namespace WardGeneral.Data;
 
 /// <summary>
-/// The app's data-access layer. Every call goes through a <b>stored procedure</b> — the
-/// "procs-for-everything" contract — using raw ADO.NET (no ORM) so the call path
-/// and result mapping stay fully visible. The same procedures are what Data API Builder
-/// and the SQL MCP server expose later.
+/// The app's data-access layer. Every <b>chart</b> call goes through a <b>stored
+/// procedure</b> — the "procs-for-everything" contract — using raw ADO.NET (no ORM) so
+/// the call path and result mapping stay fully visible. The same procedures are what
+/// Data API Builder and the SQL MCP server expose later. A few small lookups
+/// (providers, units, the unit board) read views directly; they have no procedure
+/// because there is no contract worth owning for a single <c>SELECT</c>.
 /// </summary>
 public sealed class ChartRepository
 {

@@ -13,6 +13,10 @@
 
     Local only; it does NOT touch Azure or the database. -WhatIf for a dry run.
 
+    Runs on Windows, macOS and Linux. Finding which process owns a port is the
+    one per-OS step: Get-NetTCPConnection on Windows, lsof elsewhere. Written
+    for all three, tested on Windows.
+
     Usage:  ./shutdown.ps1
             ./shutdown.ps1 -WhatIf
 #>
@@ -22,13 +26,28 @@ param(
     [string[]]$ProcessNames = @('WardGeneral.Web', 'dotnet')
 )
 
+# Returns the process IDs listening on a port, or nothing.
+function Get-PortOwnerId([int]$Port) {
+    if ($IsWindows) {
+        Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue |
+            ForEach-Object { $_.OwningProcess }
+        return
+    }
+
+    if (-not (Get-Command lsof -ErrorAction SilentlyContinue)) {
+        Write-Warning "lsof not found, so port $Port cannot be checked. Stop the app with Ctrl+C in the window running run.ps1."
+        return
+    }
+    # -t prints bare PIDs, which is all this script needs.
+    & lsof -nP -t -iTCP:$Port -sTCP:LISTEN 2>$null | ForEach-Object { [int]$_ }
+}
+
 $stopped = 0
 $skipped = 0
 
 foreach ($port in $Ports) {
-    $conns = Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue
-    foreach ($c in $conns) {
-        $procId = $c.OwningProcess
+    # IPv4 and IPv6 listeners report the same owner, so collapse duplicates.
+    foreach ($procId in (Get-PortOwnerId $port | Sort-Object -Unique)) {
         if (-not $procId -or $procId -le 0) { continue }
 
         $p = Get-Process -Id $procId -ErrorAction SilentlyContinue

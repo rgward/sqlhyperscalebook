@@ -2,8 +2,9 @@
 
 Build a real application on the database you provisioned in Chapter 2. **Ward
 General Hospital** is a bedside chart: a unit board of occupied beds, a patient
-chart assembled from one round trip, vitals and note entry, and an in-engine
-`REGEXP_*` note-signal card. It is an ASP.NET Core **Blazor** app on **.NET 10**
+chart assembled from one round trip, and an in-engine `REGEXP_*` note-signal
+card. The app **reads**; the write procedures belong to the hospital's other
+systems. It is an ASP.NET Core **Blazor** app on **.NET 10**
 talking to `wardgeneral` over **raw ADO.NET** — no ORM — with a **passwordless**
 Microsoft Entra connection.
 
@@ -54,6 +55,28 @@ and `run.ps1` runs `preflight-run.ps1`, which verify all of it — including
 counting patients to prove the seed ran — and name the fix for anything
 missing. Run either on its own the first time you sit down with the code.
 
+### Windows, macOS, or Linux
+
+Nothing in this chapter is Windows-only. The .NET 10 SDK, PowerShell 7, and the
+Azure CLI all run on macOS and Linux, and the app itself — Blazor Server over
+`Microsoft.Data.SqlClient`, authenticating with an Entra access token — has no
+platform dependency.
+
+Three places in the scripts genuinely differ by operating system, and each one
+branches:
+
+| What | Windows | macOS and Linux |
+|---|---|---|
+| Opening your browser (`run.ps1`) | `Start-Process` | `open` / `xdg-open` |
+| Finding which process holds a port (`shutdown.ps1`) | `Get-NetTCPConnection` | `lsof` |
+| Loading the SQL client for the pre-flight check (`preflight-run.ps1`) | the `win` runtime, with managed networking forced on | the `unix` runtime |
+
+**These were written for all three platforms but tested only on Windows.** If
+you are on a Mac and something misbehaves, that is where to look first. The rest
+of the book assumes Windows in places — Chapter 10's `sqlsim` load generator is a
+Windows executable — so treat cross-platform as true for this chapter rather
+than for the whole book.
+
 ## What this is — and isn't
 
 The app is the book's through-line. It is written **once, here**, and never
@@ -79,8 +102,9 @@ Chapter 4 features are **not** flags. The base chart — including the `REGEXP_*
 card — is simply part of the app.
 
 The Research page reads the **`wardgeneral-research` named replica**, which
-already exists: [Chapter 3](../ch03-architecture/README.md) provisions it and
-`06-replicas.sql` surfaces it. Only the Chapter 5 proc is missing.
+already exists: [Chapter 2](../ch02-getting-started/README.md) deploys it with
+`add-replicas.ps1`, and Chapter 3's `06-replicas.sql` surfaces it. Only the
+Chapter 5 proc is missing.
 
 ## Files in this folder
 
@@ -116,6 +140,69 @@ answered, is decided a layer below. The one thing `Web` owns outright is
 that chapter's SQL is deployed, without a source edit. The data layer never sees
 it — a flag decides whether a card renders, not whether the procedure behind it
 works.
+
+## Build the Application
+
+Building is entirely local. It needs the .NET SDK and nothing else — no Azure
+sign-in, no subscription, no firewall rule, no database. That is worth knowing
+before you start, because it means a failed build is always a toolchain problem
+and never a cloud one.
+
+There are two ways to do it. Ask Copilot, or run the script yourself. They do the
+same thing — the skill runs the same `build.ps1` you would.
+
+### What you need in VS Code
+
+| Extension | Required? |
+|---|---|
+| **GitHub Copilot** ([`GitHub.copilot`](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot)), with a Copilot subscription — [plans](https://github.com/features/copilot), [setup](https://code.visualstudio.com/docs/copilot/setup) | **Yes**, to drive the build with a prompt. Installing it also installs its companion, **GitHub Copilot Chat** ([`GitHub.copilot-chat`](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat)) — you do not install that separately. Not needed if you run the scripts by hand. |
+| **MSSQL extension** | Not by the build. It is the book's baseline for running SQL, so you already have it from Chapter 2. |
+| **C# Dev Kit** | No. The build is `dotnet build` from the terminal. Install it if you want to read and debug the source. |
+
+Skills are an [agent-mode feature](https://code.visualstudio.com/docs/copilot/customization/agent-skills);
+ask mode will not load one.
+
+### The steps
+
+1. **Install the prerequisites** — the .NET 10 SDK, PowerShell 7, and a trusted
+   HTTPS developer certificate (`dotnet dev-certs https --trust`). The
+   *Requirements* table above says why each one matters.
+2. **Clone this repository and open the repository root in VS Code.** The root,
+   not this folder: VS Code discovers Copilot skills from `.github/skills/`
+   relative to the folder you open, so opening `examples/ch04-first-app/` on its
+   own means the skill is never found. If VS Code was already open when you
+   cloned, reload the window — a newly added skill folder is not picked up until
+   you do.
+3. **Open Copilot Chat and switch to agent mode.**
+4. **Ask for the build:**
+
+   > Build the Ward General app.
+
+   Copilot loads the `wardgeneral-app` skill and runs the build for you.
+
+Or skip steps 3 and 4 and run it yourself:
+
+```powershell
+./build.ps1
+```
+
+### The skill, and what it runs
+
+The skill is [`.github/skills/wardgeneral-app/SKILL.md`](../../.github/skills/wardgeneral-app/SKILL.md)
+in the repository root. It is a Markdown file — read it. It carries no code of
+its own; it is instructions telling Copilot which of this folder's scripts to run
+and in what order, so the agent path and the by-hand path stay the same path.
+
+Phrases like *"build the app"*, *"run the Ward General app"*, or *"flip a feature
+flag"* match it. For the build it reaches for one script:
+
+| Script | What it does |
+|---|---|
+| `build.ps1` | Restores and builds `WardGeneral.slnx` — all three projects — with `dotnet build`. `-Configuration Release` switches configuration, `-Clean` deletes every `bin/` and `obj/` first (deliberately not `dotnet clean`, which only removes what the last build produced), `-Publish` runs `dotnet publish` on the web project into `src/WardGeneral.Web/publish`, and `-SkipPreflight` bypasses the check below. |
+| `preflight-build.ps1` | Called automatically by `build.ps1` before anything compiles. Two checks, local only: the .NET SDK is major version 10 or later (a failure — an older SDK fails with `NETSDK1045`, which reads like a project error rather than a missing install), and the HTTPS developer certificate is present and trusted (a warning — it does not stop the build, but it will break the browser later). Run it on its own the first time you sit down with the code. |
+
+The skill also owns running, restarting, and stopping the app. Those scripts are
+the next section.
 
 ## Configuring the connection
 

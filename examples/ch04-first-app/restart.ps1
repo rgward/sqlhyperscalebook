@@ -81,11 +81,18 @@ foreach ($flag in $flagVars.Keys) {
 
 # -- Wait for the ports to actually free up. Stop-Process returns before the
 # listener is gone, and run.ps1 would then see a stale listener and decline to
-# start.
-foreach ($i in 1..40) {
-    $held = $ports | Where-Object {
-        Get-NetTCPConnection -State Listen -LocalPort $_ -ErrorAction SilentlyContinue
+# start. A connect attempt answers "is anything still listening" on every OS,
+# unlike Get-NetTCPConnection, which is Windows-only.
+function Test-Listening([int]$p) {
+    try {
+        $c = [System.Net.Sockets.TcpClient]::new()
+        $c.Connect('localhost', $p); $c.Close(); return $true
     }
+    catch { return $false }
+}
+
+foreach ($i in 1..40) {
+    $held = $ports | Where-Object { Test-Listening $_ }
     if (-not $held) { break }
     Start-Sleep -Milliseconds 250
 }

@@ -47,3 +47,13 @@ obj/
 *.gz
 *.bz2
 *.xz
+
+# ---------------------------------------------------------------------------
+# Local, per-reader configuration. NEVER committed.
+#
+# run.ps1 writes examples/ch04-first-app/src/WardGeneral.Web/appsettings.Development.json
+# with the reader's own logical server name. appsettings.json ships with an
+# EMPTY server on purpose, so no live server name is ever a committed default;
+# this rule is what keeps the overlay that replaces it out of the repo.
+# ---------------------------------------------------------------------------
+appsettings.Development.json

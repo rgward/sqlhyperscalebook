@@ -53,9 +53,18 @@ function Test-Listening([int]$p) {
     catch { return $false }
 }
 
+# Opening a URL in the user's real browser is the one genuinely per-OS action in
+# this script. Start-Process handles it on Windows; macOS and Linux each have
+# their own launcher. Written for all three, tested on Windows.
+function Open-Url([string]$u) {
+    if ($IsWindows) { Start-Process $u }
+    elseif ($IsMacOS) { & open $u }
+    else { & xdg-open $u }
+}
+
 # -- Just open the browser (app is already running) -------------------------
 if ($OpenOnly) {
-    Start-Process $HttpsUrl
+    Open-Url $HttpsUrl
     Write-Host "Opened $HttpsUrl in your default browser." -ForegroundColor Green
     return
 }
@@ -66,7 +75,7 @@ if (-not (Test-Path $proj)) { throw "Web project not found: $proj" }
 # instance — just open the browser.
 if (Test-Listening $port) {
     Write-Host "App already listening on $HttpsUrl — opening the browser." -ForegroundColor Yellow
-    Start-Process $HttpsUrl
+    Open-Url $HttpsUrl
     return
 }
 
@@ -100,7 +109,10 @@ if (-not $NoBrowser) {
             try {
                 $c = [System.Net.Sockets.TcpClient]::new()
                 $c.Connect('localhost', $p); $c.Close()
-                Start-Process $url
+                # A job runs in its own runspace, so Open-Url is out of scope here.
+                if ($IsWindows) { Start-Process $url }
+                elseif ($IsMacOS) { & open $url }
+                else { & xdg-open $url }
                 return
             }
             catch { Start-Sleep -Milliseconds 500 }

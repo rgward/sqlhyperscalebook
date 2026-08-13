@@ -82,17 +82,48 @@ directly); there is no ad-hoc write SQL and no ORM, so the path stays visible.
   deployed yet, deploy the scripts in
   `examples/ch02-getting-started/` (`01-schemas.sql` →
   `05-seed.sql`).
-- **A Microsoft Entra identity with access to the database.** Locally the app
-  uses `Active Directory Default`, which picks up your **`az login`** / Visual
-  Studio / VS Code sign-in. Confirm with `az account show`.
+- **Signed in to Azure, in the right subscription — do this first.** Locally the
+  app authenticates with `Active Directory Default`, which picks up your
+  **`az login`** / Visual Studio / VS Code sign-in, and `run.ps1`'s firewall check
+  runs `az` against whatever subscription is currently active. Confirm both
+  before starting:
+  ```powershell
+  az login                                      # if not already signed in
+  az account show --query "{sub:name, user:user.name}" -o table
+  az account set --subscription <name-or-id>    # if the wrong one is active
+  ```
+  A reader with many subscriptions will land on a default that does **not** hold
+  their server, and the failure surfaces later as a firewall or "server not found"
+  error that looks nothing like its cause. Ask which subscription holds the
+  database if there is any doubt.
+- **A Microsoft Entra identity with access to the database** — the signed-in
+  identity must be a database user, not just a subscription owner.
 
 There is **no password anywhere** in this app or its config — that's the point.
 
 ## Steps
 
+**Run only the steps the reader asked for. These are not a pipeline.** Match the
+request to a stopping point and stop there — do not carry on into the next step
+because it comes next in this file.
+
+| The reader asked to… | Run | Stop after |
+|---|---|---|
+| **build** ("build the app", "compile it", "does it build") | step 3 only | `build.ps1`. **Do NOT run `run.ps1`.** Report the build result and stop. |
+| **run / start** ("run the app", "start the hospital app") | steps 1, 2, 4 | `run.ps1` |
+| **build and run** (both named) | steps 1, 2, 3, 4 | `run.ps1` |
+| **restart / flip a flag** | step 5 | `restart.ps1` |
+| **stop** | — | `shutdown.ps1` |
+
+A build touches nothing in Azure: no sign-in, no subscription, no firewall rule,
+no database. So a build-only request does **not** need steps 1 and 2 either —
+don't ask the reader for a server name just to compile.
+
 ### 1 — Point the app at your database
 
-**ASK the reader for their logical server name before doing anything else.** The
+*Skip this step for a build-only request — compiling needs no server name.*
+
+**Before running the app, ASK the reader for their logical server name.** The
 committed `appsettings.json` ships with `"Server": ""` — no live server name is
 ever a committed default — so this step is mandatory, not optional. Don't guess a
 name and don't reuse one from another chapter's output.
@@ -146,6 +177,11 @@ az login   # or sign in to Visual Studio / VS Code with an identity that has DB 
 ./examples/ch04-first-app/build.ps1
 # -Configuration Release, or -Publish to dotnet publish the web app
 ```
+`build.ps1` calls `preflight-build.ps1` first (SDK 10+, HTTPS dev cert).
+
+**If the reader only asked to build, you are done here.** Report the result and
+stop. Starting the app unasked takes over a port and opens a browser they did not
+ask for.
 
 ### 4 — Run (and open the browser)
 ```powershell
@@ -231,6 +267,9 @@ app. It self-hides only if `clinical.vChartNoteSignals` hasn't been deployed.
 
 - **Auth / login errors** — `az login` (or sign in to VS/VS Code) with an
   identity that has DB access; confirm with `az account show`.
+- **Firewall step fails, or the server "doesn't exist"** — usually the wrong
+  subscription is active, not a missing rule. `az account show`, then
+  `az account set --subscription <name-or-id>` and re-run.
 - **"WardGeneral:Server is not configured"** — expected on a fresh clone;
   `appsettings.json` ships blank. Do step 1.
 - **"No such host is known"** — the server name is wrong. Check
