@@ -28,12 +28,11 @@
 # It is created SERVERLESS (HS_S_Gen5_8) on purpose: a research endpoint is
 # idle between queries, and serverless AUTOSCALES compute (1-8 vCores here)
 # with per-second billing, so the replica drops to its floor when nobody is
-# researching. Be precise about what serverless does NOT do on Hyperscale:
-# it does NOT auto-pause to zero. Auto-pause/auto-resume is General Purpose
-# only -- see
-# https://learn.microsoft.com/azure/azure-sql/database/serverless-tier-auto-pause-resume
-# (accessed 2026-08-12). The replica idles at the minimum vCore, billing
-# continuously. Note the other trade too -- continuous priming is
+# researching. Be precise about what serverless does NOT do on Hyperscale
+# today: it does NOT auto-pause to zero. Auto-pause/auto-resume ships on
+# General Purpose serverless now, and is on the roadmap for Hyperscale
+# serverless -- so as of August 2026 the replica idles at its minimum vCore,
+# billing continuously. Note the other trade too -- continuous priming is
 # provisioned-only (Ch 9).
 #
 # Repo convention: PowerShell for every script, `az` CLI for Azure
@@ -49,7 +48,7 @@ if (-not $env:SRV) { throw 'Set SRV to the logical server name (collierhealth-..
 $Srv = $env:SRV
 $Db  = $env:DB  ?? 'wardgeneral'
 $NamedReplica    = $env:NAMED_REPLICA     ?? 'wardgeneral-research'   # read-only scale-out endpoint
-$NamedReplicaSlo = $env:NAMED_REPLICA_SLO ?? 'HS_S_Gen5_8'            # serverless: autoscales to a 1-vCore floor when idle (no auto-pause on Hyperscale)
+$NamedReplicaSlo = $env:NAMED_REPLICA_SLO ?? 'HS_S_Gen5_8'            # serverless: autoscales to a 1-vCore floor when idle (auto-pause not on Hyperscale yet)
 
 Write-Host "--- Before ---"
 az sql db show `
@@ -114,7 +113,8 @@ Notes (Ch 2 §4):
   * Each replica is its own compute meter (per-replica billing) — Ch 2 §1
     pricing-model callout, in action. This one is serverless, so it bills
     per second on the compute it actually uses, dropping to its 1-vCore
-    floor when idle. It does NOT pause: auto-pause is General Purpose only.
+    floor when idle. It does not pause: as of August 2026 auto-pause is a
+    General Purpose feature, and is on the roadmap for Hyperscale.
   * Constraint to remember (planted here, expanded in Ch 10 §11): named
     replicas cannot live in a Hyperscale elastic pool.
 "@ | Write-Host
