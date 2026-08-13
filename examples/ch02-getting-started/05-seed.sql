@@ -17,10 +17,11 @@
        clinical.ClinicalNote ~ 60,000        (~1-2 KB per NoteText)
        clinical.MedicationOrder ~100,000
        clinical.LabResult  ~200,000          (~0.5-1 KB per ResultJson)
-       clinical.Observation ~108M            (the size anchor; ~10 GB w/ indexes)
+       clinical.Observation ~108M            (the size anchor; essentially the
+                                              whole database on its own)
 
-   Anchor target: a database a little over 10 GB after this seed completes.
-   Ch 10 grows clinical.Observation to ~1 TB via a one-time author-run grow
+   Anchor target: about 12 GB after this seed completes. Ch 10 grows
+   clinical.Observation to ~1 TB via a one-time author-run grow
    script — readers stay at the volumes seeded here.
 
    ----------------------------------------------------------------------------

@@ -4,7 +4,11 @@
    Run order       : 2 of 5
 
    Notes for later chapters (NOT created here):
-     * Ch 5  adds a VECTOR embedding column to clinical.ClinicalNote.
+     * Ch 5  adds clinical.ClinicalNoteEmbeddings — a SATELLITE table joined to
+             clinical.ClinicalNote by NoteId, holding one VECTOR per note. The
+             embedding column is deliberately NOT added to ClinicalNote, so the
+             model (and therefore the vector dimension) can change without
+             touching the chart schema.
      * Ch 10 adds a JSON index on clinical.Encounter.IntakeJson as data grows
              (CREATE JSON INDEX requires a clustered key and is an offline build).
      * Ch 8  adds RLS predicates (ops.Provider.EntraObjectId,
@@ -100,8 +104,10 @@ CREATE TABLE ops.Provider
 GO
 
 /* ---- clinical.Patient ---------------------------------------------------- */
-/* Email / Phone / MRN are the regex-validation targets in Ch 4 (REGEXP_LIKE). */
-/* InsuranceJson is the native json showcase queried in Ch 5.                  */
+/* InsuranceJson is one of the four native json columns (see the header).      */
+/* NOTE: Ch 4's REGEXP_* work targets clinical.ClinicalNote.NoteText, not the  */
+/* columns below — it EXTRACTS vitals from free-text prose rather than         */
+/* validating these fields.                                                    */
 CREATE TABLE clinical.Patient
 (
     PatientId     INT            NOT NULL IDENTITY(1, 1),
@@ -375,7 +381,7 @@ CREATE NONCLUSTERED INDEX IX_CareTeam_Encounter ON clinical.CareTeamMember (Enco
 GO
 
 /* ---- clinical.ImagingOrder ----------------------------------------------- */
-/* The third order type (with Medication + Lab). FindingsJson is a third         */
+/* The third order type (with Medication + Lab). FindingsJson is the fourth      */
 /* native-json home (with Patient.InsuranceJson, Encounter.IntakeJson,           */
 /* LabResult.ResultJson).                                                        */
 CREATE TABLE clinical.ImagingOrder

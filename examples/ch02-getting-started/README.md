@@ -12,12 +12,17 @@ every later chapter builds on: the **Ward General Hospital** database
 
 ## The flow
 
-Four moves, in order:
+Five moves, in order:
 
 1. **Deploy** — create the logical server + Hyperscale database (`provision-hyperscale.ps1`).
-2. **Connect & prove it's SQL Server** — run `connect-and-verify.sql`.
-3. **Build the schema** — run `01`→`04` in order.
-4. **Seed & verify** — run `05-seed.sql`, then `verify-data.sql`.
+2. **Add the replicas** — run `add-replicas.ps1` for a second HA replica and the
+   `wardgeneral-research` named replica. This finishes the provision step:
+   Chapter 3 examines that named replica as an architectural object, and Chapter
+   5's Research page is the first thing to actually use it — both assume it
+   exists.
+3. **Connect & prove it's SQL Server** — run `connect-and-verify.sql`.
+4. **Build the schema** — run `01`→`04` in order.
+5. **Seed & verify** — run `05-seed.sql`, then `verify-data.sql`.
 
 You can drive all of this through Copilot (ask it to *"deploy my Hyperscale
 database"* and it runs the `deploy-hyperscale` skill), or run the scripts by hand
@@ -38,11 +43,12 @@ as described below.
 | `verify-activity-log.ps1` | PowerShell | Read-only control-plane check: summarizes the Azure **Activity Log** for `rg-collierhealth` (every operation ARM ran to build the database) — events by status, by operation, most-recent table, and a **failure flag**. A clean deploy shows all `Succeeded`. Widen the window with `$env:OFFSET='1d'` (default 6h). |
 | `connect-and-verify.sql` | SQL | Proves it's SQL Server: `@@VERSION`, `DATABASEPROPERTYEX`, service objective, and the governing limits (workers, sessions, log rate, IOPS, memory, 128 TB ceiling, collation, compatibility level) in human units. |
 | `01-schemas.sql` | SQL | Creates the `clinical` and `ops` schemas. |
-| `02-tables.sql` | SQL | Creates all 13 tables — clustered keys, FKs, constraints, and the three native `json` columns. |
+| `02-tables.sql` | SQL | Creates all 16 tables — clustered keys, FKs, constraints, and the four native `json` columns. |
 | `03-views.sql` | SQL | Creates `clinical.vPatientChart` and its supporting chart views. |
-| `04-procedures.sql` | SQL | Creates the read/write procedures (admit, discharge, record vitals, place order, file lab, add note/diagnosis/allergy, `SearchEncounters`, chart reads). The app, DAB, and the agent all call these — not ad-hoc SQL. |
-| `05-seed.sql` | SQL | Seeds ~10 GB of fully synthetic data (Observation is the ~108M-row anchor). Runs ~5–15 min — log-rate gated. |
+| `04-procedures.sql` | SQL | Creates the eleven read/write procedures (admit, discharge, record vitals, place order, file lab, add note/diagnosis/allergy, `SearchEncounters`, chart reads). They are the hospital's contract, not this book's app's: the Chapter 4 chart app is read-only and calls three of them, and the same procedures are what Data API Builder and the agent expose in Chapter 6. |
+| `05-seed.sql` | SQL | Seeds the database to roughly **12 GB** of fully synthetic data (Observation is the ~108M-row anchor). Runs ~5–15 min — log-rate gated. |
 | `verify-data.sql` | SQL | Read-only PASS/FAIL check with per-table volume checks. You want it to end with **`ALL CHECKS PASSED`**. |
+| `add-replicas.ps1` | PowerShell | Adds a second **HA replica**, then creates the **`wardgeneral-research`** named replica (serverless `HS_S_Gen5_8`) and prints the resulting topology. A named replica is read-only, looks like a separate database, and is **not** a failover target. Chapter 3 dissects it; Chapter 5 uses it. |
 
 ## Deploy inputs (environment variables)
 

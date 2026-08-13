@@ -57,7 +57,7 @@ Install these before running the guided deploy:
 - **MSSQL extension for VS Code** (`ms-mssql.mssql`) — the book's primary client; used to connect (Microsoft Entra auth) and run `connect-and-verify.sql`.
 
 **Azure account**
-- An **Azure subscription** with rights to create a logical server + database (Contributor or a SQL-specific role). See Chapter 2 for subscription options, including the free path. A Hyperscale database **bills from creation** — mind the meter, and see Chapter 2's teardown note.
+- An **Azure subscription** with rights to create a logical server + database (Contributor or a SQL-specific role). See Chapter 2 for subscription options, including the free path. A Hyperscale database **bills from creation** — mind the meter.
 - A **Microsoft Entra** account — you become the server's Entra admin (no SQL password needed to connect).
 
 **Optional**
@@ -77,8 +77,9 @@ server name, redundancy, auth, size), and runs the deployment.
 
 **By hand.** Open the chapter folder under `examples/` and run the PowerShell
 scripts yourself in **PowerShell 7** — `./provision-hyperscale.ps1` (set any
-overrides as `$env:*` first), then run `01-schemas.sql` … `05-seed.sql` via the
-MSSQL extension or `sqlcmd`.
+overrides as `$env:*` first), then `./add-replicas.ps1` to finish the provision
+step with a second HA replica and the `wardgeneral-research` named replica, then
+run `01-schemas.sql` … `05-seed.sql` via the MSSQL extension or `sqlcmd`.
 
 Either way, **scripts never hard-code secrets** — they read them from
 environment variables or prompt you.
@@ -90,10 +91,10 @@ Run the five schema scripts **in order once**, then verify:
 | Step | Script | What it does |
 |---|---|---|
 | 1 | `01-schemas.sql` | Creates the `clinical` and `ops` schemas. |
-| 2 | `02-tables.sql` | Creates all 13 tables (keys, FKs, constraints, `json` columns). |
+| 2 | `02-tables.sql` | Creates all 16 tables (keys, FKs, constraints, `json` columns). |
 | 3 | `03-views.sql` | Creates the `vPatientChart` chart views. |
 | 4 | `04-procedures.sql` | Creates the read/write procedures (admit, discharge, record vitals…). |
-| 5 | `05-seed.sql` | Seeds ~10 GB of fully synthetic data. Runs ~5–15 min (log-rate gated). |
+| 5 | `05-seed.sql` | Seeds the database to roughly **12 GB** of fully synthetic data. Runs ~5–15 min (log-rate gated). |
 | ✓ | `verify-data.sql` | Read-only PASS/FAIL check. You want it to end with **`ALL CHECKS PASSED`**. |
 
 **You never drop the database to start over.** Each script is safe to re-run,
