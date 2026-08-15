@@ -90,7 +90,7 @@ and which chapter gets you there.
 
 | Surface | Flag | Unlocks in | Needs |
 |---|---|---|---|
-| **Research** page (sidebar) and the chart's **AI assistance** card | `Features:AiAssistance` | Chapter 5 | `06-ai-embeddings.sql`, `07-ai-assistance.sql`, `08-research-vector-search.sql` from [`examples/ch05-ai-ready-sql/`](../ch05-ai-ready-sql/) |
+| **Research** page (sidebar) and the chart's **AI assistance** card | `Features:AiAssistance` | Chapter 5 | `06-ai-embeddings.sql`, `07-vector-index.sql`, `08-ai-assistance.sql`, `09-research-vector-search.sql` from [`examples/ch05-ai-ready-sql/`](../ch05-ai-ready-sql/) |
 | **Chat icon** — the clinical assistant dock | `Features:AiAgent` | Chapter 6 | DAB running: `setup-dab.ps1` then `run-dab.ps1` in [`examples/ch06-agentic-ai/`](../ch06-agentic-ai/) |
 | Row-level filtering behind the **"Viewing as"** selector | `RowLevelSecurity:Enabled` | Chapter 8 | The security predicate from [`examples/ch08/`](../ch08/) |
 

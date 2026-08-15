@@ -15,8 +15,9 @@ description: >-
   a feature flag, stopping with shutdown.ps1, and what each screen shows. Scope is
   BUILD + CONFIGURE + RUN the app ONLY. Do NOT use to deploy the database (see
   deploy-hyperscale), deploy the Azure AI resources a feature flag depends on (see
-  deploy-wardgeneral-ai), stand up DAB / the SQL MCP server, or provision Azure App
-  Service / Container Apps.
+  ai-ready-app), stand up DAB / the SQL MCP server, or provision Azure App
+  Service / Container Apps. For the Chapter 5 END-TO-END path — deploy the AI layer
+  AND build/run the app with AiAssistance already on — see **ai-ready-app**.
 ---
 
 # Build and run the Ward General app
@@ -164,8 +165,8 @@ If `Server` is still blank, the app **fails at startup** with a message naming
 all three options — by design. That is not a bug to work around.
 
 The Azure OpenAI endpoint (`Agent:Endpoint`) is blank for the same reason, but a
-Chapter 4 reader never needs it — it belongs to the `Assistant` flag (Chapter 6,
-see `deploy-wardgeneral-ai`).
+Chapter 4 reader never needs it — it belongs to the `AiAgent` flag (Chapter 6,
+see `ai-ready-app` for the Foundry resource it points at).
 
 ### 2 — Sign in (passwordless auth)
 ```powershell
@@ -208,11 +209,16 @@ and restart:
 ./examples/ch04-first-app/restart.ps1                                   # back to defaults
 ```
 The backing SQL: `AiAssistance` needs `06-ai-embeddings.sql` +
-`07-ai-assistance.sql` + `08-research-vector-search.sql` from
+`07-vector-index.sql` + `08-ai-assistance.sql` + `09-research-vector-search.sql`
+from
 `examples/ch05-ai-ready-sql/` (the `wardgeneral-research` named replica the
 Research page reads already exists — Ch 3 provisions it); `AiAgent` needs DAB
 running (`examples/ch06-agentic-ai/setup-dab.ps1`, then `run-dab.ps1`);
 `RowLevelSecurity` needs the Chapter 8 security policy deployed.
+
+For `AiAssistance` there is a shortcut that does the deploy and the flag
+together — `examples/ch05-ai-ready-sql/run-ai-app.ps1` builds this app and starts
+it with the flag already on. See **ai-ready-app** for the full Chapter 5 path.
 
 A **restart is required** — the flags bind as `IOptions<FeatureFlags>`, resolved
 once at startup, so a page refresh does nothing. No rebuild: `run.ps1` uses

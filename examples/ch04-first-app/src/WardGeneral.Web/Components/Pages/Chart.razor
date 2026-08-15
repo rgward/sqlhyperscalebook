@@ -9,7 +9,12 @@
 
 <PageTitle>Ward General — @(_chart?.PatientName ?? "Chart")</PageTitle>
 
-<a href="">&larr; Unit board</a>
+@* Carry the patient's unit back to the board. A bare href="" returns to "/",
+   where the board falls back to the first unit alphabetically — so a chart
+   opened from the NICU sent the reader back to 3 East. *@
+<a href="@(_chart?.UnitName is { Length: > 0 } backUnit
+            ? $"?unit={Uri.EscapeDataString(backUnit)}"
+            : "")">&larr; Unit board</a>
 
 @if (_error is not null)
 {
@@ -138,12 +143,13 @@ else
     }
     else
     {
+        var vitalAge = AgeAt(c.DateOfBirth);
         <div class="vitals-grid">
             @foreach (var type in VitalOrder.Where(c.LatestVitals.ContainsKey))
             {
                 var v = c.LatestVitals[type];
                 var (label, unit) = VitalMeta(type);
-                var abnormal = IsAbnormal(type, v.Value);
+                var abnormal = IsAbnormal(type, v.Value, vitalAge);
                 <div class="vital-tile @(abnormal ? "abnormal" : "")">
                     <div class="vital-label">@label</div>
                     <div class="vital-value">@v.Value<span class="vital-unit"> @unit</span></div>
@@ -318,28 +324,82 @@ else
         _ => (type, "")
     };
 
+    // Age at the time the chart is viewed. Null when the patient has no
+    // recorded date of birth, which falls back to the adult bands below.
+    private static int? AgeAt(DateTime? dob)
+    {
+        if (dob is not DateTime d) return null;
+        var today = DateTime.UtcNow;
+        var years = today.Year - d.Year;
+        if (today < d.AddYears(years)) years--;
+        return years < 0 ? null : years;
+    }
+
     // Real-world abnormal thresholds — computed, not stored.
-    private static bool IsAbnormal(string type, decimal? value)
+    //
+    // The bands widen with age because the same number means different things.
+    // A healthy infant runs a heart rate of 140 and a respiratory rate of 40;
+    // judged against the adult rule, every child on the ward would show a red
+    // tile and a standing alert, and the alerts strip would stop meaning
+    // anything. These are illustrative alerting bands for the sample app, not
+    // clinical guidance.
+    private static bool IsAbnormal(string type, decimal? value, int? age)
     {
         if (value is not decimal x) return false;
+
+        var band = age switch
+        {
+            null   => 3,   // unknown age — treat as adult
+            < 2    => 0,   // infant
+            < 13   => 1,   // child
+            < 18   => 2,   // adolescent
+            _      => 3    // adult
+        };
+
         return type switch
         {
-            "HeartRate" => x > 120 || x < 50,
+            "HeartRate" => band switch
+            {
+                0 => x > 180 || x < 90,
+                1 => x > 150 || x < 65,
+                2 => x > 130 || x < 50,
+                _ => x > 120 || x < 50
+            },
+            "RespRate" => band switch
+            {
+                0 => x > 60 || x < 24,
+                1 => x > 40 || x < 16,
+                2 => x > 28 || x < 10,
+                _ => x > 24 || x < 8
+            },
+            "SystolicBP" => band switch
+            {
+                0 => x > 110 || x < 65,
+                1 => x > 125 || x < 80,
+                2 => x > 150 || x < 90,
+                _ => x > 180 || x < 90
+            },
+            "DiastolicBP" => band switch
+            {
+                0 => x > 75 || x < 35,
+                1 => x > 85 || x < 40,
+                2 => x > 95 || x < 45,
+                _ => x > 120 || x < 50
+            },
+            // Oxygen saturation and temperature read the same at every age.
             "SpO2" => x < 92,
             "Temperature" => x > 38.5m || x < 35m,
-            "SystolicBP" => x > 180 || x < 90,
-            "DiastolicBP" => x > 120 || x < 50,
-            "RespRate" => x > 24 || x < 8,
             _ => false
         };
     }
 
     private static IEnumerable<(string Severity, string Text)> BuildAlerts(PatientChart c)
     {
+        var age = AgeAt(c.DateOfBirth);
         foreach (var type in VitalOrder.Where(c.LatestVitals.ContainsKey))
         {
             var v = c.LatestVitals[type];
-            if (IsAbnormal(type, v.Value))
+            if (IsAbnormal(type, v.Value, age))
             {
                 var (label, unit) = VitalMeta(type);
                 var sev = type == "SpO2" && v.Value < 88m ? "danger" : "warning";
