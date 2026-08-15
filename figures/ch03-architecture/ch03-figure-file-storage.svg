@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 60 1000 500" width="1000" height="500" font-family="Segoe UI, Arial, sans-serif">
+  <!-- ================================================================= -->
+  <!-- Figure 3-x. Azure Storage for database files, zoomed in            -->
+  <!--   (Ch 3 §5 sub-figure)                                             -->
+  <!-- Drill-in on the Azure Storage band in Figure 3-1 — companion to    -->
+  <!-- ch03-figure-primary-compute.svg (§2), ch03-figure-02-log-          -->
+  <!-- service.svg (§3), and ch03-figure-page-server.svg (§4).            -->
+  <!--                                                                    -->
+  <!-- SCOPE: DATABASE FILES ONLY. The long-term log store and the log    -->
+  <!-- service that destages into it are deliberately NOT drawn here —    -->
+  <!-- the log path is owned by the §3 figure, and mixing it in made      -->
+  <!-- this figure answer two questions at once. Restore mechanics are    -->
+  <!-- likewise out of scope (owned by Ch 9); this figure only has to     -->
+  <!-- establish what is durable, who put it there, and what you pay for. -->
+  <!--                                                                    -->
+  <!-- Editorial decisions baked in:                                      -->
+  <!--  * Opens with THE WRITER, because "who writes here" is the         -->
+  <!--    question readers arrive with. Compute is deliberately absent;   -->
+  <!--    its absence is the point, and "Reading this figure" says so.    -->
+  <!--  * The "think hard disks and tape" mental model was cut from the   -->
+  <!--    figure — it belongs in the prose, not in a callout box.         -->
+  <!--  * The 1:1 file-to-page-server mapping is NOT an inference. Every   -->
+  <!--    data file is stamped max_size = 16777216 pages = 128 GB and      -->
+  <!--    growth = 1310720 pages = 10 GB, is_percent_growth = 0 — i.e. a   -->
+  <!--    file is capped at exactly one page-server slice. Verified live   -->
+  <!--    on wardgeneral via sys.database_files, 2026-08-09. Learn never   -->
+  <!--    states the per-file cap; do not weaken this to "about".          -->
+  <!--    BUT mind the direction of the claim. The caps prove a file can   -->
+  <!--    never OUTGROW one page server (both ceilings are 128 GB), so a   -->
+  <!--    large database is many files, never one sharded file. They do    -->
+  <!--    NOT prove strict 1:1: Learn adds files when free space across    -->
+  <!--    ALL files drops below a threshold, not when a file fills, so a   -->
+  <!--    database can hold several part-grown files and nothing           -->
+  <!--    observable says a page server can't back more than one. The      -->
+  <!--    caption therefore states only the surviving claim. Upgrade it    -->
+  <!--    to strict 1:1 only if engine source confirms.                    -->
+  <!--  * 128 TB / 128 GB = exactly 1,024 files. Suggestive, but the file  -->
+  <!--    COUNT limit is not documented anywhere — keep it out of print.   -->
+  <!--  * The page-server edge is a BACKGROUND WRITE-DOWN, not a          -->
+  <!--    checkpoint (source-verified 2026-08-09). Do not relabel it.     -->
+  <!--  * Storage edges are #5F6B7A, matching the §4 drill-in. NOTE:      -->
+  <!--    Figure 3-1 draws the same edge in #0072C6 labeled "durable      -->
+  <!--    I/O" — divergence flagged for reconciliation before freeze.     -->
+  <!--  * The allocation bar teaches the BILLING MODEL, not numbers:      -->
+  <!--    used vs allocated vs ceiling. No dollar figures, ever.          -->
+  <!--    Segment labels are "used" + "allocated but unused" ON PURPOSE.  -->
+  <!--    Labelling the right segment plain "allocated" reads as two       -->
+  <!--    adjacent quantities and contradicts the title above the bar;    -->
+  <!--    the two segments must visibly SUM to allocated = what is billed. -->
+  <!-- No embedded title (caption lives in the manuscript).               -->
+  <!-- Palette + marker convention: tools/authoring-architecture-figures  -->
+  <!-- ================================================================= -->
+  <defs>
+    <marker id="mStoreDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#5F6B7A"/></marker>
+    <marker id="mStoreUp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#5F6B7A"/></marker>
+    <marker id="mStoreLeft" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#5F6B7A"/></marker>
+    <marker id="mStoreRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#5F6B7A"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="600" fill="#FFFFFF"/>
+
+  <!-- ============ THE WRITER (and the only one) ============ -->
+  <rect x="205" y="76" width="250" height="86" rx="10" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <text x="330" y="106" text-anchor="middle" font-size="13" font-weight="700" fill="#008575">Page servers</text>
+  <text x="330" y="124" text-anchor="middle" font-size="8.5" fill="#6B7280">one per &#8804; 128 GB slice</text>
+  <text x="330" y="142" text-anchor="middle" font-size="8.5" font-style="italic" fill="#6B7280">write their own pages down</text>
+
+  <text x="330" y="180" text-anchor="middle" font-size="8.5" font-style="italic" fill="#6B7280">the only writer to this tier &#8212; no compute replica ever writes here</text>
+
+  <!-- page servers -> data files : background write-down, two-way -->
+  <path d="M330,192 L330,232" stroke="#5F6B7A" stroke-width="2" fill="none"
+        marker-start="url(#mStoreUp)" marker-end="url(#mStoreDown)"/>
+  <text x="342" y="206" font-size="8.5" font-weight="600" fill="#5F6B7A">background write-down</text>
+  <text x="342" y="219" font-size="8" font-style="italic" fill="#6B7280">cold read &#183; seeding up</text>
+
+  <!-- ============ AZURE STORAGE — the durable tier ============ -->
+  <!-- Same visual language as Figure 3-1: dashed #5F6B7A frame, data-file      -->
+  <!-- cylinders, snapshot discs beneath.                                       -->
+  <rect x="60" y="236" width="540" height="256" rx="9" fill="none" stroke="#5F6B7A" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="74" y="256" font-size="11" font-weight="700" fill="#4B5563">Azure Storage &#8212; the durable tier</text>
+
+  <!-- data file 1 -->
+  <path d="M120,296 V332 A55,8 0 0 0 230,332 V296" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="2"/>
+  <ellipse cx="175" cy="296" rx="55" ry="8" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="2"/>
+  <text x="175" y="318" text-anchor="middle" font-size="9.5" font-weight="600" fill="#4B5563">Data file 1</text>
+  <path d="M129,346 V353 A46,5 0 0 0 221,353 V346" fill="#F2F4F6" stroke="#8A94A0" stroke-width="1.3"/>
+  <ellipse cx="175" cy="346" rx="46" ry="5" fill="#F2F4F6" stroke="#8A94A0" stroke-width="1.3"/>
+  <text x="175" y="368" text-anchor="middle" font-size="8" fill="#6B7280">snapshot</text>
+
+  <!-- data file 2 -->
+  <path d="M260,296 V332 A55,8 0 0 0 370,332 V296" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="2"/>
+  <ellipse cx="315" cy="296" rx="55" ry="8" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="2"/>
+  <text x="315" y="318" text-anchor="middle" font-size="9.5" font-weight="600" fill="#4B5563">Data file 2</text>
+  <path d="M269,346 V353 A46,5 0 0 0 361,353 V346" fill="#F2F4F6" stroke="#8A94A0" stroke-width="1.3"/>
+  <ellipse cx="315" cy="346" rx="46" ry="5" fill="#F2F4F6" stroke="#8A94A0" stroke-width="1.3"/>
+  <text x="315" y="368" text-anchor="middle" font-size="8" fill="#6B7280">snapshot</text>
+
+  <text x="400" y="320" text-anchor="middle" font-size="11" fill="#9CA3AF">&#183; &#183; &#183;</text>
+
+  <!-- data file N -->
+  <path d="M430,296 V332 A55,8 0 0 0 540,332 V296" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="2"/>
+  <ellipse cx="485" cy="296" rx="55" ry="8" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="2"/>
+  <text x="485" y="318" text-anchor="middle" font-size="9.5" font-weight="600" fill="#4B5563">Data file N</text>
+  <path d="M439,346 V353 A46,5 0 0 0 531,353 V346" fill="#F2F4F6" stroke="#8A94A0" stroke-width="1.3"/>
+  <ellipse cx="485" cy="346" rx="46" ry="5" fill="#F2F4F6" stroke="#8A94A0" stroke-width="1.3"/>
+  <text x="485" y="368" text-anchor="middle" font-size="8" fill="#6B7280">snapshot</text>
+
+  <text x="330" y="392" text-anchor="middle" font-size="8.5" fill="#6B7280">no data file ever spans more than one page server &#183; count and size are chosen for you &#183; one disc = one point-in-time copy</text>
+
+  <!-- allocation / billing model — teach the model, never the numbers -->
+  <text x="100" y="422" font-size="9" font-weight="700" fill="#4B5563">You are billed on allocated storage</text>
+  <rect x="100" y="430" width="228" height="22" fill="#DDE3E9"/>
+  <rect x="100" y="430" width="380" height="22" fill="none" stroke="#5F6B7A" stroke-width="2"/>
+  <text x="214" y="445" text-anchor="middle" font-size="8.5" fill="#4B5563">used</text>
+  <text x="404" y="445" text-anchor="middle" font-size="8.5" fill="#6B7280">allocated but unused</text>
+
+  <!-- The ceiling is deliberately DETACHED from the bar. An earlier draft ran a -->
+  <!-- horizontal dashed line from the bar out to a "128 TB" label at the same   -->
+  <!-- height; it read as one continuous bar and made it look like you pay for   -->
+  <!-- 128 TB no matter what. Never reconnect them.                              -->
+  <text x="505" y="446" text-anchor="middle" font-size="10" fill="#C7CDD4">&#183; &#183; &#183;</text>
+  <line x1="530" y1="426" x2="530" y2="456" stroke="#C7CDD4" stroke-width="1.2" stroke-dasharray="3 3"/>
+  <text x="540" y="439" font-size="8" fill="#9CA3AF">128 TB max</text>
+  <text x="540" y="450" font-size="8" fill="#9CA3AF">not billed</text>
+
+  <text x="100" y="471" font-size="8.5" font-style="italic" fill="#6B7280">You pay for the outlined bar &#8212; used and unused alike &#8212; and never for the headroom beyond it.</text>
+  <text x="100" y="483" font-size="8.5" font-style="italic" fill="#6B7280">Allocation grows in 10 GB steps and never shrinks on its own, so deleting data does not lower the bill.</text>
+
+  <!-- ============ WHEN ANYTHING IS READ BACK UP ============ -->
+  <rect x="660" y="110" width="280" height="160" rx="8" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="1.1"/>
+  <text x="676" y="132" font-size="10.5" font-weight="700" fill="#374151">When anything is read back up</text>
+  <text x="676" y="152" font-size="9" fill="#374151">Almost never on the workload path &#8212; the</text>
+  <text x="676" y="165" font-size="9" fill="#374151">page-server cache covers its own slice.</text>
+  <text x="676" y="187" font-size="9" fill="#374151">&#183; a page server seeding or restarting</text>
+  <text x="676" y="205" font-size="9" fill="#374151">&#183; a point-in-time restore</text>
+  <text x="676" y="223" font-size="9" fill="#374151">&#183; a cold page re-fetched after eviction</text>
+  <text x="676" y="246" font-size="9" font-style="italic" fill="#6B7280">Only the last one happens on a healthy,</text>
+  <text x="676" y="258" font-size="9" font-style="italic" fill="#6B7280">running database.</text>
+
+  <!-- ============ YOU SIZE NONE OF THIS ============ -->
+  <!-- The reader arrives from on-prem expecting to decide file count and     -->
+  <!-- file size. Learn is explicit that they cannot. Facts here are from     -->
+  <!-- the Hyperscale FAQ, accessed 2026-08-09.                              -->
+  <rect x="660" y="286" width="280" height="104" rx="8" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="1.1"/>
+  <text x="676" y="306" font-size="10.5" font-weight="700" fill="#374151">You size none of this</text>
+  <text x="676" y="326" font-size="9" fill="#374151">&#183; Files are added automatically to PRIMARY.</text>
+  <text x="684" y="339" font-size="9" fill="#374151">You cannot create files or filegroups.</text>
+  <text x="676" y="357" font-size="9" fill="#374151">&#183; Each starts at 10 GB, grows in 10 GB steps,</text>
+  <text x="684" y="370" font-size="9" fill="#374151">and stops at 128 GB &#8212; the page-server slice.</text>
+  <text x="684" y="383" font-size="9" fill="#374151">More files appear as free space runs low.</text>
+
+  <!-- ============ READING THIS FIGURE ============ -->
+  <rect x="660" y="398" width="280" height="100" rx="8" fill="#FBFDFF" stroke="#9CA3AF" stroke-width="1.1" stroke-dasharray="5 4"/>
+  <text x="676" y="418" font-size="10" font-weight="700" fill="#374151">Reading this figure</text>
+  <text x="676" y="438" font-size="9" fill="#374151">&#183; Compute does not appear here at all. It</text>
+  <text x="684" y="451" font-size="9" fill="#374151">never writes to and never reads from this tier.</text>
+  <text x="676" y="469" font-size="9" fill="#374151">&#183; A snapshot is a pointer, not a copy &#8212; which</text>
+  <text x="684" y="482" font-size="9" fill="#374151">is why restore time doesn&#8217;t grow with the data.</text>
+
+  <!-- ============ LEGEND ============ -->
+  <line x1="60" y1="512" x2="940" y2="512" stroke="#E5E7EB" stroke-width="1"/>
+
+  <path d="M70,532 L110,532" stroke="#5F6B7A" stroke-width="2" fill="none"
+        marker-start="url(#mStoreLeft)" marker-end="url(#mStoreRight)"/>
+  <text x="118" y="536" font-size="10" fill="#374151">Write-down / read back (two-way)</text>
+
+  <rect x="330" y="525" width="14" height="14" rx="3" fill="#FFFFFF" stroke="#008575" stroke-width="1.5"/>
+  <text x="350" y="536" font-size="10" fill="#374151">Page server (the only writer)</text>
+
+  <ellipse cx="570" cy="532" rx="11" ry="4.5" fill="#F2F4F6" stroke="#8A94A0" stroke-width="1.3"/>
+  <text x="588" y="536" font-size="10" fill="#374151">Snapshot (point-in-time copy)</text>
+</svg>

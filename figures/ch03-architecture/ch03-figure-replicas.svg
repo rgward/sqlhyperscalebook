@@ -1,0 +1,379 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 36 1280 776" width="1280" height="776" font-family="Segoe UI, Arial, sans-serif">
+  <!-- ==================================================================== -->
+  <!-- Figure 3-x. HA replicas and named replicas, zoomed in (Ch 3 §6/§7)   -->
+  <!-- Drill-down of the two compute clusters in Figure 3-1. Sibling of the -->
+  <!-- primary-compute, log-service and page-server drill-ins.              -->
+  <!--                                                                      -->
+  <!-- SCOPE: what a replica IS, architecturally, and how the two kinds     -->
+  <!-- differ. Failover mechanics and HA operations are Ch 9; named         -->
+  <!-- replicas as a scale-out PATTERN is Ch 10.                            -->
+  <!-- Azure Storage is deliberately ABSENT: no compute node reaches it.    -->
+  <!--                                                                      -->
+  <!-- CONTINUOUS PRIMING LIVES HERE (author decision 2026-08-09): the      -->
+  <!-- stand-alone ch03-figure-continuous-priming.svg is retired. Priming   -->
+  <!-- is a property of the parent/HA-replica relationship, so it is drawn  -->
+  <!-- in that relationship rather than in a figure of its own. Three       -->
+  <!-- elements carry it: (1) every compute box now shows BOTH caches       -->
+  <!-- priming fills - a buffer-pool bar in the tier colour above the teal  -->
+  <!-- RBPEX bar; (2) a two-way dashed grey edge joins each parent's cache  -->
+  <!-- block to its HA replicas' cache block; (3) the panel beside the log  -->
+  <!-- service explains the hottest-page list, the warm-failover payoff and -->
+  <!-- the both-ways behaviour. Learn scopes priming to HIGH AVAILABILITY   -->
+  <!-- secondary replicas, so the edge is drawn primary->HA and named->its  -->
+  <!-- own HA only - never primary->named replica. Page-server boxes keep   -->
+  <!-- RBPEX alone: they are a different tier and are not priming targets.  -->
+  <!--                                                                      -->
+  <!-- Claims asserted here (all Learn-verified 2026-08-09):                -->
+  <!--  * Both kinds use the SAME page servers as the primary; adding one   -->
+  <!--    needs no data copy. ("Hyperscale secondary replicas")             -->
+  <!--  * Secondaries bill compute only - "storage costs don't apply to     -->
+  <!--    secondary replicas". (same page)                                  -->
+  <!--  * HA: 0-4, same server + database name, SLO always the same as the  -->
+  <!--    primary's, not visible as a stand-alone resource, automatic       -->
+  <!--    failover target. (same page)                                      -->
+  <!--  * Named: up to 30 per primary, own database name, own SLO set       -->
+  <!--    independently, optionally a different logical server in the same  -->
+  <!--    region, own logins; appears as a regular read-only database in    -->
+  <!--    the portal and API. (same page)                                   -->
+  <!--  * THE POINT OF THIS FIGURE (added at author request 2026-08-09):    -->
+  <!--    a named replica can itself have HA replicas. Learn: "By default,  -->
+  <!--    named replicas don't have any HA replicas of their own ... You    -->
+  <!--    can add HA replicas for a named replica", and "Each named replica -->
+  <!--    can have up to 4 HA secondary replicas." Those HA replicas follow -->
+  <!--    their PARENT - the named replica - not the primary. Hence the     -->
+  <!--    green stack nested inside the purple sub-frame; this is the whole -->
+  <!--    reason the figure is drawn as two clusters and not one row.       -->
+  <!--  * Without its own HA replicas, failing a named replica over means   -->
+  <!--    creating a new one first (Learn: "typically ... 1-2 minutes").    -->
+  <!--    Stated qualitatively here - no timing numbers in print.           -->
+  <!--  * No secondary sits in the commit path, so commit latency does not  -->
+  <!--    grow with replica count (outline §3; Socrates SIGMOD '19).        -->
+  <!--                                                                      -->
+  <!-- Sources (accessed 2026-08-09):                                       -->
+  <!--   learn.microsoft.com/azure/azure-sql/database/                      -->
+  <!--     service-tier-hyperscale-replicas                                 -->
+  <!--   learn.microsoft.com/azure/azure-sql/database/                      -->
+  <!--     service-tier-hyperscale-frequently-asked-questions-faq           -->
+  <!--       (#read-scale-out-questions, #hyperscale-compute-questions)     -->
+  <!--                                                                      -->
+  <!-- Conventions inherited from Figure 3-1: stack of offset rectangles =  -->
+  <!-- "there can be several of these"; SQL badge = the SQL Server engine;  -->
+  <!-- primary #0072C6, HA #107C10, named #5C2D91, log #D83B01/#C0198C,     -->
+  <!-- page server #008575. Palette + markers: authoring-architecture-      -->
+  <!-- figures.md. No section cross-references inside the figure.           -->
+  <!-- ==================================================================== -->
+  <defs>
+    <marker id="mLogUp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/>
+    </marker>
+    <marker id="mLogDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/>
+    </marker>
+    <marker id="mLogRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/>
+    </marker>
+    <marker id="mDataDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/>
+    </marker>
+    <marker id="mDataLeft" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/>
+    </marker>
+    <marker id="mDataRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/>
+    </marker>
+    <!-- continuous priming: two-way, deliberately grey so it reads as a platform
+         behaviour rather than a fourth tier colour. Smaller heads than the log /
+         GetPage markers because the edge spans a narrow gap between boxes. -->
+    <marker id="mPrimeLeft" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="180" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L5,2.5 L0,5 Z" fill="#4B5563"/>
+    </marker>
+    <marker id="mPrimeRight" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L5,2.5 L0,5 Z" fill="#4B5563"/>
+    </marker>
+  </defs>
+
+  <!-- white canvas -->
+  <rect x="0" y="0" width="1280" height="820" fill="#FFFFFF"/>
+
+  <!-- No in-figure title: the manuscript supplies the caption. The viewBox starts
+       at y=36 so the top wrap-around GetPage@LSN segment (y=58) keeps a margin. -->
+
+  <!-- ================= CLUSTER A: PRIMARY + ITS HA REPLICAS ================ -->
+  <rect x="40" y="70" width="460" height="262" rx="9" fill="none" stroke="#9AA5B1" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="54" y="90" font-size="11" font-weight="700" fill="#6B7280">Primary and its HA replicas &#8212; one database name, one SLO</text>
+
+  <!-- Primary replica -->
+  <rect x="62" y="112" width="190" height="180" rx="7" fill="#FFFFFF" stroke="#0072C6" stroke-width="2.2"/>
+  <rect x="70" y="120" width="22" height="12" rx="3" fill="#0072C6"/>
+  <text x="81" y="129.3" text-anchor="middle" font-size="7.5" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="157" y="149" text-anchor="middle" font-size="13" font-weight="700" fill="#0072C6">Primary replica</text>
+  <text x="157" y="167" text-anchor="middle" font-size="9" fill="#555555">read / write</text>
+  <text x="157" y="180" text-anchor="middle" font-size="9" fill="#555555">provisioned or serverless</text>
+  <text x="157" y="193" text-anchor="middle" font-size="9" fill="#555555">the only node that writes log</text>
+  <rect x="76" y="200" width="162" height="18" rx="4" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.2"/>
+  <text x="157" y="213" text-anchor="middle" font-size="8.5" font-weight="600" fill="#0072C6">Buffer pool</text>
+  <rect x="76" y="221" width="162" height="18" rx="4" fill="#FFFFFF" stroke="#008575" stroke-width="1.2"/>
+  <text x="157" y="234" text-anchor="middle" font-size="8.5" font-weight="600" fill="#008575">RBPEX &#183; sparse</text>
+  <text x="157" y="252" text-anchor="middle" font-size="8" font-weight="700" letter-spacing="1" fill="#9CA3AF">REACHED BY</text>
+  <text x="157" y="265" text-anchor="middle" font-size="8.5" fill="#555555">the database's own</text>
+  <text x="157" y="277" text-anchor="middle" font-size="8.5" fill="#555555">connection string</text>
+
+  <!-- HA replicas (stack = 0-4) -->
+  <rect x="294" y="106" width="190" height="180" rx="7" fill="#FFFFFF" stroke="#107C10" stroke-width="1.5"/>
+  <rect x="291" y="109" width="190" height="180" rx="7" fill="#FFFFFF" stroke="#107C10" stroke-width="1.5"/>
+  <rect x="288" y="112" width="190" height="180" rx="7" fill="#FFFFFF" stroke="#107C10" stroke-width="2.2"/>
+  <rect x="296" y="120" width="22" height="12" rx="3" fill="#0072C6"/>
+  <text x="307" y="129.3" text-anchor="middle" font-size="7.5" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="383" y="149" text-anchor="middle" font-size="13" font-weight="700" fill="#107C10">HA replica</text>
+  <text x="383" y="167" text-anchor="middle" font-size="9" fill="#555555">0&#8211;4 &#183; hot standby</text>
+  <text x="383" y="180" text-anchor="middle" font-size="9" fill="#555555">same server + database name</text>
+  <text x="383" y="193" text-anchor="middle" font-size="9" fill="#555555">same SLO as the primary</text>
+  <rect x="302" y="200" width="162" height="18" rx="4" fill="#FFFFFF" stroke="#107C10" stroke-width="1.2"/>
+  <text x="383" y="213" text-anchor="middle" font-size="8.5" font-weight="600" fill="#107C10">Buffer pool</text>
+  <rect x="302" y="221" width="162" height="18" rx="4" fill="#FFFFFF" stroke="#008575" stroke-width="1.2"/>
+  <text x="383" y="234" text-anchor="middle" font-size="8.5" font-weight="600" fill="#008575">RBPEX &#183; sparse</text>
+  <text x="383" y="252" text-anchor="middle" font-size="8" font-weight="700" letter-spacing="1" fill="#9CA3AF">REACHED BY</text>
+  <text x="383" y="264" text-anchor="middle" font-size="8.5" fill="#555555">that same connection string,</text>
+  <text x="383" y="275" text-anchor="middle" font-size="8.5" fill="#555555">ApplicationIntent=ReadOnly</text>
+  <text x="383" y="286" text-anchor="middle" font-size="8" font-style="italic" fill="#6B7280">lands on an arbitrary one</text>
+
+  <!-- ===================== CLUSTER B: NAMED REPLICAS ====================== -->
+  <rect x="520" y="70" width="700" height="262" rx="9" fill="none" stroke="#9AA5B1" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="534" y="90" font-size="11" font-weight="700" fill="#6B7280">Named replicas &#8212; up to 30, each a database of its own</text>
+
+  <!-- Sub-frame: a named replica is itself a parent. THIS is the point of the figure. -->
+  <rect x="540" y="98" width="430" height="218" rx="8" fill="none" stroke="#5C2D91" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="552" y="114" font-size="9.5" font-weight="700" fill="#5C2D91">Named replica 1 &#8212; with HA replicas of its own</text>
+
+  <!-- Named replica 1 -->
+  <rect x="556" y="124" width="180" height="166" rx="7" fill="#FFFFFF" stroke="#5C2D91" stroke-width="2.2"/>
+  <rect x="564" y="132" width="22" height="12" rx="3" fill="#0072C6"/>
+  <text x="575" y="141.3" text-anchor="middle" font-size="7.5" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="646" y="159" text-anchor="middle" font-size="12" font-weight="700" fill="#5C2D91">Named replica</text>
+  <text x="646" y="175" text-anchor="middle" font-size="8.5" fill="#555555">its own database name</text>
+  <text x="646" y="187" text-anchor="middle" font-size="8.5" fill="#555555">its own SLO and vCores</text>
+  <text x="646" y="199" text-anchor="middle" font-size="8.5" fill="#555555">provisioned or serverless</text>
+  <rect x="570" y="208" width="152" height="18" rx="4" fill="#FFFFFF" stroke="#5C2D91" stroke-width="1.2"/>
+  <text x="646" y="221" text-anchor="middle" font-size="8.5" font-weight="600" fill="#5C2D91">Buffer pool</text>
+  <rect x="570" y="229" width="152" height="18" rx="4" fill="#FFFFFF" stroke="#008575" stroke-width="1.2"/>
+  <text x="646" y="242" text-anchor="middle" font-size="8.5" font-weight="600" fill="#008575">RBPEX &#183; sparse</text>
+  <text x="646" y="258" text-anchor="middle" font-size="8" font-weight="700" letter-spacing="1" fill="#9CA3AF">REACHED BY</text>
+  <text x="646" y="270" text-anchor="middle" font-size="8" fill="#555555">its own name and endpoint,</text>
+  <text x="646" y="281" text-anchor="middle" font-size="8" fill="#555555">its own logins &#8212; always read-only</text>
+
+  <!-- Named replica 1's OWN HA replicas (stack = 0-4) -->
+  <rect x="772" y="118" width="180" height="166" rx="7" fill="#FFFFFF" stroke="#107C10" stroke-width="1.5"/>
+  <rect x="769" y="121" width="180" height="166" rx="7" fill="#FFFFFF" stroke="#107C10" stroke-width="1.5"/>
+  <rect x="766" y="124" width="180" height="166" rx="7" fill="#FFFFFF" stroke="#107C10" stroke-width="2.2"/>
+  <rect x="774" y="132" width="22" height="12" rx="3" fill="#0072C6"/>
+  <text x="785" y="141.3" text-anchor="middle" font-size="7.5" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="856" y="159" text-anchor="middle" font-size="12" font-weight="700" fill="#107C10">HA replica</text>
+  <text x="856" y="175" text-anchor="middle" font-size="8.5" fill="#555555">0&#8211;4 &#183; hot standby</text>
+  <text x="856" y="187" text-anchor="middle" font-size="8.5" fill="#555555">for this named replica</text>
+  <text x="856" y="199" text-anchor="middle" font-size="8.5" fill="#555555">same SLO as it</text>
+  <rect x="780" y="208" width="152" height="18" rx="4" fill="#FFFFFF" stroke="#107C10" stroke-width="1.2"/>
+  <text x="856" y="221" text-anchor="middle" font-size="8.5" font-weight="600" fill="#107C10">Buffer pool</text>
+  <rect x="780" y="229" width="152" height="18" rx="4" fill="#FFFFFF" stroke="#008575" stroke-width="1.2"/>
+  <text x="856" y="242" text-anchor="middle" font-size="8.5" font-weight="600" fill="#008575">RBPEX &#183; sparse</text>
+  <text x="856" y="258" text-anchor="middle" font-size="8" font-weight="700" letter-spacing="1" fill="#9CA3AF">REACHED BY</text>
+  <text x="856" y="270" text-anchor="middle" font-size="8" fill="#555555">the named replica's</text>
+  <text x="856" y="281" text-anchor="middle" font-size="8" fill="#555555">connection string</text>
+
+  <!-- the sub-frame's caption: the inheritance direction, which is the easy thing to get wrong.
+       Kept narrow and on two lines so it sits in the clear gap BETWEEN the two log arrows
+       (x=646 and x=856) instead of being speared by them. -->
+  <text x="751" y="301" text-anchor="middle" font-size="8" font-style="italic" fill="#5C2D91">these HA replicas follow the named replica,</text>
+  <text x="751" y="312" text-anchor="middle" font-size="8" font-style="italic" fill="#5C2D91">not the primary</text>
+
+  <!-- Named replica 2: the default shape, for contrast -->
+  <rect x="985" y="124" width="150" height="166" rx="7" fill="#FFFFFF" stroke="#5C2D91" stroke-width="2.2"/>
+  <rect x="993" y="132" width="22" height="12" rx="3" fill="#0072C6"/>
+  <text x="1004" y="141.3" text-anchor="middle" font-size="7.5" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="1060" y="159" text-anchor="middle" font-size="11" font-weight="700" fill="#5C2D91">Named replica 2</text>
+  <text x="1060" y="177" text-anchor="middle" font-size="8.5" fill="#555555">no HA replicas</text>
+  <text x="1060" y="189" text-anchor="middle" font-size="8.5" fill="#555555">&#8212; the default</text>
+  <rect x="995" y="200" width="130" height="18" rx="4" fill="#FFFFFF" stroke="#5C2D91" stroke-width="1.2"/>
+  <text x="1060" y="213" text-anchor="middle" font-size="8.5" font-weight="600" fill="#5C2D91">Buffer pool</text>
+  <rect x="995" y="221" width="130" height="18" rx="4" fill="#FFFFFF" stroke="#008575" stroke-width="1.2"/>
+  <text x="1060" y="234" text-anchor="middle" font-size="8.5" font-weight="600" fill="#008575">RBPEX &#183; sparse</text>
+  <text x="1060" y="254" text-anchor="middle" font-size="8" font-style="italic" fill="#6B7280">failing this one over</text>
+  <text x="1060" y="266" text-anchor="middle" font-size="8" font-style="italic" fill="#6B7280">means building a</text>
+  <text x="1060" y="278" text-anchor="middle" font-size="8" font-style="italic" fill="#6B7280">new replica first</text>
+
+  <!-- ellipsis + count -->
+  <text x="1180" y="186" text-anchor="middle" font-size="9.5" fill="#6B7280">up to 30</text>
+  <text x="1180" y="212" text-anchor="middle" font-size="18" font-weight="700" fill="#5C2D91">&#183; &#183; &#183;</text>
+
+  <!-- ========================= LOG SERVICE ============================ -->
+  <rect x="300" y="376" width="680" height="46" rx="8" fill="#FFFFFF" stroke="#D83B01" stroke-width="2"/>
+  <text x="640" y="396" text-anchor="middle" font-size="13" font-weight="700" fill="#D83B01">Log service (XLOG)</text>
+  <text x="640" y="412" text-anchor="middle" font-size="9.5" fill="#555555">one log stream &#183; no replica is in the commit path</text>
+
+  <!-- ========================= PAGE SERVERS =========================== -->
+  <rect x="300" y="452" width="680" height="108" rx="9" fill="none" stroke="#008575" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="312" y="470" font-size="11" font-weight="700" fill="#0E6E63">Page servers</text>
+  <text x="406" y="470" font-size="9" fill="#6B7280">&#8212; one copy of the data, shared by every replica above</text>
+
+  <rect x="341" y="475" width="155" height="64" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="1.4"/>
+  <rect x="336" y="480" width="155" height="64" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <rect x="344" y="488" width="20" height="11" rx="3" fill="#0072C6"/>
+  <text x="354" y="496.3" text-anchor="middle" font-size="7" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="413" y="508" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0E6E63">Page server</text>
+  <text x="413" y="520" text-anchor="middle" font-size="8" fill="#555555">&#8804; 128 GB data file</text>
+  <rect x="342" y="524" width="143" height="17" rx="4" fill="#FFFFFF" stroke="#008575" stroke-width="1.2"/>
+  <text x="413" y="536.5" text-anchor="middle" font-size="8.5" font-weight="600" fill="#008575">RBPEX &#183; Dynamic</text>
+
+  <rect x="525" y="475" width="155" height="64" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="1.4"/>
+  <rect x="520" y="480" width="155" height="64" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <rect x="528" y="488" width="20" height="11" rx="3" fill="#0072C6"/>
+  <text x="538" y="496.3" text-anchor="middle" font-size="7" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="597" y="508" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0E6E63">Page server</text>
+  <text x="597" y="520" text-anchor="middle" font-size="8" fill="#555555">&#8804; 128 GB data file</text>
+  <rect x="526" y="524" width="143" height="17" rx="4" fill="#FFFFFF" stroke="#008575" stroke-width="1.2"/>
+  <text x="597" y="536.5" text-anchor="middle" font-size="8.5" font-weight="600" fill="#008575">RBPEX &#183; Dynamic</text>
+
+  <text x="727" y="518" text-anchor="middle" font-size="18" font-weight="700" fill="#008575">&#183; &#183; &#183;</text>
+
+  <rect x="785" y="475" width="155" height="64" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="1.4"/>
+  <rect x="780" y="480" width="155" height="64" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <rect x="788" y="488" width="20" height="11" rx="3" fill="#0072C6"/>
+  <text x="798" y="496.3" text-anchor="middle" font-size="7" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="857" y="508" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0E6E63">Page server</text>
+  <text x="857" y="520" text-anchor="middle" font-size="8" fill="#555555">&#8804; 128 GB data file</text>
+  <rect x="786" y="524" width="143" height="17" rx="4" fill="#FFFFFF" stroke="#008575" stroke-width="1.2"/>
+  <text x="857" y="536.5" text-anchor="middle" font-size="8.5" font-weight="600" fill="#008575">RBPEX &#183; Dynamic</text>
+
+  <!-- =========================== LOG EDGES ============================ -->
+  <!-- primary <-> log service: the only downward log arrow in the figure -->
+  <path d="M157,292 L157,399 L294,399" fill="none" stroke="#C0198C" stroke-width="2" marker-start="url(#mLogUp)" marker-end="url(#mLogRight)"/>
+  <text x="165" y="346" font-size="8.5" fill="#C0198C">log write &#183;</text>
+  <text x="165" y="358" font-size="8.5" fill="#C0198C">recovery read</text>
+
+  <!-- log service -> every secondary (one-way, up into each replica) -->
+  <path d="M383,292 L383,376" fill="none" stroke="#C0198C" stroke-width="2" marker-start="url(#mLogUp)"/>
+  <path d="M646,290 L646,376" fill="none" stroke="#C0198C" stroke-width="2" marker-start="url(#mLogUp)"/>
+  <path d="M856,290 L856,376" fill="none" stroke="#C0198C" stroke-width="2" marker-start="url(#mLogUp)"/>
+  <path d="M1060,290 L1060,348 L950,348 L950,376" fill="none" stroke="#C0198C" stroke-width="2" marker-start="url(#mLogUp)"/>
+  <text x="751" y="338" text-anchor="middle" font-size="8.5" fill="#C0198C">log for redo &#8212; one stream to all</text>
+
+  <!-- log service -> page servers -->
+  <path d="M640,422 L640,452" fill="none" stroke="#C0198C" stroke-width="2" marker-end="url(#mLogDown)"/>
+  <text x="648" y="444" font-size="8.5" fill="#C0198C">log for redo</text>
+
+  <!-- =========================== DATA EDGES =========================== -->
+  <!-- GetPage@LSN wraps out to each compute cluster; two-way, tier-level:
+       every replica in the figure issues it on a local cache miss. -->
+  <path d="M300,536 L26,536 L26,58 L270,58 L270,70" fill="none" stroke="#0072C6" stroke-width="2" stroke-dasharray="6 5" marker-start="url(#mDataRight)" marker-end="url(#mDataDown)"/>
+  <text x="15" y="290" transform="rotate(-90 15 290)" text-anchor="middle" font-size="8.5" fill="#0072C6">GetPage@LSN &#183; any replica</text>
+  <path d="M980,536 L1252,536 L1252,58 L880,58 L880,70" fill="none" stroke="#0072C6" stroke-width="2" stroke-dasharray="6 5" marker-start="url(#mDataLeft)" marker-end="url(#mDataDown)"/>
+  <text x="1265" y="290" transform="rotate(-90 1265 290)" text-anchor="middle" font-size="8.5" fill="#0072C6">GetPage@LSN &#183; any replica</text>
+
+  <!-- ========================= PRIMING EDGES ==========================
+       Drawn parent -> its OWN HA replicas, cache block to cache block, so the
+       edge lands between the buffer-pool and RBPEX bars it fills. Two-way: the
+       primary also caches pages that are hot on the secondaries' read workloads.
+       There is deliberately NO priming edge from the primary to a named replica
+       - Learn scopes priming to high availability secondary replicas. -->
+  <path d="M254,219 L286,219" fill="none" stroke="#4B5563" stroke-width="1.6" stroke-dasharray="3 2" marker-start="url(#mPrimeLeft)" marker-end="url(#mPrimeRight)"/>
+  <path d="M738,227 L764,227" fill="none" stroke="#4B5563" stroke-width="1.6" stroke-dasharray="3 2" marker-start="url(#mPrimeLeft)" marker-end="url(#mPrimeRight)"/>
+
+  <!-- ==================== CONTINUOUS PRIMING PANEL ====================
+       Sits in the clear column to the right of the log service and page-server
+       tiers, bounded below by the GetPage@LSN wrap-around at y=536.
+       Source: Microsoft Learn - Hyperscale service tier (scale and performance
+       advantages), accessed 2026-08-09. GA May 2025; the GA month is not
+       printed in the figure because the manuscript carries it. -->
+  <rect x="996" y="374" width="244" height="152" rx="8" fill="#FBFDFF" stroke="#9CA3AF" stroke-width="1.1" stroke-dasharray="5 4"/>
+  <path d="M1012,388 L1032,388" fill="none" stroke="#4B5563" stroke-width="1.6" stroke-dasharray="3 2" marker-start="url(#mPrimeLeft)" marker-end="url(#mPrimeRight)"/>
+  <text x="1040" y="392" font-size="11" font-weight="700" fill="#374151">Continuous priming</text>
+  <text x="1012" y="405" font-size="8.5" font-style="italic" fill="#6B7280">provisioned compute tier</text>
+  <text x="1012" y="423" font-size="9" fill="#374151">&#183; The hottest pages across the compute</text>
+  <text x="1012" y="435" font-size="9" fill="#374151">  replicas are tracked, and that list is used</text>
+  <text x="1012" y="447" font-size="9" fill="#374151">  to fill each HA replica's buffer pool and</text>
+  <text x="1012" y="459" font-size="9" fill="#374151">  RBPEX &#8212; continuously, ahead of demand.</text>
+  <text x="1012" y="475" font-size="9" fill="#374151">&#183; So a secondary is already warm when it</text>
+  <text x="1012" y="487" font-size="9" fill="#374151">  becomes the failover or the read target.</text>
+  <text x="1012" y="503" font-size="9" fill="#374151">&#183; It works both ways: the primary caches</text>
+  <text x="1012" y="515" font-size="9" fill="#374151">  what is hot on the secondaries too.</text>
+
+  <!-- ============================= NOTES ==============================
+       Column widths are deliberately uneven: the middle box carries the read-
+       routing story, which is the longest and the one readers get wrong.
+       Routing / load-balancing claims, all Hyperscale FAQ + secondary-replicas
+       page, accessed 2026-08-09:
+         - "Any connections marked with ReadOnly are automatically routed to one
+            of the HA secondary replicas, if present."
+         - "Does the system do intelligent load balancing of the read-only
+            workload on HA secondary replicas? No. A new connection with
+            read-only intent is redirected to an arbitrary HA secondary replica."
+         - "Can I create a dedicated endpoint for an HA secondary replica? No."
+         - Named replicas: "There is no need to specify the option
+            ApplicationIntent=ReadOnly as named replicas are always read-only",
+            and "there's no built-in way to direct read-only traffic sent to the
+            primary to a set of named replicas."
+       Continuous priming (Hyperscale service tier page, GA May 2025): primes BP
+       and RBPEX on HIGH AVAILABILITY secondary replicas from the hottest-page
+       list, works both ways, and is "currently available on the Hyperscale
+       provisioned compute tier". The in-box italic tags that used to carry this
+       were replaced by the drawn priming edges plus the panel beside the log
+       service, so the claim is made once, in one place, and only between a
+       parent and its own HA replicas. -->
+  <rect x="40" y="580" width="340" height="150" rx="8" fill="#FBFDFF" stroke="#9CA3AF" stroke-width="1.1" stroke-dasharray="5 4"/>
+  <text x="56" y="602" font-size="11" font-weight="700" fill="#374151">What every replica here shares</text>
+  <text x="56" y="622" font-size="9" fill="#374151">&#183; One copy of the data. Every box above reads the</text>
+  <text x="56" y="636" font-size="9" fill="#374151">  same page servers &#8212; there is no second copy.</text>
+  <text x="56" y="650" font-size="9" fill="#374151">&#183; Adding one copies nothing. It is compute attached</text>
+  <text x="56" y="664" font-size="9" fill="#374151">  to storage that already exists.</text>
+  <text x="56" y="678" font-size="9" fill="#374151">&#183; Compute-only billing &#8212; storage costs do not apply</text>
+  <text x="56" y="692" font-size="9" fill="#374151">  to a secondary.</text>
+  <text x="56" y="706" font-size="9" fill="#374151">&#183; None is in the commit path, so commit latency does</text>
+  <text x="56" y="720" font-size="9" fill="#374151">  not grow as you add replicas.</text>
+
+  <rect x="396" y="580" width="470" height="150" rx="8" fill="#FBFDFF" stroke="#9CA3AF" stroke-width="1.1" stroke-dasharray="5 4"/>
+  <text x="412" y="602" font-size="11" font-weight="700" fill="#374151">Where the two kinds part company &#8212; and how reads reach them</text>
+  <text x="412" y="618" font-size="9.5" font-weight="700" fill="#107C10">HA replica</text>
+  <text x="412" y="631" font-size="9" fill="#374151">&#183; Same server, same database name, always its parent's SLO. The failover target.</text>
+  <text x="412" y="644" font-size="9" fill="#374151">&#183; Reached only by ApplicationIntent=ReadOnly on that same connection string;</text>
+  <text x="412" y="657" font-size="9" fill="#374151">  it gets no endpoint of its own. With several, a read-only connection lands on</text>
+  <text x="412" y="670" font-size="9" fill="#374151">  an arbitrary one &#8212; the service does no intelligent load balancing.</text>
+  <text x="412" y="683" font-size="9" fill="#374151">&#183; Continuous priming keeps its buffer pool and RBPEX hot (provisioned tier).</text>
+  <text x="412" y="699" font-size="9.5" font-weight="700" fill="#5C2D91">Named replica</text>
+  <text x="412" y="712" font-size="9" fill="#374151">&#183; Its own name, endpoint, SLO and logins; always read-only, so no ApplicationIntent.</text>
+  <text x="412" y="725" font-size="9" fill="#374151">&#183; Nothing spreads reads across them for you &#8212; the app picks which one to call.</text>
+
+  <rect x="882" y="580" width="358" height="150" rx="8" fill="#FBFDFF" stroke="#9CA3AF" stroke-width="1.1" stroke-dasharray="5 4"/>
+  <text x="898" y="602" font-size="11" font-weight="700" fill="#374151">Reading this figure</text>
+  <text x="898" y="622" font-size="9" fill="#374151">&#183; The green stack inside the purple frame is the</text>
+  <text x="898" y="636" font-size="9" fill="#374151">  point: a named replica is itself a parent. Its HA</text>
+  <text x="898" y="650" font-size="9" fill="#374151">  replicas inherit from it, not from the primary.</text>
+  <text x="898" y="664" font-size="9" fill="#374151">&#183; A named replica starts with none, like the second.</text>
+  <text x="898" y="678" font-size="9" fill="#374151">&#183; Azure Storage is absent on purpose. No compute</text>
+  <text x="898" y="692" font-size="9" fill="#374151">  node in this figure ever reaches it.</text>
+  <text x="898" y="706" font-size="9" fill="#374151">&#183; Only the primary has an arrow pointing down into</text>
+  <text x="898" y="720" font-size="9" fill="#374151">  the log service. Everyone else only receives.</text>
+
+  <!-- ============================ LEGEND ==============================
+       Two rows: edge types on the first, box vocabulary on the second. The
+       priming edge earns a legend slot because it is the one edge in the
+       figure that carries no inline label. -->
+  <line x1="40" y1="748" x2="1240" y2="748" stroke="#D1D5DB" stroke-width="1"/>
+  <path d="M46,772 L86,772" fill="none" stroke="#C0198C" stroke-width="2" marker-end="url(#mLogRight)"/>
+  <text x="94" y="776" font-size="10.5" fill="#374151">Log stream (one-way to each replica)</text>
+  <path d="M330,772 L370,772" fill="none" stroke="#0072C6" stroke-width="2" stroke-dasharray="6 5" marker-start="url(#mDataLeft)" marker-end="url(#mDataRight)"/>
+  <text x="378" y="776" font-size="10.5" fill="#374151">GetPage@LSN (two-way)</text>
+  <path d="M556,772 L596,772" fill="none" stroke="#4B5563" stroke-width="1.6" stroke-dasharray="3 2" marker-start="url(#mPrimeLeft)" marker-end="url(#mPrimeRight)"/>
+  <text x="604" y="776" font-size="10.5" fill="#374151">Continuous priming (two-way, parent to its own HA replicas)</text>
+
+  <rect x="46" y="787" width="14" height="14" rx="3" fill="#FFFFFF" stroke="#0072C6" stroke-width="2"/>
+  <text x="66" y="798" font-size="10.5" fill="#374151">Primary</text>
+  <rect x="146" y="787" width="14" height="14" rx="3" fill="#FFFFFF" stroke="#107C10" stroke-width="2"/>
+  <text x="166" y="798" font-size="10.5" fill="#374151">HA replica</text>
+  <rect x="262" y="787" width="14" height="14" rx="3" fill="#FFFFFF" stroke="#5C2D91" stroke-width="2"/>
+  <text x="282" y="798" font-size="10.5" fill="#374151">Named replica</text>
+  <rect x="400" y="788" width="20" height="11" rx="3" fill="#0072C6"/>
+  <text x="410" y="796.3" text-anchor="middle" font-size="7" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="428" y="798" font-size="10.5" fill="#374151">= the SQL Server engine</text>
+  <rect x="604" y="787" width="30" height="14" rx="3" fill="#FFFFFF" stroke="#008575" stroke-width="1.4"/>
+  <text x="642" y="798" font-size="10.5" fill="#374151">RBPEX &#8212; local SSD cache</text>
+  <text x="830" y="798" font-size="10.5" fill="#6B7280">Stack = &#8220;there can be several&#8221;</text>
+</svg>

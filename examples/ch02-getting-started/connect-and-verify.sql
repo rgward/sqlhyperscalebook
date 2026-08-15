@@ -95,6 +95,6 @@ FROM sys.dm_user_db_resource_governance rg
 WHERE rg.database_id = DB_ID();
 GO
 
-/* Schema verification (the 13 clinical and ops base tables) is intentionally
+/* Schema verification (the 16 clinical and ops base tables) is intentionally
    NOT here — this script proves the tier only. Table/row verification lives in
    verify-data.sql, run after 01-schemas.sql .. 05-seed.sql. */

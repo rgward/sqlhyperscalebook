@@ -1,0 +1,396 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 864" width="1280" height="864" font-family="Segoe UI, Arial, sans-serif">
+  <!-- ==================================================================== -->
+  <!-- Figure 3-x. One transaction, end to end (Ch 3 section 8)             -->
+  <!--                                                                      -->
+  <!-- THIS IS A SEQUENCE DIAGRAM, NOT AN ARCHITECTURE DIAGRAM, AND THAT IS -->
+  <!-- THE WHOLE JUSTIFICATION FOR IT. Every box and edge here already      -->
+  <!-- appears in Figure 3-1 and the drill-ins; redrawing the topology with -->
+  <!-- numbers on the arrows would teach nothing new. What no static figure -->
+  <!-- in the chapter can show is ORDERING IN TIME - specifically that the  -->
+  <!-- COMMIT RETURNS TO THE CLIENT AS SOON AS THE LOG SERVICE HARDENS THE  -->
+  <!-- RECORD, while the page servers and every replica are still catching  -->
+  <!-- up below the line. That single horizontal divider is the figure.     -->
+  <!-- Note the divider's claim is ASYNCHRONY, not sequence: below it,      -->
+  <!-- nothing is on the commit's critical path. See the wording note by    -->
+  <!-- the divider itself before rewording it.                             -->
+  <!-- If the divider ever stops being the thing a reader takes away, the   -->
+  <!-- figure has lost its reason to exist and should be cut.               -->
+  <!--                                                                      -->
+  <!-- Claims asserted, with their sources:                                 -->
+  <!--  * A WRITE TRANSACTION STILL READS. Steps 2-3 are the step readers      -->
+  <!--    query most: to modify a page the engine must first hold it           -->
+  <!--    (read-modify-write), and locating the target leaf means traversing   -->
+  <!--    the clustered index, which is more reads again. If the page is in    -->
+  <!--    neither the buffer pool nor RBPEX the only source is the page        -->
+  <!--    server. The exception is drawn too: a row landing on a freshly       -->
+  <!--    allocated page has nothing to fetch. Do not remove these italic      -->
+  <!--    lines - without them the arrows look like a mistake.                 -->
+  <!--  * Commit acknowledges when the log service has hardened the record; -->
+  <!--    no secondary is in the commit path. Learn (Hyperscale             -->
+  <!--    architecture, Log service): "Unlike in availability groups, when  -->
+  <!--    a transaction commits on the primary compute replica, log records -->
+  <!--    aren't hardened on the secondary replica ... log is hardened in   -->
+  <!--    the log service, and applied to the secondary replicas            -->
+  <!--    asynchronously." Hence: commit latency does not grow with replica -->
+  <!--    count (outline section 3; Socrates SIGMOD '19).                   -->
+  <!--  * XLOG disseminates FILTERED log to page servers (only blocks       -->
+  <!--    touching their partition, using the primary's out-of-band         -->
+  <!--    per-block annotations) but the FULL stream to secondaries.        -->
+  <!--    Socrates section 4.6.                                             -->
+  <!--  * A secondary redoes only pages it already holds cached; records    -->
+  <!--    targeting uncached pages are skipped, and the next GetPage@LSN    -->
+  <!--    fetches a version at or above that LSN. Socrates section 4.5.     -->
+  <!--  * The page server's write-down to Azure Storage is a background     -->
+  <!--    task that makes eviction legal - durability was already achieved  -->
+  <!--    upstream at the log service. Deliberately NOT called a            -->
+  <!--    "checkpoint" in the label (outline section 5 correction).         -->
+  <!--  * Rollback: ADR is always on in Azure SQL Database and cannot be    -->
+  <!--    disabled; an abort is marked, logical revert is asynchronous      -->
+  <!--    against the PVS, locks release immediately, and the abort travels -->
+  <!--    as ordinary log. Nothing undoes back UP the pipeline.             -->
+  <!--                                                                      -->
+  <!-- Palette and marker conventions per tools/authoring-architecture-     -->
+  <!-- figures.md: primary #0072C6, HA #107C10, log service #D83B01 with    -->
+  <!-- #C0198C log edges, page server #008575, Azure Storage #5F6B7A,       -->
+  <!-- user/app #374151. Markers use FIXED orient values (0 / 180), never   -->
+  <!-- auto-start-reverse - resvg mis-points auto-reversed heads.           -->
+  <!-- Dashed arrow = a return / response; solid = an outbound message.     -->
+  <!-- Numbered gutter badges on the left are referenced from the prose.    -->
+  <!-- No section cross-references inside the figure.                       -->
+  <!-- ==================================================================== -->
+  <defs>
+    <marker id="tfGreyR" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#374151"/>
+    </marker>
+    <marker id="tfGreyL" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#374151"/>
+    </marker>
+    <marker id="tfBlueR" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/>
+    </marker>
+    <marker id="tfTealL" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#008575"/>
+    </marker>
+    <marker id="tfTealR" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#008575"/>
+    </marker>
+    <marker id="tfLogR" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/>
+    </marker>
+    <marker id="tfLogL" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/>
+    </marker>
+    <marker id="tfGreenL" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#107C10"/>
+    </marker>
+    <marker id="tfGreenR" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#107C10"/>
+    </marker>
+  </defs>
+
+  <!-- white canvas -->
+  <rect x="0" y="0" width="1280" height="864" fill="#FFFFFF"/>
+
+  <!-- No in-figure title: the manuscript supplies the caption. -->
+
+  <!-- ============================ LIFELINES ============================= -->
+  <!-- Participant headers. Order left to right follows the path of the
+       transaction, so the reader's eye travels with the data. -->
+
+  <!-- Application -->
+  <rect x="40" y="44" width="110" height="50" rx="7" fill="#FFFFFF" stroke="#374151" stroke-width="1.8"/>
+  <text x="95" y="66" text-anchor="middle" font-size="11.5" font-weight="700" fill="#374151">Application</text>
+  <text x="95" y="82" text-anchor="middle" font-size="8" fill="#6B7280">the nurse's client</text>
+  <line x1="95" y1="94" x2="95" y2="716" stroke="#9AA5B1" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- Primary compute -->
+  <rect x="206" y="44" width="168" height="50" rx="7" fill="#FFFFFF" stroke="#0072C6" stroke-width="2.2"/>
+  <rect x="214" y="52" width="22" height="12" rx="3" fill="#0072C6"/>
+  <text x="225" y="61.3" text-anchor="middle" font-size="7.5" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="298" y="68" text-anchor="middle" font-size="12" font-weight="700" fill="#0072C6">Primary compute</text>
+  <text x="290" y="84" text-anchor="middle" font-size="8" fill="#6B7280">the only node that writes log</text>
+  <line x1="290" y1="94" x2="290" y2="716" stroke="#9AA5B1" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- Log service -->
+  <rect x="430" y="44" width="170" height="50" rx="7" fill="#FFFFFF" stroke="#D83B01" stroke-width="2.2"/>
+  <text x="515" y="66" text-anchor="middle" font-size="12" font-weight="700" fill="#D83B01">Log service (XLOG)</text>
+  <text x="515" y="82" text-anchor="middle" font-size="8" fill="#6B7280">landing zone &#183; broker &#183; destage</text>
+  <line x1="515" y1="94" x2="515" y2="716" stroke="#9AA5B1" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- Page servers -->
+  <rect x="646" y="44" width="168" height="50" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="2.2"/>
+  <rect x="654" y="52" width="22" height="12" rx="3" fill="#0072C6"/>
+  <text x="665" y="61.3" text-anchor="middle" font-size="7.5" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="738" y="68" text-anchor="middle" font-size="12" font-weight="700" fill="#008575">Page server</text>
+  <text x="730" y="84" text-anchor="middle" font-size="8" fill="#6B7280">the one owning this page</text>
+  <line x1="730" y1="94" x2="730" y2="716" stroke="#9AA5B1" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- Secondary replica. Renamed from "HA replica" 2026-08-10, once the read   -->
+  <!-- at steps 13/14 was added: the read is routed to a NAMED replica at least -->
+  <!-- as often as to an HA one, so the lifeline must not be labelled with only -->
+  <!-- one of them. "Secondary replica" is Learn's own umbrella term - see      -->
+  <!-- Hyperscale secondary replicas, accessed 2026-08-10: "Secondary replicas  -->
+  <!-- are always read-only, and can be of three different types: High          -->
+  <!-- Availability replica, Geo-replica, Named replica."                       -->
+  <!-- BUT THE UMBRELLA IS WIDER THAN THIS LIFELINE. A geo-replica does NOT     -->
+  <!-- share page servers with the primary - "all data is copied ... to a       -->
+  <!-- different set of page servers" - so step 14 is simply untrue of it. The  -->
+  <!-- subtitle therefore fences the label to HA and named, and states the      -->
+  <!-- reason those two can share one lifeline at all: same page servers.       -->
+  <!-- Colour stays HA green rather than named-replica purple because only one  -->
+  <!-- replica is drawn here; the subtitle, not the colour, carries the scope.  -->
+  <rect x="851" y="44" width="168" height="50" rx="7" fill="#FFFFFF" stroke="#107C10" stroke-width="2.2"/>
+  <rect x="859" y="52" width="22" height="12" rx="3" fill="#0072C6"/>
+  <text x="870" y="61.3" text-anchor="middle" font-size="7.5" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="947" y="68" text-anchor="middle" font-size="12" font-weight="700" fill="#107C10">Secondary replica</text>
+  <text x="935" y="84" text-anchor="middle" font-size="8" fill="#6B7280">HA or named &#8212; same page servers</text>
+  <line x1="935" y1="94" x2="935" y2="716" stroke="#9AA5B1" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- Azure Storage -->
+  <rect x="1057" y="44" width="176" height="50" rx="7" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="2.2"/>
+  <text x="1145" y="66" text-anchor="middle" font-size="12" font-weight="700" fill="#5F6B7A">Azure Storage</text>
+  <text x="1145" y="82" text-anchor="middle" font-size="8" fill="#6B7280">pages &#183; long-term log</text>
+  <line x1="1145" y1="94" x2="1145" y2="716" stroke="#9AA5B1" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- ================== PHASE 1: BEFORE THE COMMIT ====================== -->
+
+  <!-- 1. app issues the statement -->
+  <circle cx="22" cy="140" r="9" fill="#374151"/>
+  <text x="22" y="143.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">1</text>
+  <line x1="97" y1="140" x2="284" y2="140" stroke="#374151" stroke-width="1.6" marker-end="url(#tfGreyR)"/>
+  <text x="191" y="134" text-anchor="middle" font-size="9" fill="#374151">record one vitals observation</text>
+
+  <!-- 2. cold page: GetPage@LSN. THE STEP READERS QUESTION MOST - "why is a
+       WRITE transaction reading?" - so the figure answers it in place rather
+       than leaving it to the prose. A write is a read-modify-write: the engine
+       must hold the page before it can change it, and finding the target leaf
+       means traversing the clustered index, which is itself reads. The one
+       exception, a freshly allocated page, is named on the second italic line
+       so the rule doesn't read as absolute. -->
+  <rect x="330" y="151" width="360" height="12" fill="#FFFFFF"/>
+  <text x="510" y="160" text-anchor="middle" font-size="8.5" font-style="italic" fill="#6B7280">a write is a read-modify-write &#8212; the engine must hold the page before it can change it</text>
+  <rect x="326" y="162" width="368" height="12" fill="#FFFFFF"/>
+  <text x="510" y="171" text-anchor="middle" font-size="8.5" font-style="italic" fill="#6B7280">and reaching the right leaf page means walking the index, which is more reads still</text>
+  <circle cx="22" cy="192" r="9" fill="#0072C6"/>
+  <text x="22" y="195.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">2</text>
+  <rect x="366" y="177" width="290" height="12" fill="#FFFFFF"/>
+  <line x1="292" y1="192" x2="724" y2="192" stroke="#0072C6" stroke-width="1.6" marker-end="url(#tfBlueR)"/>
+  <text x="510" y="186" text-anchor="middle" font-size="9" fill="#0072C6">GetPage@LSN &#8212; the leaf page this row lands on is cached nowhere local</text>
+
+  <!-- 3. the page comes back -->
+  <circle cx="22" cy="222" r="9" fill="#008575"/>
+  <text x="22" y="225.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">3</text>
+  <rect x="437" y="207" width="148" height="12" fill="#FFFFFF"/>
+  <line x1="728" y1="222" x2="296" y2="222" stroke="#008575" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#tfTealL)"/>
+  <text x="510" y="216" text-anchor="middle" font-size="9" fill="#008575">the page, at or above that LSN</text>
+  <rect x="369" y="227" width="284" height="12" fill="#FFFFFF"/>
+  <text x="510" y="236" text-anchor="middle" font-size="8" font-style="italic" fill="#6B7280">skipped entirely if the row lands on a freshly allocated page &#8212; nothing to read</text>
+
+  <!-- 4. work on the primary -->
+  <circle cx="22" cy="264" r="9" fill="#0072C6"/>
+  <text x="22" y="267.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">4</text>
+  <rect x="279" y="246" width="22" height="40" rx="3" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.6"/>
+  <text x="316" y="260" font-size="9" fill="#0072C6">change the page in memory, generate the log records,</text>
+  <text x="316" y="272" font-size="9" fill="#0072C6">assign the LSNs &#8212; the primary is the sequencer</text>
+  <text x="316" y="284" font-size="8" font-style="italic" fill="#6B7280">no data page is written to durable storage here, or ever, by this node</text>
+
+  <!-- 5. the durable write -->
+  <circle cx="22" cy="316" r="9" fill="#C0198C"/>
+  <text x="22" y="319.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">5</text>
+  <line x1="292" y1="316" x2="509" y2="316" stroke="#C0198C" stroke-width="2" marker-end="url(#tfLogR)"/>
+  <text x="400" y="310" text-anchor="middle" font-size="9" font-weight="600" fill="#C0198C">log write, over RBIO</text>
+  <text x="400" y="330" text-anchor="middle" font-size="8" font-style="italic" fill="#6B7280">the primary's only durable write &#183; WRITELOG</text>
+
+  <!-- 6. hardened -->
+  <circle cx="22" cy="352" r="9" fill="#C0198C"/>
+  <text x="22" y="355.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">6</text>
+  <line x1="513" y1="352" x2="296" y2="352" stroke="#C0198C" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#tfLogL)"/>
+  <text x="404" y="346" text-anchor="middle" font-size="9" font-weight="600" fill="#C0198C">hardened</text>
+
+  <!-- 7. commit returns -->
+  <circle cx="22" cy="384" r="9" fill="#374151"/>
+  <text x="22" y="387.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">7</text>
+  <line x1="288" y1="384" x2="101" y2="384" stroke="#374151" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#tfGreyL)"/>
+  <text x="194" y="378" text-anchor="middle" font-size="9.5" font-weight="700" fill="#374151">COMMIT</text>
+
+  <!-- ==================== THE LINE: THIS IS THE FIGURE =================== -->
+  <!-- ANNOTATION INK (#111111). The divider and the concurrency frame are NOT -->
+  <!-- components, so they must not borrow a component colour. They were both  -->
+  <!-- magenta, which on this figure already means "log service" - the reader   -->
+  <!-- could read the divider as something XLOG does. Black is the one ink no  -->
+  <!-- tier owns, and nothing else on the figure uses it (body text is greys). -->
+  <!-- Rule: annotations are black; only tiers get palette colour.             -->
+  <!--                                                                         -->
+  <!-- WORDING (corrected 2026-08-10). The caption read "everything below      -->
+  <!-- happens afterwards". That was the same mistake as numbering the post-   -->
+  <!-- commit work as one run: "afterwards" is an ORDERING word, and ordering  -->
+  <!-- is precisely what does not hold below the line. It is also not reliably -->
+  <!-- true - the log service can begin fanning out to its consumers while the -->
+  <!-- commit is still travelling back to the client, so parts of "below" are  -->
+  <!-- not after anything. The defensible claim is ASYNCHRONY, not sequence:   -->
+  <!-- nothing below the line is on the commit's critical path. Do not restore -->
+  <!-- "afterwards", "then", or "next" here.                                   -->
+  <line x1="20" y1="410" x2="1260" y2="410" stroke="#111111" stroke-width="2" stroke-dasharray="9 5"/>
+  <rect x="372" y="400" width="540" height="20" fill="#FFFFFF"/>
+  <text x="640" y="414" text-anchor="middle" font-size="10.5" font-weight="700" fill="#111111">DURABLE AT STEP 6, COMMITTED AT STEP 7 &#8212; EVERYTHING BELOW IS ASYNCHRONOUS</text>
+
+  <!-- ================== PHASE 2: AFTER THE COMMIT ======================= -->
+  <!-- CONCURRENCY, NOT SEQUENCE (corrected 2026-08-10 in review). Everything    -->
+  <!-- below the divider was originally drawn as one continuous numbered run,    -->
+  <!-- which a sequence diagram reads as "and then" - and that is WRONG. XLOG    -->
+  <!-- fans out to the page servers and to the replicas at the same time, the    -->
+  <!-- two consumers redo at their own rates, and the page-server write-down     -->
+  <!-- and the destage are background cadences with no causal link to this       -->
+  <!-- transaction whatsoever. The region is therefore framed as THREE           -->
+  <!-- INDEPENDENT BRANCHES: ordering is real DOWN a branch, and meaningless     -->
+  <!-- ACROSS branches. Do not re-flatten this into a single column of steps.    -->
+  <rect x="490" y="424" width="772" height="300" rx="8" fill="none" stroke="#111111" stroke-width="0.9" stroke-dasharray="5 4"/>
+  <rect x="560" y="430" width="640" height="13" fill="#FFFFFF"/>
+  <text x="876" y="440" text-anchor="middle" font-size="8.5" font-style="italic" fill="#111111">three independent branches &#8212; order holds down a branch, but never across them</text>
+
+  <!-- The application is gone by now: the single most important consequence of
+       the divider, placed in the dead space beneath its own lifeline. -->
+  <text x="193" y="452" text-anchor="middle" font-size="8.5" font-style="italic" fill="#6B7280">the application already has its answer</text>
+  <text x="193" y="464" text-anchor="middle" font-size="8.5" font-style="italic" fill="#6B7280">and is waiting on none of this</text>
+
+  <!-- ================ BRANCH 1: the page servers ================ -->
+  <text x="470" y="465" text-anchor="end" font-size="9" font-weight="700" fill="#008575">to the page servers</text>
+
+  <circle cx="22" cy="462" r="9" fill="#C0198C"/>
+  <text x="22" y="465.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">8</text>
+  <line x1="517" y1="462" x2="724" y2="462" stroke="#C0198C" stroke-width="1.6" marker-end="url(#tfLogR)"/>
+  <text x="620" y="456" text-anchor="middle" font-size="9" fill="#C0198C">only the blocks touching this slice</text>
+
+  <circle cx="22" cy="488" r="9" fill="#008575"/>
+  <text x="22" y="491.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">9</text>
+  <rect x="719" y="472" width="22" height="32" rx="3" fill="#FFFFFF" stroke="#008575" stroke-width="1.6"/>
+  <text x="700" y="486" text-anchor="end" font-size="9" fill="#008575">redo every record it is sent &#8212;</text>
+  <text x="700" y="497" text-anchor="end" font-size="9" fill="#008575">this tier is the authoritative copy</text>
+
+  <circle cx="22" cy="516" r="9" fill="#008575"/>
+  <text x="22" y="519.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">10</text>
+  <rect x="836" y="500" width="200" height="12" fill="#FFFFFF"/>
+  <line x1="732" y1="516" x2="1139" y2="516" stroke="#008575" stroke-width="1.6" marker-end="url(#tfTealR)"/>
+  <text x="936" y="510" text-anchor="middle" font-size="9" fill="#008575">write the pages down, in the background</text>
+  <rect x="812" y="520" width="250" height="12" fill="#FFFFFF"/>
+  <text x="936" y="529" text-anchor="middle" font-size="8" font-style="italic" fill="#6B7280">its own cadence &#8212; this transaction does not trigger it</text>
+
+  <line x1="496" y1="540" x2="1256" y2="540" stroke="#D8DEE6" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- ================ BRANCH 2: the replicas ================ -->
+  <text x="470" y="563" text-anchor="end" font-size="9" font-weight="700" fill="#107C10">to the replicas</text>
+
+  <circle cx="22" cy="560" r="9" fill="#C0198C"/>
+  <text x="22" y="563.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">11</text>
+  <rect x="646" y="544" width="158" height="12" fill="#FFFFFF"/>
+  <line x1="517" y1="560" x2="929" y2="560" stroke="#C0198C" stroke-width="1.6" marker-end="url(#tfLogR)"/>
+  <text x="725" y="554" text-anchor="middle" font-size="9" fill="#C0198C">the whole stream, unfiltered</text>
+
+  <circle cx="22" cy="590" r="9" fill="#107C10"/>
+  <text x="22" y="593.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">12</text>
+  <rect x="924" y="574" width="22" height="32" rx="3" fill="#FFFFFF" stroke="#107C10" stroke-width="1.6"/>
+  <text x="960" y="588" font-size="9" fill="#107C10">redo only pages it already</text>
+  <text x="960" y="599" font-size="9" fill="#107C10">holds cached; skip the rest</text>
+
+  <!-- 13 / 14: THE REPLICA READ (added 2026-08-10, after review).             -->
+  <!-- These two steps exist because step 12 is a DESIGNED hole, not a cold     -->
+  <!-- cache. Without them the reader carries the Always On model across -      -->
+  <!-- "a read replica is a full local copy" - and that is wrong here: a query  -->
+  <!-- on a replica can land on a page the replica deliberately declined to     -->
+  <!-- redo, and must then pay a page server round trip. The arrow at 14 was    -->
+  <!-- already on the figure as unattributed housekeeping; giving it a TRIGGER  -->
+  <!-- (13) is what turns it into the read story. Note the read enters from     -->
+  <!-- OUTSIDE the frame: it belongs to no branch, it is simply another         -->
+  <!-- session, and it is the clearest proof on the figure that work below the  -->
+  <!-- line is not this transaction's work. Do not merge 13 into branch order.  -->
+  <circle cx="22" cy="626" r="9" fill="#107C10"/>
+  <text x="22" y="629.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">13</text>
+  <rect x="368" y="610" width="298" height="12" fill="#FFFFFF"/>
+  <line x1="101" y1="626" x2="929" y2="626" stroke="#107C10" stroke-width="1.4" marker-end="url(#tfGreenR)"/>
+  <text x="517" y="620" text-anchor="middle" font-size="9" fill="#107C10">meanwhile, a different session &#8212; the chart view &#8212; reads, routed here</text>
+
+  <circle cx="22" cy="664" r="9" fill="#107C10"/>
+  <text x="22" y="667.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">14</text>
+  <rect x="716" y="636" width="234" height="22" fill="#FFFFFF"/>
+  <line x1="929" y1="664" x2="736" y2="664" stroke="#107C10" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#tfGreenL)"/>
+  <text x="833" y="645" text-anchor="middle" font-size="8.5" fill="#107C10">it touched a page this replica skipped &#8212; GetPage@LSN,</text>
+  <text x="833" y="655" text-anchor="middle" font-size="8.5" fill="#107C10">at the LSN this replica has applied, not the latest</text>
+
+  <line x1="496" y1="674" x2="1256" y2="674" stroke="#D8DEE6" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- ================ BRANCH 3: long-term log ================ -->
+  <text x="470" y="703" text-anchor="end" font-size="9" font-weight="700" fill="#C0198C">to long-term log</text>
+
+  <circle cx="22" cy="700" r="9" fill="#C0198C"/>
+  <text x="22" y="703.5" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">15</text>
+  <rect x="716" y="684" width="228" height="12" fill="#FFFFFF"/>
+  <line x1="517" y1="700" x2="1139" y2="700" stroke="#C0198C" stroke-width="1.6" marker-end="url(#tfLogR)"/>
+  <text x="830" y="694" text-anchor="middle" font-size="9" fill="#C0198C">destage the log to long-term storage</text>
+  <rect x="742" y="704" width="176" height="12" fill="#FFFFFF"/>
+  <text x="830" y="713" text-anchor="middle" font-size="8" font-style="italic" fill="#6B7280">also a background cadence of its own</text>
+
+  <!-- ============================= PANELS =============================== -->
+
+  <!-- Panel A: what the line proves. Carries the ANNOTATION ink, not a tier
+       colour, because it is the divider's panel - the two must read as one. -->
+  <rect x="20" y="736" width="400" height="112" rx="8" fill="#F4F4F5" stroke="#111111" stroke-width="1.2"/>
+  <text x="36" y="756" font-size="10" font-weight="700" fill="#111111">What the line proves</text>
+  <circle cx="39" cy="773.5" r="1.8" fill="#111111"/>
+  <text x="48" y="777" font-size="8.5" fill="#444444">Durability belongs to the log service, not to a replica.</text>
+  <circle cx="39" cy="791.5" r="1.8" fill="#111111"/>
+  <text x="48" y="795" font-size="8.5" fill="#444444">Commit latency therefore does not grow as replicas are</text>
+  <text x="48" y="807" font-size="8.5" fill="#444444">added &#8212; in an availability group, every secondary hardens.</text>
+  <circle cx="39" cy="821.5" r="1.8" fill="#111111"/>
+  <text x="48" y="825" font-size="8.5" fill="#444444">Nothing below the line is on this commit's path: it is</text>
+  <text x="48" y="837" font-size="8.5" fill="#444444">bookkeeping, or it belongs to another session.</text>
+
+  <!-- Panel B: rollback -->
+  <rect x="440" y="736" width="400" height="112" rx="8" fill="#F2F7FB" stroke="#0072C6" stroke-width="1.3"/>
+  <text x="456" y="756" font-size="10" font-weight="700" fill="#0072C6">If it rolls back instead</text>
+  <circle cx="459" cy="773.5" r="1.8" fill="#0072C6"/>
+  <text x="468" y="777" font-size="8.5" fill="#444444">Nothing undoes back UP this diagram. The abort is simply</text>
+  <text x="468" y="789" font-size="8.5" fill="#444444">more log, travelling steps 8 and 11 like any other record.</text>
+  <circle cx="459" cy="803.5" r="1.8" fill="#0072C6"/>
+  <text x="468" y="807" font-size="8.5" fill="#444444">Accelerated Database Recovery marks it aborted and frees</text>
+  <text x="468" y="819" font-size="8.5" fill="#444444">the locks at once; versions revert later, out of the PVS.</text>
+  <circle cx="459" cy="833.5" r="1.8" fill="#0072C6"/>
+  <text x="468" y="837" font-size="8.5" fill="#444444">Rollback is therefore constant time, whatever it touched.</text>
+
+  <!-- Panel C: waits -->
+  <rect x="860" y="736" width="400" height="112" rx="8" fill="#F4F8F7" stroke="#008575" stroke-width="1.3"/>
+  <text x="876" y="756" font-size="10" font-weight="700" fill="#008575">Where a request is parked, by step</text>
+  <text x="876" y="775" font-size="8.5" font-weight="700" fill="#444444">PAGEIOLATCH_*</text>
+  <text x="986" y="775" font-size="8.5" fill="#444444">steps 2&#8211;3 and 14 &#8212; a remote page read</text>
+  <text x="876" y="793" font-size="8.5" font-weight="700" fill="#444444">WRITELOG</text>
+  <text x="986" y="793" font-size="8.5" fill="#444444">step 5 &#8212; hardening in the log service</text>
+  <!--
+    RBIO_RG_* CORRECTED 2026-08-10 IN REVIEW. It previously read "a consumer
+    below the line lagging", under a panel titled "Where a request is parked".
+    That invites the reader to place the wait BELOW the divider. It is not
+    there. Two source-verified facts, both accessed 2026-08-10:
+
+      1. The wait is observed ON THE PRIMARY. sys.dm_hs_database_log_rate:
+         the per-role wait types "might be observed on the primary compute
+         replica". The lagging page server / replica / destage is the CAUSE,
+         never the waiter. The wait NAME is the diagnosis - _STORAGE,
+         _STORAGE_CHECKPOINT, _REPLICA, _GEOREPLICA, _LOCALDESTAGE,
+         _DESTAGE, _MIGRATION_TARGET each name the component that is behind.
+
+      2. It fires at step 4, NOT step 5. Resource management in Azure SQL
+         Database: "The delays aren't added when the log records are flushed
+         to storage, rather log rate governance is applied during log rate
+         generation itself." Step 4 generates log records; step 5 is the
+         landing-zone round trip that WRITELOG covers. Adjacent steps,
+         different causes, different remedies - do not merge these two rows.
+
+    This row is also the ONE upward path on the figure: the only way the
+    asynchronous world below the divider reaches back and touches a live
+    transaction. It does not contradict the divider - THIS commit is still
+    not waiting on anything below it - but a lagging consumer does slow the
+    NEXT one. Ch 10 2 carries the detail; keep this row to one line.
+  -->
+  <text x="876" y="811" font-size="8.5" font-weight="700" fill="#444444">RBIO_RG_*</text>
+  <text x="986" y="811" font-size="8.5" fill="#444444">step 4 &#8212; the primary throttled by a lagging consumer</text>
+  <text x="876" y="833" font-size="8" font-style="italic" fill="#6B7280">The wait tells you which tier the request is waiting on, which</text>
+  <text x="876" y="843" font-size="8" font-style="italic" fill="#6B7280">is the practical use of knowing this sequence at all.</text>
+</svg>

@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ward General chart application &#8212; baseline architecture (Chapter 4)
+  SERIES CANVAS: 1600 x 900, exact 16:9, shared by ch04 / ch05 / ch06.
+
+  THE GRID (identical in all three figures &#8212; nothing moves between chapters)
+  ==========================================================================
+  Region 1  the application process, x 40..1050, y 96..310.
+            THREE fixed slots, each 308 wide:
+              app slot 1   x 60..368     WardGeneral.Web
+              app slot 2   x 391..699    WardGeneral.Data      centre x = 545
+              app slot 3   x 722..1030   WardGeneral.Agent (Ch 6)
+  Region 2  everything that is neither the app nor the database,
+            x 1080..1560, y 96..790. Empty in Ch 4.
+              Ch 6 puts Data API Builder + the SQL MCP server at the TOP,
+              nearest the agent that calls them.
+              Ch 5 puts Microsoft Foundry and APIM LOWER, nearest the engine
+              that calls them.
+  Region 3  Hyperscale, x 40..1050, y 420..790.
+            THREE fixed compute slots, each 308 wide:
+              compute slot 1  x 70..378    HA secondary replica
+              compute slot 2  x 391..699   PRIMARY            centre x = 545
+              compute slot 3  x 712..1020  named replica (Ch 5)
+
+  WHY THE PRIMARY IS IN THE MIDDLE
+  ================================
+  App slot 2 (the data-access layer) and compute slot 2 (the primary) share a
+  centre line at x = 545, so the application's one connection is a straight
+  vertical drop. Nothing ever has to cross it, and the named replica added in
+  Chapter 5 lands to the side rather than displacing it.
+
+  THE ROUTING ALLEY
+  =================
+  y = 660 is kept clear, between the compute slots (which end at y 644) and the
+  database (which starts at y 676). Replica-to-database connectors run along it,
+  and in Chapter 5 the engine's outbound AI calls leave the Hyperscale container
+  through it. That is why the Ch 8 row-level-security placeholder sits to the
+  LEFT of the database: the right-hand side of the lower band is a road.
+
+  SCOPE / DELIBERATE OMISSIONS
+  ============================
+    - No Ch 5 surface, no Ch 6 surface: Region 2 is empty and says so.
+    - Ch 8 appears only as GREYED-OUT PLACEHOLDERS &#8212; a private endpoint in the
+      connection path and row-level security on the database &#8212; matching the
+      book's progressive-reveal rule. Until Chapter 8 the reader uses the public
+      endpoint and the firewall rule created in Chapter 2.
+    - No log service, no page servers, no Azure Storage, no control plane.
+      Author instruction 2026-08-12. Chapter 3 owns the storage-tier anatomy.
+    - No explanatory text panels. Author instruction 2026-08-12: hosting options
+      and the roadmap live in the chapter prose. The GREY placeholders are the
+      exception the author asked for: a reserved region says what is coming.
+    - No protocol annotation (TDS, port 1433, the Entra token). Author
+      instruction 2026-08-12: the connection library belongs on the data-access
+      box, and the Entra point is already made by the ConnectionFactory pill.
+    - No figure number and no cross-references inside the artwork.
+
+  THE APPLICATION READS AND WRITES THE PRIMARY ONLY
+  =================================================
+  Author ruling 2026-08-12: no part of the application reads from the HA
+  secondary. The HA replica is drawn because it is the automatic failover target
+  and because zone redundancy requires one, not because the app talks to it. The
+  example app was changed to match on 2026-08-12: the readOnly parameter was
+  removed from ChartRepository and WardGeneralConnectionFactory.Create(), and
+  ApplicationIntent is now always ReadWrite.
+
+  CLAIMS ASSERTED, AND WHERE THEY COME FROM
+  =========================================
+  Live database, `az sql db show` on the wardgeneral database, 2026-08-12:
+    tier Hyperscale, sku HS_Gen5, slo HS_Gen5_8, capacity 8, haReplicas 1,
+    zoneRedundant true, location centralus.
+
+  Microsoft Learn, accessed 2026-08-12:
+    - "Zone redundancy places replicas of your SQL database across multiple
+      Azure availability zones in your primary region." Zone redundancy is a
+      property of the DATABASE, not of a replica &#8212; which is why the phrase sits
+      on the Hyperscale container and each inner box says only "Availability
+      zone". (Reliability in Azure SQL Database.)
+    - Azure SQL selects two or three zones for a zone-redundant deployment based
+      on the region, so the zones are neither named nor numbered here.
+    - Zone redundancy for Hyperscale requires at least one HA replica and
+      zone-redundant backup storage. The HA replica in this figure is therefore
+      a precondition of the zone redundancy the figure claims, not decoration.
+    - Secondary replicas are always read-only; an HA replica carries the same
+      service objective as the primary.
+
+  Application facts, read from examples/ch04-first-app/src, 2026-08-12.
+
+  RENDERING
+  =========
+    Run tools/export-figures.mjs against this folder at width 2560 with the
+    @2x suffix. See tools/authoring-architecture-figures.md.
+  resvg does not honour orient="auto" on markers, so every marker below uses a
+  fixed angle: 0 = east, 90 = south, 180 = west, 270 = north.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900"
+     font-family="Segoe UI, Arial, sans-serif">
+
+  <defs>
+    <marker id="mClientDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#374151"/>
+    </marker>
+    <marker id="mClientUp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#374151"/>
+    </marker>
+    <marker id="mClientRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#374151"/>
+    </marker>
+    <marker id="mDataDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/>
+    </marker>
+    <marker id="mDataUp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/>
+    </marker>
+    <marker id="mDataRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="900" fill="#EFF1F4"/>
+
+  <!-- ============================================================= CLIENT -->
+  <rect x="160" y="20" width="300" height="58" rx="8" fill="#FFFFFF" stroke="#374151" stroke-width="2.2"/>
+  <text x="174" y="42" font-size="12.5" font-weight="bold" fill="#374151">Clinician&#8217;s browser</text>
+  <text x="174" y="57" font-size="8.5" fill="#555555">HTML and events over a persistent connection</text>
+  <text x="174" y="70" font-size="8.5" fill="#555555">no application logic runs on the client</text>
+
+  <!-- ================================ REGION 1: the application process -->
+  <rect x="40" y="96" width="1010" height="214" rx="10" fill="#FFFFFF" stroke="#9AA5B1"
+        stroke-width="1.4" stroke-dasharray="6 4"/>
+  <text x="56" y="117" font-size="10.5" font-weight="bold" fill="#6B7280">Application &#8212; one ASP.NET Core process</text>
+  <text x="1034" y="117" font-size="9" fill="#6B7280" text-anchor="end">runs on your machine, or on Azure App Service</text>
+
+  <!-- app slot 1: web tier -->
+  <rect x="60" y="128" width="308" height="164" rx="8" fill="#FFFFFF" stroke="#C2185B" stroke-width="2.2"/>
+  <rect x="68" y="136" width="50" height="13" rx="3" fill="#C2185B"/>
+  <text x="93" y="145.5" font-size="7.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">BLAZOR</text>
+  <text x="72" y="167" font-size="12.5" font-weight="bold" fill="#C2185B">WardGeneral.Web</text>
+  <text x="72" y="180" font-size="8" fill="#555555">Blazor Interactive Server &#183; the UI runs on the server</text>
+  <rect x="72" y="188" width="284" height="18" rx="9" fill="#FDF2F6" stroke="#C2185B" stroke-width="1"/>
+  <text x="80" y="200.5" font-size="8" font-weight="bold" fill="#C2185B">Unit board &#8212; /</text>
+  <rect x="72" y="210" width="284" height="18" rx="9" fill="#FDF2F6" stroke="#C2185B" stroke-width="1"/>
+  <text x="80" y="222.5" font-size="8" font-weight="bold" fill="#C2185B">Patient chart &#8212; /chart/{EncounterId}</text>
+  <rect x="72" y="232" width="284" height="18" rx="9" fill="#FDF2F6" stroke="#C2185B" stroke-width="1"/>
+  <text x="80" y="244.5" font-size="8" font-weight="bold" fill="#C2185B">MainLayout &#183; NavMenu &#183; ChartCard</text>
+  <rect x="72" y="254" width="284" height="18" rx="9" fill="#FDF2F6" stroke="#C2185B" stroke-width="1"/>
+  <text x="80" y="266.5" font-size="8" font-weight="bold" fill="#C2185B">FeatureFlags &#183; PageContext (per circuit)</text>
+  <text x="72" y="284" font-size="7.5" font-style="italic" fill="#6B7280">These screens read the chart. They do not change it.</text>
+
+  <!-- app slot 2: data-access layer -->
+  <rect x="391" y="128" width="308" height="164" rx="8" fill="#FFFFFF" stroke="#B45309" stroke-width="2.2"/>
+  <rect x="399" y="136" width="42" height="13" rx="3" fill="#B45309"/>
+  <text x="420" y="145.5" font-size="7.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">DATA</text>
+  <text x="403" y="167" font-size="12.5" font-weight="bold" fill="#B45309">WardGeneral.Data</text>
+  <text x="403" y="180" font-size="8" fill="#555555">raw ADO.NET on Microsoft.Data.SqlClient, no ORM</text>
+  <rect x="403" y="188" width="284" height="18" rx="9" fill="#FDF6EC" stroke="#B45309" stroke-width="1"/>
+  <text x="411" y="200.5" font-size="8" font-weight="bold" fill="#B45309">ChartRepository &#8212; stored procedures only</text>
+  <rect x="403" y="210" width="284" height="18" rx="9" fill="#FDF6EC" stroke="#B45309" stroke-width="1"/>
+  <text x="411" y="222.5" font-size="8" font-weight="bold" fill="#B45309">ConnectionFactory &#8212; Microsoft Entra, pooled</text>
+  <rect x="403" y="232" width="284" height="18" rx="9" fill="#FDF6EC" stroke="#B45309" stroke-width="1"/>
+  <text x="411" y="244.5" font-size="8" font-weight="bold" fill="#B45309">RetryPolicy &#8212; built-in SqlClient retry logic</text>
+  <rect x="403" y="254" width="284" height="18" rx="9" fill="#FDF6EC" stroke="#B45309" stroke-width="1"/>
+  <text x="411" y="266.5" font-size="8" font-weight="bold" fill="#B45309">ChartModels &#8212; records the procedures return</text>
+  <text x="403" y="284" font-size="7.5" font-style="italic" fill="#6B7280">GetPatientChart &#183; GetPatientChartByBed &#183; SearchEncounters</text>
+
+  <!-- app slot 3: reserved for Chapter 6 -->
+  <rect x="722" y="128" width="308" height="164" rx="8" fill="#F5F6F8" stroke="#9AA5B1"
+        stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="876" y="190" font-size="11" font-weight="bold" fill="#9AA5B1" text-anchor="middle">Chapter 6</text>
+  <text x="876" y="214" font-size="10" fill="#9AA5B1" text-anchor="middle">WardGeneral.Agent</text>
+  <text x="876" y="233" font-size="8.5" fill="#9AA5B1" text-anchor="middle">Microsoft Agent Framework</text>
+  <text x="876" y="256" font-size="8" font-style="italic" fill="#9AA5B1" text-anchor="middle">the agent runs inside this same process</text>
+
+  <!-- circuit and in-process call, painted after the container fills -->
+  <path d="M 310,78 L 310,128" fill="none" stroke="#374151" stroke-width="2"
+        marker-start="url(#mClientUp)" marker-end="url(#mClientDown)"/>
+  <text x="325" y="94" font-size="8.5" font-weight="bold" fill="#374151">Blazor Server circuit &#183; SignalR</text>
+  <path d="M 368,210 L 389,210" fill="none" stroke="#374151" stroke-width="2" marker-end="url(#mClientRight)"/>
+
+  <!-- ================================================== CONNECTION BAND -->
+  <path d="M 545,292 L 545,330" fill="none" stroke="#0072C6" stroke-width="2" marker-start="url(#mDataUp)"/>
+  <rect x="404" y="330" width="282" height="44" rx="8" fill="#F5F6F8" stroke="#9AA5B1"
+        stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="545" y="349" font-size="8.5" font-weight="bold" fill="#9AA5B1" text-anchor="middle">Private endpoint (Private Link)</text>
+  <text x="545" y="362" font-size="7.5" fill="#9AA5B1" text-anchor="middle">Chapter 8 &#8212; public endpoint and a firewall rule until then</text>
+  <text x="558" y="402" font-size="8.5" font-weight="bold" fill="#0072C6">reads and writes</text>
+
+  <!-- ================================ REGION 2: outside app and database -->
+  <rect x="1080" y="96" width="480" height="694" rx="10" fill="#F5F6F8" stroke="#9AA5B1"
+        stroke-width="1.4" stroke-dasharray="6 4"/>
+  <text x="1320" y="380" font-size="13" font-weight="bold" fill="#9AA5B1" text-anchor="middle">Added by Chapters 5 and 6</text>
+  <text x="1320" y="418" font-size="9.5" fill="#9AA5B1" text-anchor="middle">Microsoft Foundry &#8212; embedding and chat models</text>
+  <text x="1320" y="440" font-size="9.5" fill="#9AA5B1" text-anchor="middle">Azure API Management &#8212; AI gateway, content safety</text>
+  <text x="1320" y="462" font-size="9.5" fill="#9AA5B1" text-anchor="middle">Data API Builder &#183; the SQL MCP server</text>
+  <text x="1320" y="498" font-size="8.5" font-style="italic" fill="#9AA5B1" text-anchor="middle">Chapter 5 &#8212; the database itself calls out here</text>
+  <text x="1320" y="514" font-size="8.5" font-style="italic" fill="#9AA5B1" text-anchor="middle">Chapter 6 &#8212; the agent in the application does</text>
+
+  <!-- ================================================ REGION 3: Hyperscale -->
+  <rect x="40" y="420" width="1010" height="370" rx="10" fill="#FFFFFF" stroke="#9AA5B1"
+        stroke-width="1.4" stroke-dasharray="6 4"/>
+  <text x="56" y="442" font-size="10.5" font-weight="bold" fill="#6B7280">Azure SQL Database &#8212; Hyperscale, zone redundant</text>
+
+  <!-- compute slot 1: HA secondary -->
+  <rect x="70" y="464" width="308" height="180" rx="8" fill="#FFFFFF" stroke="#9AA5B1"
+        stroke-width="1.2" stroke-dasharray="4 4"/>
+  <text x="82" y="482" font-size="9.5" font-weight="bold" fill="#6B7280">Availability zone</text>
+  <rect x="84" y="492" width="280" height="124" rx="8" fill="#FFFFFF" stroke="#107C10" stroke-width="2.2"/>
+  <rect x="92" y="500" width="24" height="13" rx="3" fill="#0072C6"/>
+  <text x="104" y="509.5" font-size="7.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">SQL</text>
+  <text x="96" y="531" font-size="12" font-weight="bold" fill="#107C10">HA secondary replica</text>
+  <text x="96" y="545" font-size="8" fill="#555555">same service objective as the primary</text>
+  <text x="96" y="557" font-size="8" fill="#555555">the automatic failover target</text>
+  <rect x="96" y="568" width="256" height="18" rx="9" fill="#EFF7EF" stroke="#107C10" stroke-width="1"/>
+  <text x="104" y="580.5" font-size="7.5" font-weight="bold" fill="#107C10">the application never reads from this replica</text>
+
+  <!-- compute slot 2: the primary -->
+  <rect x="391" y="464" width="308" height="180" rx="8" fill="#FFFFFF" stroke="#9AA5B1"
+        stroke-width="1.2" stroke-dasharray="4 4"/>
+  <text x="403" y="482" font-size="9.5" font-weight="bold" fill="#6B7280">Availability zone</text>
+  <rect x="405" y="492" width="280" height="124" rx="8" fill="#FFFFFF" stroke="#0072C6" stroke-width="2.2"/>
+  <rect x="413" y="500" width="24" height="13" rx="3" fill="#0072C6"/>
+  <text x="425" y="509.5" font-size="7.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">SQL</text>
+  <text x="417" y="531" font-size="12" font-weight="bold" fill="#0072C6">Primary compute replica</text>
+  <text x="417" y="545" font-size="8" fill="#555555">HS_Gen5 &#183; 8 vCores &#183; provisioned compute</text>
+  <text x="417" y="557" font-size="8" fill="#555555">every read and every write lands here</text>
+  <rect x="417" y="568" width="256" height="18" rx="9" fill="#EEF6FC" stroke="#0072C6" stroke-width="1"/>
+  <text x="425" y="580.5" font-size="7.5" font-weight="bold" fill="#0072C6">compute scales independently of storage</text>
+
+  <!-- compute slot 3: reserved for Chapter 5 -->
+  <rect x="712" y="464" width="308" height="180" rx="8" fill="#F5F6F8" stroke="#9AA5B1"
+        stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="866" y="520" font-size="11" font-weight="bold" fill="#9AA5B1" text-anchor="middle">Chapter 5</text>
+  <text x="866" y="545" font-size="10" fill="#9AA5B1" text-anchor="middle">Read-only named replica</text>
+  <text x="866" y="566" font-size="8.5" fill="#9AA5B1" text-anchor="middle">its own compute, over the same data</text>
+  <text x="866" y="590" font-size="8" font-style="italic" fill="#9AA5B1" text-anchor="middle">Chapter 10 &#8212; replicas as read scale-out</text>
+
+  <!-- replica -&gt; database, along the y=660 alley -->
+  <path d="M 224,616 L 224,660 L 380,660 L 380,676" fill="none" stroke="#5F6B7A" stroke-width="1.6"/>
+  <path d="M 545,616 L 545,676" fill="none" stroke="#5F6B7A" stroke-width="1.6"/>
+  <path d="M 866,616 L 866,660 L 700,660 L 700,676" fill="none" stroke="#9AA5B1" stroke-width="1.4" stroke-dasharray="4 3"/>
+
+  <!-- the database -->
+  <rect x="250" y="676" width="590" height="76" rx="8" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="2"/>
+  <path d="M 268,700 L 268,730" fill="none" stroke="#5F6B7A" stroke-width="1.6"/>
+  <path d="M 304,700 L 304,730" fill="none" stroke="#5F6B7A" stroke-width="1.6"/>
+  <ellipse cx="286" cy="730" rx="18" ry="6" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="1.6"/>
+  <ellipse cx="286" cy="700" rx="18" ry="6" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="1.6"/>
+  <text x="322" y="701" font-size="11.5" font-weight="bold" fill="#5F6B7A">wardgeneral &#8212; one database</text>
+  <text x="322" y="718" font-size="8.5" fill="#555555">schemas clinical and ops &#8212; tables, views, stored procedures</text>
+  <text x="322" y="735" font-size="8" font-style="italic" fill="#6B7280">every replica serves this same data; adding one copies nothing</text>
+
+  <!-- Chapter 8 placeholder, LEFT of the database so the right side stays a road -->
+  <rect x="58" y="682" width="176" height="64" rx="8" fill="#F5F6F8" stroke="#9AA5B1"
+        stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="146" y="704" font-size="8.5" font-weight="bold" fill="#9AA5B1" text-anchor="middle">Row-level security &#183; masking</text>
+  <text x="146" y="719" font-size="8" fill="#9AA5B1" text-anchor="middle">Chapter 8</text>
+  <text x="146" y="733" font-size="8" fill="#9AA5B1" text-anchor="middle">enforced in the engine</text>
+  <path d="M 234,714 L 250,714" fill="none" stroke="#9AA5B1" stroke-width="1.4" stroke-dasharray="4 3"/>
+
+  <!-- the one connection, painted last so no container fill covers it -->
+  <path d="M 545,374 L 545,492" fill="none" stroke="#0072C6" stroke-width="2" marker-end="url(#mDataDown)"/>
+
+  <!-- ============================================================= LEGEND -->
+  <rect x="40" y="806" width="1520" height="64" rx="8" fill="#FFFFFF" stroke="#9AA5B1" stroke-width="1.2"/>
+  <!-- five columns at x = 60, 360, 660, 960, 1260. Row two uses the first four
+       of the same columns, so every glyph and every label lines up vertically.
+       Glyph occupies col..col+14; every label starts at col+28. -->
+  <rect x="60" y="819" width="14" height="10" rx="2" fill="#FFFFFF" stroke="#C2185B" stroke-width="2"/>
+  <text x="88" y="828" font-size="9" fill="#374151">Web tier (Blazor)</text>
+  <rect x="360" y="819" width="14" height="10" rx="2" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
+  <text x="388" y="828" font-size="9" fill="#374151">Data-access layer</text>
+  <rect x="660" y="819" width="14" height="10" rx="2" fill="#FFFFFF" stroke="#0072C6" stroke-width="2"/>
+  <text x="688" y="828" font-size="9" fill="#374151">Primary compute &#8212; all reads and writes</text>
+  <rect x="960" y="819" width="14" height="10" rx="2" fill="#FFFFFF" stroke="#107C10" stroke-width="2"/>
+  <text x="988" y="828" font-size="9" fill="#374151">HA secondary replica &#8212; failover target</text>
+  <rect x="1260" y="819" width="14" height="10" rx="2" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="2"/>
+  <text x="1288" y="828" font-size="9" fill="#374151">the wardgeneral database</text>
+
+  <path d="M 60,850 L 74,850" fill="none" stroke="#374151" stroke-width="2" marker-end="url(#mClientRight)"/>
+  <text x="88" y="853" font-size="9" fill="#374151">browser circuit and in-process call</text>
+  <path d="M 360,850 L 374,850" fill="none" stroke="#0072C6" stroke-width="2" marker-end="url(#mDataRight)"/>
+  <text x="388" y="853" font-size="9" fill="#374151">read and write connection</text>
+  <path d="M 660,850 L 674,850" fill="none" stroke="#5F6B7A" stroke-width="1.6"/>
+  <text x="688" y="853" font-size="9" fill="#374151">replica serves this database</text>
+  <rect x="960" y="845" width="14" height="10" rx="2" fill="#F5F6F8" stroke="#9AA5B1" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="988" y="853" font-size="9" fill="#374151">added by a later chapter</text>
+
+</svg>

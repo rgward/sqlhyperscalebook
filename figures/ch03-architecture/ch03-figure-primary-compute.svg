@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 60 1000 570" width="1000" height="570" font-family="Segoe UI, Arial, sans-serif">
+  <!-- ================================================================= -->
+  <!-- Figure 3-x. Primary compute, zoomed in  (Ch 3 §2 sub-figure)       -->
+  <!-- Drill-down of the primary compute box in Figure 3-1: what lives    -->
+  <!-- inside the node, and its only two data-plane edges out.            -->
+  <!--                                                                    -->
+  <!-- Claims asserted here (all carried in outline §2/§3/§4):            -->
+  <!--  * The node is the SQL Server engine; BP is memory, RBPEX + tempdb -->
+  <!--    are local SSD (tempdb cost is in the vCore price).              -->
+  <!--  * The primary's ONLY durable write is the log, to the log service -->
+  <!--    (write is one-way over RBIO; the same edge is also read back,   -->
+  <!--    over RBIO, to pull the log tail during restart/failover         -->
+  <!--    recovery - occasional, not steady-state). Updated 2026-08-07.   -->
+  <!--  * Page reads on a miss are GetPage@LSN to page servers (two-way,  -->
+  <!--    over RBIO). Compute NEVER writes to page servers.               -->
+  <!--  * Compute never talks to Azure Storage - deliberately absent.     -->
+  <!-- Palette + marker convention: tools/authoring-architecture-figures  -->
+  <!-- ================================================================= -->
+  <defs>
+    <marker id="mAppDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#333333"/>
+    </marker>
+    <marker id="mLogDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/>
+    </marker>
+    <marker id="mLogRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/>
+    </marker>
+    <marker id="mDataRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/>
+    </marker>
+    <marker id="mDataLeft" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/>
+    </marker>
+    <marker id="mCacheUp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#008575"/>
+    </marker>
+    <marker id="mCacheDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#008575"/>
+    </marker>
+    <marker id="mLogLeft" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/>
+    </marker>
+  </defs>
+
+  <!-- white canvas -->
+  <rect x="0" y="0" width="1000" height="630" fill="#FFFFFF"/>
+
+  <!-- APPLICATION -->
+  <rect x="60" y="76" width="200" height="46" rx="8" fill="#FFFFFF" stroke="#333333" stroke-width="1.8"/>
+  <text x="160" y="95" text-anchor="middle" font-size="12" font-weight="700" fill="#333333">Application</text>
+  <text x="160" y="112" text-anchor="middle" font-size="9" fill="#6B7280">TDS &#183; read-write</text>
+  <path d="M160,122 L160,152" stroke="#333333" stroke-width="1.8" fill="none" marker-end="url(#mAppDown)"/>
+
+  <!-- ===================== PRIMARY COMPUTE NODE ===================== -->
+  <rect x="60" y="158" width="500" height="410" rx="10" fill="#FFFFFF" stroke="#0072C6" stroke-width="2.2"/>
+  <text x="80" y="182" font-size="14" font-weight="700" fill="#0072C6">Primary compute replica</text>
+  <text x="80" y="197" font-size="9" fill="#6B7280">read-write &#183; provisioned or serverless</text>
+  <rect x="496" y="168" width="44" height="17" rx="4" fill="#0072C6"/>
+  <text x="518" y="181" text-anchor="middle" font-size="8.5" font-weight="700" fill="#FFFFFF">SQL</text>
+
+  <!-- memory region -->
+  <rect x="80" y="206" width="460" height="100" rx="8" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="92" y="222" font-size="9.5" font-weight="600" fill="#6B7280">Memory</text>
+  <rect x="98" y="228" width="200" height="62" rx="6" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.5"/>
+  <text x="198" y="252" text-anchor="middle" font-size="11.5" font-weight="600" fill="#0072C6">Workers &#183; schedulers</text>
+  <text x="198" y="270" text-anchor="middle" font-size="9" fill="#6B7280">query execution</text>
+  <rect x="322" y="228" width="200" height="62" rx="6" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.5"/>
+  <text x="422" y="252" text-anchor="middle" font-size="11.5" font-weight="600" fill="#0072C6">Buffer pool</text>
+  <text x="422" y="270" text-anchor="middle" font-size="9" fill="#6B7280">hot pages in memory</text>
+
+  <!-- log manager -->
+  <rect x="98" y="330" width="200" height="58" rx="6" fill="#FFFFFF" stroke="#D83B01" stroke-width="1.6"/>
+  <text x="198" y="354" text-anchor="middle" font-size="11.5" font-weight="600" fill="#D83B01">Log manager</text>
+  <text x="198" y="371" text-anchor="middle" font-size="9" fill="#6B7280">generates log &#183; assigns LSNs</text>
+
+  <!-- local SSD region -->
+  <rect x="80" y="410" width="460" height="130" rx="8" fill="#FFFFFF" stroke="#008575" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <text x="92" y="426" font-size="9.5" font-weight="600" fill="#008575">Local SSD</text>
+  <rect x="98" y="434" width="200" height="86" rx="6" fill="#FFFFFF" stroke="#008575" stroke-width="1.5"/>
+  <text x="198" y="462" text-anchor="middle" font-size="11.5" font-weight="600" fill="#008575">tempdb</text>
+  <text x="198" y="480" text-anchor="middle" font-size="9" fill="#6B7280">cost included in the</text>
+  <text x="198" y="494" text-anchor="middle" font-size="9" fill="#6B7280">vCore price</text>
+  <rect x="322" y="434" width="200" height="86" rx="6" fill="#FFFFFF" stroke="#008575" stroke-width="1.5"/>
+  <text x="422" y="458" text-anchor="middle" font-size="11.5" font-weight="600" fill="#008575">RBPEX</text>
+  <text x="422" y="474" text-anchor="middle" font-size="8.5" fill="#6B7280">Resilient Buffer Pool Extension</text>
+  <text x="422" y="490" text-anchor="middle" font-size="9" font-style="italic" fill="#6B7280">sparse &#183; pages evicted from memory</text>
+  <text x="422" y="506" text-anchor="middle" font-size="8.5" fill="#6B7280">ceiling = local SSD for the SKU</text>
+
+  <!-- internal: workers to log manager -->
+  <path d="M198,290 L198,330" stroke="#C0198C" stroke-width="1.8" fill="none" marker-end="url(#mLogDown)"/>
+  <text x="206" y="315" font-size="9" fill="#C0198C">log records</text>
+
+  <!-- internal: buffer pool and RBPEX -->
+  <path d="M422,290 L422,434" stroke="#008575" stroke-width="1.8" fill="none"
+        marker-start="url(#mCacheUp)" marker-end="url(#mCacheDown)"/>
+  <text x="414" y="318" text-anchor="end" font-size="9" fill="#008575">fill on read /</text>
+  <text x="414" y="331" text-anchor="end" font-size="9" fill="#008575">evict on pressure</text>
+
+  <!-- ===================== LOG SERVICE ===================== -->
+  <rect x="660" y="200" width="280" height="80" rx="9" fill="#FFFFFF" stroke="#D83B01" stroke-width="2"/>
+  <text x="800" y="232" text-anchor="middle" font-size="13" font-weight="700" fill="#D83B01">Log service (XLOG)</text>
+  <text x="800" y="252" text-anchor="middle" font-size="9" fill="#6B7280">landing zone &#183; the durability point</text>
+  <text x="800" y="268" text-anchor="middle" font-size="9" font-style="italic" fill="#6B7280">commit acknowledges here</text>
+
+  <!-- log manager <-> log service: write log down (continuous, RBIO) / read log tail back (restart or failover recovery only) -->
+  <path d="M298,359 L610,359 L610,240 L660,240" stroke="#C0198C" stroke-width="2" fill="none" marker-start="url(#mLogLeft)" marker-end="url(#mLogRight)"/>
+  <text x="340" y="348" font-size="8.5" font-weight="600" fill="#C0198C">Log write</text>
+  <text x="545" y="348" text-anchor="end" font-size="8.5" font-weight="600" fill="#C0198C">recovery read (RBIO)</text>
+
+  <!-- ===================== PAGE SERVERS ===================== -->
+  <rect x="660" y="470" width="280" height="96" rx="9" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <text x="800" y="500" text-anchor="middle" font-size="13" font-weight="700" fill="#008575">Page servers</text>
+  <text x="800" y="519" text-anchor="middle" font-size="9" fill="#6B7280">own the data-file slices</text>
+  <text x="800" y="537" text-anchor="middle" font-size="9" font-style="italic" fill="#6B7280">the log service applies log to them &#8212;</text>
+  <text x="800" y="551" text-anchor="middle" font-size="9" font-style="italic" fill="#6B7280">compute never writes here</text>
+
+  <!-- RBPEX miss -> page server read (TWO-WAY: request/response) -->
+  <path d="M522,468 L650,468 L650,518 L660,518" stroke="#0072C6" stroke-width="2" fill="none"
+        stroke-dasharray="6 4" marker-start="url(#mDataLeft)" marker-end="url(#mDataRight)"/>
+  <text x="572" y="459" font-size="9" font-weight="600" fill="#0072C6">GetPage@LSN (RBIO)</text>
+  <text x="572" y="485" font-size="8.5" fill="#6B7280">on miss</text>
+
+  <!-- ===================== READING NOTE ===================== -->
+  <rect x="660" y="304" width="280" height="142" rx="8" fill="#FBFDFF" stroke="#9CA3AF" stroke-width="1.1" stroke-dasharray="5 4"/>
+  <text x="674" y="324" font-size="10" font-weight="700" fill="#374151">Reading this figure</text>
+  <text x="674" y="343" font-size="9" fill="#374151">&#183; The read path is buffer pool &#8594; RBPEX</text>
+  <text x="682" y="356" font-size="9" fill="#374151">&#8594; page server. Only the last hop is remote.</text>
+  <text x="674" y="375" font-size="9" fill="#374151">&#183; The governed local Max Data IOPS meters</text>
+  <text x="682" y="388" font-size="9" fill="#374151">RBPEX reads + tempdb &#8212; not page-server reads.</text>
+  <text x="674" y="407" font-size="9" fill="#374151">&#183; Checkpoint here is log/recovery bookkeeping;</text>
+  <text x="682" y="420" font-size="9" fill="#374151">page hardening happens at the page server.</text>
+  <text x="674" y="437" font-size="9" font-style="italic" fill="#6B7280">Azure Storage is absent: compute never touches it.</text>
+
+  <!-- ===================== LEGEND ===================== -->
+  <line x1="60" y1="588" x2="940" y2="588" stroke="#E5E7EB" stroke-width="1"/>
+  <path d="M70,606 L110,606" stroke="#C0198C" stroke-width="2" fill="none" marker-start="url(#mLogLeft)" marker-end="url(#mLogRight)"/>
+  <text x="118" y="609" font-size="10" fill="#374151">Log write / recovery read (two-way)</text>
+  <path d="M260,606 L300,606" stroke="#0072C6" stroke-width="2" fill="none" stroke-dasharray="6 4"
+        marker-start="url(#mDataLeft)" marker-end="url(#mDataRight)"/>
+  <text x="308" y="609" font-size="10" fill="#374151">Page read (request/response)</text>
+  <path d="M520,606 L560,606" stroke="#008575" stroke-width="2" fill="none"
+        marker-start="url(#mCacheUp)" marker-end="url(#mCacheDown)"/>
+  <text x="568" y="609" font-size="10" fill="#374151">Cache fill / evict (local)</text>
+  <rect x="740" y="598" width="14" height="14" rx="3" fill="#FFFFFF" stroke="#008575" stroke-width="1.5"/>
+  <text x="760" y="609" font-size="10" fill="#374151">Local SSD</text>
+  <rect x="840" y="598" width="14" height="14" rx="3" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.5"/>
+  <text x="860" y="609" font-size="10" fill="#374151">In memory</text>
+</svg>

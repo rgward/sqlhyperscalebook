@@ -6,7 +6,7 @@
    Run order       : after 05-seed.sql.  Set @Scale (in the checks block) to
                      match the @Scale used in 05-seed.sql (default 1.0).
 
-   Confirms the ~10 GB through-line dataset is in place before later chapters
+   Confirms the ~12 GB through-line dataset is in place before later chapters
    build on it. Pair with connect-and-verify.sql (which proves the tier).
 
    These DMVs are used informally for verification here; the full observability
@@ -36,7 +36,7 @@ GROUP BY s.name, t.name
 ORDER BY ReservedMB DESC;
 GO
 
-PRINT N'-- Total reserved size (expect a little over 10 GB) -----------------';
+PRINT N'-- Total reserved size (expect ~12 GB) -----------------------------';
 SELECT
     SUM(reserved_page_count) * 8.0 / 1024 / 1024   AS TotalReservedGB
 FROM sys.dm_db_partition_stats;
@@ -64,9 +64,27 @@ GROUP BY s.name, t.name;
 
 DECLARE @results TABLE (CheckName NVARCHAR(60), Expected NVARCHAR(40), Actual NVARCHAR(40), Status NVARCHAR(6));
 
-DECLARE @nTables INT = (SELECT COUNT(*) FROM #rc);
-INSERT @results VALUES (N'Base tables present', N'13',
-    CONVERT(NVARCHAR(40), @nTables), IIF(@nTables = 13, N'PASS', N'FAIL'));
+/* Base tables present. Checked BY NAME, not by counting rows in sys.tables:
+   a bare count would start failing the moment a later chapter adds a table of
+   its own (Ch 5 adds clinical.ClinicalNoteEmbeddings, Ch 6 adds its
+   recommendation table). This check asks only that Chapter 2's 16 tables are
+   all still there, so it keeps passing for the rest of the book. */
+DECLARE @ch2Tables TABLE (sch NVARCHAR(20), tbl NVARCHAR(40));
+INSERT @ch2Tables VALUES
+    (N'ops',      N'Department'),      (N'ops',      N'Unit'),
+    (N'ops',      N'Bed'),             (N'ops',      N'Provider'),
+    (N'ops',      N'Appointment'),     (N'clinical', N'Patient'),
+    (N'clinical', N'Encounter'),       (N'clinical', N'Diagnosis'),
+    (N'clinical', N'ClinicalNote'),    (N'clinical', N'Observation'),
+    (N'clinical', N'MedicationOrder'), (N'clinical', N'Allergy'),
+    (N'clinical', N'LabResult'),       (N'clinical', N'Symptom'),
+    (N'clinical', N'CareTeamMember'),  (N'clinical', N'ImagingOrder');
+
+DECLARE @nTables INT = (
+    SELECT COUNT(*) FROM @ch2Tables x
+    WHERE EXISTS (SELECT 1 FROM #rc r WHERE r.sch = x.sch AND r.tbl = x.tbl));
+INSERT @results VALUES (N'Base tables present', N'16',
+    CONVERT(NVARCHAR(40), @nTables), IIF(@nTables = 16, N'PASS', N'FAIL'));
 
 /* Per-table expected volumes (at @Scale). Fixed reference data does not scale;
    the fact tables scale with @Scale via the encounter count. ClinicalNote is
@@ -99,8 +117,33 @@ SELECT
 FROM @expected e
 LEFT JOIN #rc r ON r.sch = e.sch AND r.tbl = e.tbl;
 
+/* The three bedside-chart extras (05-seed.sql §14) are seeded off the ACTIVE
+   encounters, not off @Scale, so their floors are expressed against the live
+   active-encounter count instead of a hardcoded volume:
+     Symptom        1-3 presenting complaints per active encounter
+     CareTeamMember attending + 3 others per active encounter
+     ImagingOrder   1-2 studies on every other active encounter
+   The floors below are the conservative end of each range. */
+DECLARE @activeEnc INT =
+    (SELECT COUNT(*) FROM clinical.Encounter WHERE Status = N'Active');
+
+DECLARE @chartExtras TABLE (sch NVARCHAR(20), tbl NVARCHAR(40), floor_ BIGINT);
+INSERT @chartExtras VALUES
+    (N'clinical', N'Symptom',        @activeEnc),
+    (N'clinical', N'CareTeamMember', CONVERT(BIGINT, @activeEnc * 3)),
+    (N'clinical', N'ImagingOrder',   CONVERT(BIGINT, @activeEnc / 4));
+
+INSERT @results
+SELECT
+    N'Rows: ' + c.sch + N'.' + c.tbl,
+    N'>= ' + CONVERT(NVARCHAR(40), c.floor_),
+    CONVERT(NVARCHAR(40), ISNULL(r.rows_, 0)),
+    IIF(ISNULL(r.rows_, 0) >= c.floor_, N'PASS', N'FAIL')
+FROM @chartExtras c
+LEFT JOIN #rc r ON r.sch = c.sch AND r.tbl = c.tbl;
+
 DECLARE @gb DECIMAL(10,2) = (SELECT CONVERT(DECIMAL(10,2), SUM(reserved_page_count) * 8.0 / 1024 / 1024) FROM sys.dm_db_partition_stats);
-DECLARE @gbMin DECIMAL(10,2) = CONVERT(DECIMAL(10,2), 10.0 * @Scale);
+DECLARE @gbMin DECIMAL(10,2) = CONVERT(DECIMAL(10,2), 11.0 * @Scale);
 INSERT @results VALUES (N'Total reserved GB', N'>= ' + CONVERT(NVARCHAR(40), @gbMin),
     CONVERT(NVARCHAR(40), @gb), IIF(@gb >= @gbMin, N'PASS', N'FAIL'));
 
@@ -149,5 +192,5 @@ BEGIN
     RAISERROR(@msg, 16, 1);
 END
 ELSE
-    PRINT N'ALL CHECKS PASSED -- seed verified (13 tables populated, anchor + size OK).';
+    PRINT N'ALL CHECKS PASSED -- seed verified (16 tables populated, anchor + size OK).';
 GO

@@ -429,10 +429,10 @@ Tell the reader to run these **in order** (MSSQL extension or `sqlcmd`; each ope
 with the `sqlcmd` SET-options preamble):
 ```
 01-schemas.sql    -- create schema clinical; create schema ops;
-02-tables.sql     -- 13 tables, FKs, filtered unique index for active beds
+02-tables.sql     -- 16 tables, FKs, filtered unique index for active beds
 03-views.sql      -- clinical.vPatientChart + per-section views
 04-procedures.sql -- GetPatientChart / AdmitPatient / DischargePatient / RecordVitals
-05-seed.sql       -- ~10 GB of synthetic data (log-rate gated; a few minutes)
+05-seed.sql       -- ~12 GB of synthetic data (log-rate gated; a few minutes)
 ```
 Then have them run `verify-data.sql` — it **self-checks**: it prints per-table row
 counts + reserved size, then a **PASS/FAIL** result set (base tables present, no
@@ -457,9 +457,9 @@ All under `examples/ch02-getting-started/`:
 | `provision-hyperscale.ps1` | canonical CLI provision (Step 21) |
 | `connect-and-verify.sql` | prove-it's-SQL-Server |
 | `01-schemas.sql` | §3 `CREATE SCHEMA clinical / ops` |
-| `02-tables.sql` | §3 13 tables + indexes + bedside invariant |
+| `02-tables.sql` | §3 16 tables + indexes + bedside invariant |
 | `03-views.sql` | §3 `vPatientChart` + per-section views |
 | `04-procedures.sql` | §3 admit / discharge / record-vitals / read-chart |
-| `05-seed.sql` | §3 synthetic seed (~10 GB) |
+| `05-seed.sql` | §3 synthetic seed (~12 GB) |
 | `verify-data.sql` | post-seed row-count + reserved-size check |
 | `verify-activity-log.ps1` | control-plane deploy proof (read-only Activity Log summary) |

@@ -1,6 +1,6 @@
-# Azure SQL Hyperscale — Book Examples
+# Azure SQL Hyperscale Unveiled — Book Examples
 
-Companion code for the forthcoming Apress book on **Azure SQL Hyperscale** by
+Companion code for the forthcoming Apress book **Azure SQL Hyperscale Unveiled** by
 **Bob Ward**. Every hands-on example in the book lives here, organized by chapter.
 
 > **Short link:** this repo is referenced throughout the book as
@@ -28,10 +28,13 @@ real-world healthcare decision-making.
 ## Layout
 
 ```
-.github/skills/     Copilot skills — open this repo in VS Code and Copilot can
-                    run them for you (e.g. "deploy my Hyperscale database")
-examples/ch02/      Getting started: provision, connect, build the schema, seed
-examples/ch03/      ... (added as chapters are completed)
+.github/skills/            Copilot skills — open this repo in VS Code and Copilot can
+                           run them for you (e.g. "deploy my Hyperscale database")
+examples/ch02-getting-started/  Getting started: provision, connect, build the schema, seed
+examples/ch03-architecture/     Architecture: read-only DMV scripts that make the
+                           Hyperscale tiers visible on the database from Chapter 2
+                           ... (more added as chapters are completed)
+figures/                   The book's architecture diagrams, as SVG, by chapter
 ```
 
 Each chapter's scripts live under `examples/`; the Copilot **skills** that
@@ -54,7 +57,7 @@ Install these before running the guided deploy:
 - **MSSQL extension for VS Code** (`ms-mssql.mssql`) — the book's primary client; used to connect (Microsoft Entra auth) and run `connect-and-verify.sql`.
 
 **Azure account**
-- An **Azure subscription** with rights to create a logical server + database (Contributor or a SQL-specific role). See Chapter 2 for subscription options, including the free path. A Hyperscale database **bills from creation** — mind the meter, and see Chapter 2's teardown note.
+- An **Azure subscription** with rights to create a logical server + database (Contributor or a SQL-specific role). See Chapter 2 for subscription options, including the free path. A Hyperscale database **bills from creation** — mind the meter.
 - A **Microsoft Entra** account — you become the server's Entra admin (no SQL password needed to connect).
 
 **Optional**
@@ -74,8 +77,9 @@ server name, redundancy, auth, size), and runs the deployment.
 
 **By hand.** Open the chapter folder under `examples/` and run the PowerShell
 scripts yourself in **PowerShell 7** — `./provision-hyperscale.ps1` (set any
-overrides as `$env:*` first), then run `01-schemas.sql` … `05-seed.sql` via the
-MSSQL extension or `sqlcmd`.
+overrides as `$env:*` first), then `./add-replicas.ps1` to finish the provision
+step with a second HA replica and the `wardgeneral-research` named replica, then
+run `01-schemas.sql` … `05-seed.sql` via the MSSQL extension or `sqlcmd`.
 
 Either way, **scripts never hard-code secrets** — they read them from
 environment variables or prompt you.
@@ -87,10 +91,10 @@ Run the five schema scripts **in order once**, then verify:
 | Step | Script | What it does |
 |---|---|---|
 | 1 | `01-schemas.sql` | Creates the `clinical` and `ops` schemas. |
-| 2 | `02-tables.sql` | Creates all 13 tables (keys, FKs, constraints, `json` columns). |
+| 2 | `02-tables.sql` | Creates all 16 tables (keys, FKs, constraints, `json` columns). |
 | 3 | `03-views.sql` | Creates the `vPatientChart` chart views. |
 | 4 | `04-procedures.sql` | Creates the read/write procedures (admit, discharge, record vitals…). |
-| 5 | `05-seed.sql` | Seeds ~10 GB of fully synthetic data. Runs ~5–15 min (log-rate gated). |
+| 5 | `05-seed.sql` | Seeds the database to roughly **12 GB** of fully synthetic data. Runs ~5–15 min (log-rate gated). |
 | ✓ | `verify-data.sql` | Read-only PASS/FAIL check. You want it to end with **`ALL CHECKS PASSED`**. |
 
 **You never drop the database to start over.** Each script is safe to re-run,
@@ -132,6 +136,31 @@ The preamble is in **every** file for portability: **SSMS** already defaults mos
 of these ON, but **`sqlcmd` defaults `QUOTED_IDENTIFIER` and `ARITHABORT` OFF**.
 With the preamble, the scripts behave identically whether you run them from the
 MSSQL extension, SSMS, or `sqlcmd` — so leave it in place and run each file whole.
+
+## Figures
+
+The book's architecture diagrams are published here as **SVG**, under
+`figures/<chapter>/`. They are the source the printed figures are rendered from,
+so they stay crisp at any zoom and you can open one and adapt it.
+
+![The road to Azure SQL Hyperscale](figures/ch01-introduction/ch01-figure-01-timeline.svg)
+
+| Chapter | Figure | What it shows |
+|---|---|---|
+| 1 | [Timeline](figures/ch01-introduction/ch01-figure-01-timeline.svg) | How Hyperscale got here, from SQL Azure to GA. |
+| 3 | [Architecture](figures/ch03-architecture/ch03-figure-01-architecture.svg) | The master figure: all four tiers and the paths between them. |
+| 3 | [Primary compute](figures/ch03-architecture/ch03-figure-primary-compute.svg) | The primary replica and its local RBPEX cache. |
+| 3 | [Log service](figures/ch03-architecture/ch03-figure-02-log-service.svg) | XLOG — the landing zone, the log broker, and who consumes the log. |
+| 3 | [Page servers](figures/ch03-architecture/ch03-figure-page-server.svg) | The 128 GB slices and the `GetPage@LSN` path. |
+| 3 | [File and storage](figures/ch03-architecture/ch03-figure-file-storage.svg) | The durable tier, and why you pay on actual allocation. |
+| 3 | [Replicas](figures/ch03-architecture/ch03-figure-replicas.svg) | HA replicas, named replicas, and what attaches to what. |
+| 3 | [Transaction flow](figures/ch03-architecture/ch03-figure-transaction-flow.svg) | One commit, followed across every tier. |
+| 4 | [Application architecture](figures/ch04-first-app/ch04-figure-01-application-architecture-wide.svg) | The Ward General app, and the one connection it makes. |
+| 5 | [Application architecture](figures/ch05-ai-ready-sql/ch05-figure-01-application-architecture.svg) | The same app once the engine itself calls out to models. |
+| 6 | [Application architecture](figures/ch06-agentic-ai/ch06-figure-01-application-architecture.svg) | The same app once an agent, DAB and the SQL MCP server join it. |
+
+Chapters 4, 5 and 6 are drawn on **one shared grid** on purpose. Put them side
+by side and the layout does not move — only what has been added to it.
 
 ## License
 

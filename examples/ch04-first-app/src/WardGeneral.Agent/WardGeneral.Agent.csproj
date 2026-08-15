@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!--
+    Microsoft Agent Framework (MAF) + the MCP C# SDK.
+    Versions are PINNED, deliberately. A floating reference (Version="*-*")
+    resolves to the latest prerelease at restore time, which means a package
+    published after this book went to print can break the CHAPTER 4 build - this
+    project is referenced by WardGeneral.Web so it compiles even though its UI
+    stays dark until Chapter 6. Pinned versions are what the book's listings and
+    screenshots were produced against. To move forward deliberately, bump a
+    version here and rebuild.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.17.0" />
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.9.0-beta.1" />
+    <PackageReference Include="Azure.Identity" Version="1.21.0" />
+    <PackageReference Include="ModelContextProtocol" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
+  </ItemGroup>
+
+</Project>

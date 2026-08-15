@@ -145,6 +145,148 @@ WHERE r.rn <= 5
 GROUP BY r.EncounterId;
 GO
 
+/* ---- Symptoms (presenting complaints per encounter) -------------------- */
+CREATE OR ALTER VIEW clinical.vChartSymptoms
+AS
+SELECT
+    s.EncounterId,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'description' : s.Description,
+            'severity'    : s.Severity,
+            'notedAt'     : s.NotedAt
+        )
+    ) AS Symptoms
+FROM clinical.Symptom AS s
+GROUP BY s.EncounterId;
+GO
+
+/* ---- Care team (providers on the encounter, with roles) ---------------- */
+CREATE OR ALTER VIEW clinical.vChartCareTeam
+AS
+SELECT
+    ct.EncounterId,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'providerId' : ct.ProviderId,
+            'name'       : pr.FullName,
+            'role'       : ct.TeamRole,
+            'isPrimary'  : ct.IsPrimary
+        )
+    ) AS CareTeam
+FROM clinical.CareTeamMember AS ct
+JOIN ops.Provider            AS pr ON pr.ProviderId = ct.ProviderId
+GROUP BY ct.EncounterId;
+GO
+
+/* ---- Imaging orders (last 5 per encounter) ----------------------------- */
+CREATE OR ALTER VIEW clinical.vChartImaging
+AS
+WITH ranked AS
+(
+    SELECT
+        i.EncounterId, i.Modality, i.BodySite, i.Status,
+        i.OrderedAt, i.ResultedAt, i.FindingsJson,
+        ROW_NUMBER() OVER (PARTITION BY i.EncounterId ORDER BY i.OrderedAt DESC) AS rn
+    FROM clinical.ImagingOrder AS i
+)
+SELECT
+    r.EncounterId,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'modality'   : r.Modality,
+            'bodySite'   : r.BodySite,
+            'status'     : r.Status,
+            'orderedAt'  : r.OrderedAt,
+            'resultedAt' : r.ResultedAt,
+            'findings'   : r.FindingsJson
+        )
+    ) AS Imaging
+FROM ranked AS r
+WHERE r.rn <= 5
+GROUP BY r.EncounterId;
+GO
+
+/* ---- Recent clinical notes (last 5 per encounter) ---------------------- */
+CREATE OR ALTER VIEW clinical.vChartNotes
+AS
+WITH ranked AS
+(
+    SELECT
+        n.EncounterId, n.NoteType, n.NoteText, n.AuthorProviderId, n.CreatedAt,
+        ROW_NUMBER() OVER (PARTITION BY n.EncounterId ORDER BY n.CreatedAt DESC) AS rn
+    FROM clinical.ClinicalNote AS n
+)
+SELECT
+    r.EncounterId,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'type'         : r.NoteType,
+            'text'         : r.NoteText,
+            'byProviderId' : r.AuthorProviderId,
+            'at'           : r.CreatedAt
+        )
+    ) AS RecentNotes
+FROM ranked AS r
+WHERE r.rn <= 5
+GROUP BY r.EncounterId;
+GO
+
+/* ---- Note signals (structured facts mined from the latest note) -------- */
+/* The clinician charts vitals in prose, and the pain score and the follow-up  */
+/* instruction exist ONLY in free text — there is no structured column for     */
+/* either. REGEXP_SUBSTR (SQL Server 2025, RE2 engine) pulls them out of the   */
+/* narrative deterministically. Ch 4 builds the chart screen on this view and  */
+/* explains the regex; Ch 5 embeds the SAME NoteText column for semantic       */
+/* recall. One column, two techniques: regex is exact extraction you can       */
+/* trust, the vector index is fuzzy recall.                                    */
+/*                                                                             */
+/* REGEXP_SUBSTR(string, pattern, start, occurrence, flags, group) — 'group'   */
+/* picks a capture group. Backslashes are literal in T-SQL string literals, so */
+/* \d and \s pass straight through to RE2. No match returns NULL, and          */
+/* JSON_OBJECT omits NULL keys (ABSENT ON NULL is the default).                */
+/* The tokens matched here are emitted verbatim by 05-seed.sql — see the note  */
+/* generator's header comment.                                                 */
+/*                                                                             */
+/* followUp is the instructive one, and it took two passes to get right.      */
+/* Matching 'follow up...' alone returns a FRAGMENT when the instruction sits */
+/* mid-sentence ("Return precautions reviewed; follow up as needed."). RE2    */
+/* has no lookbehind, so the sentence boundary is consumed by a non-capturing */
+/* group and the sentence is returned as capture group 1. That alone is still */
+/* wrong: several treatment plans also say "...and follow up if symptoms      */
+/* persist", and REGEXP_SUBSTR returns the LEFTMOST match, so the plan        */
+/* sentence beat the actual instruction on a few percent of notes. The        */
+/* discharge instruction is always the note's CLOSING sentence, so \s*$ pins  */
+/* it there. Regex is exact — exact about what you asked for, which is not    */
+/* always what you meant, and only real data shows you the difference.        */
+CREATE OR ALTER VIEW clinical.vChartNoteSignals
+AS
+WITH latest AS
+(
+    SELECT
+        n.EncounterId,
+        n.NoteText,
+        n.CreatedAt,
+        ROW_NUMBER() OVER (PARTITION BY n.EncounterId ORDER BY n.CreatedAt DESC) AS rn
+    FROM clinical.ClinicalNote AS n
+)
+SELECT
+    l.EncounterId,
+    JSON_OBJECT(
+        'source'        : N'latest note · regex-extracted',
+        'noteAt'        : l.CreatedAt,
+        'bloodPressure' : REGEXP_SUBSTR(l.NoteText, 'BP\s+(\d{2,3}/\d{2,3})',             1, 1, 'i', 1),
+        'heartRate'     : REGEXP_SUBSTR(l.NoteText, 'HR\s+(\d{2,3})',                     1, 1, 'i', 1),
+        'temperature'   : REGEXP_SUBSTR(l.NoteText, 'T\s+(\d{2}\.\d)C',                   1, 1, 'i', 1),
+        'respRate'      : REGEXP_SUBSTR(l.NoteText, 'RR\s+(\d{1,2})',                     1, 1, 'i', 1),
+        'spo2'          : REGEXP_SUBSTR(l.NoteText, 'SpO2\s+(\d{2,3})',                   1, 1, 'i', 1),
+        'painScore'     : REGEXP_SUBSTR(l.NoteText, 'Pain scored\s+(\d{1,2})\s+out of 10', 1, 1, 'i', 1),
+        'followUp'      : REGEXP_SUBSTR(l.NoteText, '(?:^|\.\s+)([^.]*follow up[^.]*\.)\s*$', 1, 1, 'i', 1)
+    ) AS NoteSignals
+FROM latest AS l
+WHERE l.rn = 1;
+GO
+
 /* ---- The patient chart ------------------------------------------------- */
 /* Row per encounter. Joins the normalized facts to the per-section JSON   */
 /* projections. Use procedures in 04-procedures.sql to fetch by encounter  */
@@ -189,7 +331,12 @@ SELECT
     meds.Medications,
     allergy.Allergies,
     vit.LatestVitals,
-    lab.RecentLabs
+    lab.RecentLabs,
+    sym.Symptoms,
+    team.CareTeam,
+    img.Imaging,
+    note.RecentNotes,
+    sig.NoteSignals
 FROM clinical.Encounter             AS e
 JOIN clinical.Patient               AS p   ON p.PatientId    = e.PatientId
 JOIN ops.Department                 AS d   ON d.DepartmentId = e.DepartmentId
@@ -200,7 +347,12 @@ LEFT JOIN clinical.vChartDiagnoses    AS diag    ON diag.EncounterId    = e.Enco
 LEFT JOIN clinical.vChartMedications  AS meds    ON meds.EncounterId    = e.EncounterId
 LEFT JOIN clinical.vChartAllergies    AS allergy ON allergy.PatientId   = p.PatientId
 LEFT JOIN clinical.vChartLatestVitals AS vit     ON vit.EncounterId     = e.EncounterId
-LEFT JOIN clinical.vChartRecentLabs   AS lab     ON lab.EncounterId     = e.EncounterId;
+LEFT JOIN clinical.vChartRecentLabs   AS lab     ON lab.EncounterId     = e.EncounterId
+LEFT JOIN clinical.vChartSymptoms     AS sym     ON sym.EncounterId     = e.EncounterId
+LEFT JOIN clinical.vChartCareTeam     AS team    ON team.EncounterId    = e.EncounterId
+LEFT JOIN clinical.vChartImaging      AS img     ON img.EncounterId     = e.EncounterId
+LEFT JOIN clinical.vChartNotes        AS note    ON note.EncounterId    = e.EncounterId
+LEFT JOIN clinical.vChartNoteSignals  AS sig     ON sig.EncounterId     = e.EncounterId;
 GO
 
 /* ---- Convenience: who is currently in which bed ------------------------ */

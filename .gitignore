@@ -3,3 +3,57 @@
 
 # Personal VS Code workspace file (may carry local theme/settings) — not for readers.
 *.code-workspace
+
+# .NET build output. The Chapter 4 application is built in place by the reader,
+# which leaves bin/ and obj/ beside the sources. None of it is source.
+bin/
+obj/
+
+# ---------------------------------------------------------------------------
+# No binaries. This repo is public and ships SOURCE ONLY.
+#
+# Tools are installed by the reader from their own release — sqlsim comes from
+# https://aka.ms/sqlsimtools (see the Chapter 2 Prerequisites section). A
+# vendored binary goes stale against the book's text, cannot be reviewed in a
+# diff, and has no business in a public Microsoft repo.
+#
+# Files arrive here via tools/publish-examples.ps1 in the authoring repo, which
+# refuses to copy anything matching this list. These rules are the second line
+# of defence, for the case where a file is dropped in by hand.
+#
+# Figures (*.png, *.svg) are binary-ish but ARE source, so they are not listed.
+# ---------------------------------------------------------------------------
+*.exe
+*.com
+*.msi
+*.msix
+*.appx
+*.dll
+*.so
+*.so.*
+*.dylib
+*.a
+*.lib
+*.pdb
+*.nupkg
+*.jar
+*.class
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.*
+*.tgz
+*.gz
+*.bz2
+*.xz
+
+# ---------------------------------------------------------------------------
+# Local, per-reader configuration. NEVER committed.
+#
+# run.ps1 writes examples/ch04-first-app/src/WardGeneral.Web/appsettings.Development.json
+# with the reader's own logical server name. appsettings.json ships with an
+# EMPTY server on purpose, so no live server name is ever a committed default;
+# this rule is what keeps the overlay that replaces it out of the repo.
+# ---------------------------------------------------------------------------
+appsettings.Development.json
