@@ -461,7 +461,7 @@ themselves and are safe to repeat.
 | Bonus | Script | What it proves | Needs |
 |---|---|---|---|
 | — | `10-updateable-index-proof.sql` | The DiskANN index is **updateable**: a note written now is searchable now, with no rebuild and no read-only window | `07`, with the index actually built |
-| — | `11-prompt-injection-proof.sql` | The gateway's Prompt Shields policy earns its place: an injection planted in the chart is blocked **403, before the model is ever called** | `08`, **and** a gateway with content safety |
+| — | `11-prompt-injection-proof.sql` | An injection planted in the chart is refused **twice over** — 403 at the gateway before the model is called, 400 at the model itself. Defence in depth, and which control is yours | `08`, **and** a gateway with content safety |
 
 ### Warn them about `06` before they start it
 
@@ -620,9 +620,18 @@ The clinician clicks a patient, and `GenerateClinicalAssistance` assembles the
 prompt itself out of chart fields other people wrote. So the script plants a
 textbook injection in two rows that land verbatim in the prompt — one
 `Diagnosis.Description`, one `Allergy.Reaction` — then calls the same procedure
-twice, one parameter apart. `@UseGateway = 1` comes back **403 before the model
-is ever invoked**; `@UseGateway = 0` goes through. Both outcomes land in
-`clinical.AIAssistanceLog`, so the block is auditable.
+twice, one parameter apart. Both outcomes land in `clinical.AIAssistanceLog`, so
+the whole thing is auditable.
+
+**Both calls are refused** (measured against the live database 2026-08-16). Set
+the reader's expectations accordingly — the interesting result is not *whether*
+the injection is stopped but *by whom, and at what cost*:
+
+| | `@UseGateway = 1` | `@UseGateway = 0` |
+|---|---|---|
+| Result | `403 Request failed content safety check.` | `400 content_filter`, `jailbreak.detected = true` |
+| Blocked by | the `llm-content-safety` policy **you** wrote | Azure OpenAI's per-deployment default |
+| Elapsed | **~630 ms** | **~9,300 ms** |
 
 Three things to get right when a reader runs this:
 
@@ -630,19 +639,21 @@ Three things to get right when a reader runs this:
   current encounter would never reach the prompt — `08` only ever *embeds*
   `@caseSummary` as the vector-search seed, and the similar-cases block excludes
   the current encounter. Chart fields are the honest attack surface.
-- **A successful direct call does not mean the model was compromised.** `gpt-5`
-  will very likely refuse on its own. The narrower, more useful claim is that on
-  the direct path the model's own alignment is the *only* control — not
-  configured by you, not auditable, not changeable. Azure OpenAI's default
-  content filter covers the four harm categories; jailbreak detection is not on
-  by default.
+- **Do not tell a reader the direct path is unprotected.** Prompt Shields for
+  *direct* attacks is GA and **on by default**. The argument for the gateway is
+  ownership and cost, not existence: the 403 comes from a policy you version and
+  tune and apply to every model behind it, and it lands in ~630 ms instead of
+  paying a full round trip to the model's region to be told no. Note that Prompt
+  Shields for *indirect* attacks — injections arriving inside data, which is
+  exactly this threat model — is **off** by default; this payload happened to
+  read like a direct attack.
 - **Requires `add-content-safety.ps1` to have run.** `setup-ai-gateway.ps1` alone
-  gives auth, rate limiting and metrics but no Prompt Shields, and the script
-  will not block. If a run is *not* blocked, that is a finding to write down —
-  not a cue to go hunting for a more evasive payload, because Prompt Shields is
-  a classifier and the payloads are textbook by design.
+  gives auth, rate limiting and metrics but no Prompt Shields, and the gateway
+  call will not return 403. If a run is *not* blocked at the gateway, that is a
+  finding to write down — not a cue to go hunting for a more evasive payload,
+  because Prompt Shields is a classifier and the payloads are textbook by design.
 
-It makes two real model calls, one of which is blocked and therefore not billed.
+Neither refused call generates a completion, so neither is billed for output.
 
 ## Troubleshooting
 

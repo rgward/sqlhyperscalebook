@@ -46,20 +46,46 @@
         inside the next prompt, with no code change anywhere.
      4. EXEC ... @UseGateway = 1  -> expect BLOCKED (403). The model is never
         reached. The card degrades; the chart is untouched.
-     5. EXEC ... @UseGateway = 0  -> expect the call to SUCCEED. Same rows,
-        same procedure, one parameter apart.
+     5. EXEC ... @UseGateway = 0  -> expect BLOCKED TOO, but differently: 400,
+        from the model's OWN default filter. Same rows, same procedure, one
+        parameter apart, two different controls doing the blocking.
      6. Read both rows back out of the ledger.
      7. Delete the poisoned rows (@CleanUp = 1).
 
-   WHAT STEP 5 DOES AND DOES NOT SHOW:
-     A successful direct call does NOT mean the model obeyed. gpt-5 will very
-     likely refuse on its own. The point is narrower and more useful than
-     "direct = compromised": on the direct path the model's own alignment is
-     the ONLY thing between the attacker and the answer, it is not something
-     you configured, it is not something you can audit, and it is not
-     something you can change. Azure OpenAI's default content filter covers
-     the four harm categories; prompt-shield / jailbreak detection is not on
-     by default. The gateway is where that control becomes yours.
+   WHAT STEP 5 ACTUALLY SHOWS (measured 2026-08-16, and it surprised us):
+     The direct call is blocked too — HTTP 400, not 200. Azure OpenAI's own
+     default filter catches it:
+
+         "code": "content_filter",
+         "innererror": { "code": "ResponsibleAIPolicyViolation",
+           "content_filter_result": {
+             "jailbreak": { "detected": true, "filtered": true }, ... } }
+
+     **Prompt Shields for direct attacks is GA and ON BY DEFAULT** on an Azure
+     OpenAI deployment (Learn, "Configure content filters" -> content filter
+     configurability table, accessed 2026-08-16). It was optional and default
+     OFF back when it was called "Jailbreak risk detection"; that changed.
+
+     So this demo does NOT show "governed = safe, direct = compromised." Both
+     paths refuse. What it shows is more honest and more useful:
+
+       - WHO owns the control. The 403 comes from a policy YOU wrote, on a
+         gateway YOU run, in front of EVERY model you put behind it. The 400
+         comes from a per-deployment default that Microsoft sets. Both are
+         real; only one is yours to tune, version and reason about.
+       - WHEN it costs you. The gateway refused in ~630 ms. The direct call
+         spent ~9,300 ms — a full round trip to the model's region — to be
+         told no. Roughly 15x, on a request that was never going to succeed.
+       - DEFENCE IN DEPTH is the actual lesson. Two independent controls
+         caught the same payload. If you deploy with -NoGateway you are down
+         to one, and it is the one you did not configure.
+
+     One more wrinkle worth knowing: Prompt Shields for INDIRECT attacks —
+     injections that arrive inside data rather than typed by a user, which is
+     precisely this threat model — is **default OFF** (same Learn table). Our
+     payload happens to read like a textbook DIRECT attack, so the direct-
+     attack shield caught it. A subtler injection shaped for the data channel
+     is exactly the gap the gateway is there to close.
 
    DETECTION IS A MODEL, NOT A REGEX:
      Prompt Shields is a classifier. The payloads below are deliberately
@@ -198,11 +224,13 @@ WHERE EncounterId = @EncounterId;
 PRINT '-- [4/6] EXEC ... @UseGateway = 1  (expect blocked, 403) --';
 EXEC clinical.GenerateClinicalAssistance @EncounterId = @EncounterId, @UseGateway = 1;
 
-/* ---- 5. Straight to the model: expect the call to go through ----------- */
-/* Same rows, same procedure, one parameter apart. A 200 here is the point —
-   read the "WHAT STEP 5 DOES AND DOES NOT SHOW" note in the header before
-   drawing a conclusion from whatever the model actually says.              */
-PRINT '-- [5/6] EXEC ... @UseGateway = 0  (expect the call to succeed) --';
+/* ---- 5. Straight to the model: blocked too, by a different control ----- */
+/* Same rows, same procedure, one parameter apart. Expect 400 with
+   jailbreak.detected = true: Azure OpenAI's own Prompt Shields for direct
+   attacks, which is GA and ON by default. Read "WHAT STEP 5 ACTUALLY SHOWS"
+   in the header — the interesting part is not that it was blocked, it is who
+   blocked it and how long it took to say so.                               */
+PRINT '-- [5/6] EXEC ... @UseGateway = 0  (expect blocked too, 400, by the model) --';
 EXEC clinical.GenerateClinicalAssistance @EncounterId = @EncounterId, @UseGateway = 0;
 
 /* ---- 6. The audit trail ------------------------------------------------ */
