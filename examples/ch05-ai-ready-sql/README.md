@@ -266,7 +266,7 @@ Run them **in this order, once**:
 | 2 | `07-vector-index.sql` | `06`, with at least 100 embedded notes. Below that it skips the index and says so; exact scan still works. |
 | 3 | `08-ai-assistance.sql` | `06` — the procedure reads the table and external model `06` creates. Faster with `07`, correct without it. |
 | 4 | `09-research-vector-search.sql` | `06`, for the same reason. Independent of `08`. |
-| — | `10-updateable-index-proof.sql` | `07`, with the index actually created. Optional demonstration; inserts one note and removes it again, so it is safe to run any time and safe to repeat. |
+| — | `10-updateable-index-proof.sql` | `07`, with the index actually created. Optional demonstration; inserts one note and removes it again, so it is safe to run any time and safe to repeat. It also sweeps on entry — the demo note carries the marker `DEMO-UPDATEABLE-INDEX-PROOF`, and the script deletes any note carrying it before doing anything else, so a run that died mid-way is repaired by re-running rather than leaving the corpus one note over. |
 | — | `11-prompt-injection-proof.sql` | `08`, **and** a gateway built with content safety (`deploy-ai.ps1` without `-NoGateway`, or `add-content-safety.ps1` run against an existing gateway). Optional demonstration; it poisons two chart rows and deletes them again, so it is safe to run any time and safe to repeat. It makes two real model calls; both are refused before a completion is generated, so neither is billed for output. |
 | — | `verify-embeddings.sql` | `06` has run at least once. Read-only; safe any time. |
 | — | `reset-ai-objects.sql` | Only when you deliberately want to rebuild. Destructive; run it on its own, before `06`. |

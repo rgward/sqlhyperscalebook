@@ -32,6 +32,14 @@
    all three searches. Do not add a GO inside it — split the batch and you are
    re-embedding the query between searches, which quietly destroys the proof.
 
+   SELF-REPAIRING: the demo note carries the marker DEMO-UPDATEABLE-INDEX-PROOF
+   in its text, and this script deletes every note carrying that marker BEFORE
+   it does anything else. Step 5 already removes the note on a clean run, so the
+   entry sweep exists for the run that DIED between the insert and the delete —
+   which would otherwise leave the corpus at 60,001 notes, make the BEFORE
+   search below a lie, and quietly falsify the row counts Chapter 2 quotes.
+   Re-running repairs it. So does re-running after a deliberate @CleanUp = 0.
+
    PREREQUISITES:
      * 06-ai-embeddings.sql has run (external model + embedded corpus).
      * 07-vector-index.sql has run and actually created the index — with fewer
@@ -59,6 +67,26 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'VIX_ClinicalNoteEmbedding
 GO
 
 PRINT '=== Updateable DiskANN index: before / after / after-delete ===';
+GO
+
+/* ---- Entry sweep: undo any earlier run of this script ------------------- */
+/* Deliberately FIRST, and marker-based rather than id-based, because the run   */
+/* being cleaned up after is one that never got to tell us its NoteId.          */
+/* The marker is plain text with NO LIKE metacharacters in it on purpose: a     */
+/* marker written as [DEMO-...] would be read as a character class and silently  */
+/* match nothing, which is a cleanup that reports success and does nothing.      */
+DECLARE @Marker NVARCHAR(64) = N'%DEMO-UPDATEABLE-INDEX-PROOF%';
+
+DELETE e
+FROM clinical.ClinicalNoteEmbeddings AS e
+JOIN clinical.ClinicalNote AS n ON n.NoteId = e.NoteId
+WHERE n.NoteText LIKE @Marker;
+
+DELETE FROM clinical.ClinicalNote
+WHERE NoteText LIKE @Marker;
+
+IF @@ROWCOUNT > 0
+    PRINT '  Entry sweep: removed a demo note left behind by an earlier run.';
 GO
 
 /* ---- ONE BATCH. Do not insert a GO below this line. --------------------- */
@@ -117,7 +145,11 @@ DECLARE @NoteText NVARCHAR(MAX) =
   + CHAR(13) + CHAR(10)
   + N'Plan: Urgent vitreoretinal surgical referral, same-day. Strict bed rest with '
   + N'positioning as directed. Nil by mouth pending theatre. Follow up with '
-  + N'ophthalmology after operative repair.';
+  + N'ophthalmology after operative repair.'
+  + CHAR(13) + CHAR(10)
+  /* The marker the entry sweep looks for. Last line, so it does not disturb   */
+  /* the clinical prose the embedding is generated from.                       */
+  + N'DEMO-UPDATEABLE-INDEX-PROOF — synthetic demo note, safe to delete.';
 
 DECLARE @Inserted TABLE (NoteId INT);
 
@@ -187,7 +219,8 @@ BEGIN
     PRINT '  Demo note removed. Corpus is back to its seeded row count.';
 END
 ELSE
-    PRINT '  @CleanUp = 0 — demo note left in place as NoteId ' + CAST(@NewNoteId AS VARCHAR(20)) + '.';
+    PRINT '  @CleanUp = 0 — demo note left in place as NoteId ' + CAST(@NewNoteId AS VARCHAR(20))
+        + '. Re-running this script removes it.';
 GO
 
 PRINT '10-updateable-index-proof.sql complete.';

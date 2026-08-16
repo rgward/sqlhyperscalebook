@@ -606,6 +606,16 @@ weak neighbours — that is the control, not a bug. Needs `07` to have actually
 built the index; on a corpus under 100 rows `07` skips it and this proves
 nothing. It inserts one note and removes it again.
 
+It also sweeps on entry. The demo note carries the marker
+`DEMO-UPDATEABLE-INDEX-PROOF` and the script deletes any note carrying it before
+it does anything else. That sweep is not redundant with the delete at the end:
+the demonstration is deliberately **one batch with no transaction**, because a
+`GO` inside it would re-embed the query and destroy the proof. So a run that dies
+between the insert and the delete leaves the note behind, which would put the
+corpus at 60,001 notes and quietly falsify the row counts Chapter 2 quotes.
+Re-running repairs it. If a reader reports a row count one over, that is the
+fix — run `10` again.
+
 Worth naming the history: earlier DiskANN versions made the indexed table
 effectively read-only, which is exactly the property this script exists to
 disprove. If a reader hits a read-only failure, that is the version check in
