@@ -4,6 +4,15 @@
 # Personal VS Code workspace file (may carry local theme/settings) — not for readers.
 *.code-workspace
 
+# The reader's own environment files — chNN.env, filled in from chNN.env.template.
+# These describe somebody's subscription: resource group, logical server, Foundry
+# account. Not secrets, but not ours to publish either, and a reader who runs
+# `git add .` in a clone would otherwise commit their own. The chapter README and
+# the template both promise this file is ignored, so the promise lives here.
+#
+# The templates themselves MUST ship: *.env does not match *.env.template.
+*.env
+
 # .NET build output. The Chapter 4 application is built in place by the reader,
 # which leaves bin/ and obj/ beside the sources. None of it is source.
 bin/
