@@ -31,9 +31,19 @@ named with `collier`; per-hospital workload resources with `ward`.
 - **PowerShell 7+ (`pwsh`) + Azure CLI (`az`).** Every script in this repo is
   PowerShell and calls `az` for Azure control-plane operations. Don't rewrite
   them as bash or Az PowerShell modules.
-- **Scripts are env-var-driven.** Inputs come from environment variables with
-  sensible defaults (e.g. `$env:LOC`, `$env:RG`, `$env:SRV`). Set the ones you
-  want to override before running; don't hard-code values into the scripts.
+- **The reader's resource names live in a file, not in the conversation.**
+  Chapters 4 and 5 each ship a `chNN.env.template`. The reader copies it to
+  `chNN.env` (git-ignored), fills it in once, and `load-env.ps1` reads it into
+  the environment. **Do not interview the reader value by value, and do not go
+  discovering names in their subscription and guess which one they meant.** Both
+  put their environment somewhere it cannot be reviewed, corrected or reused —
+  the chat window — and a wrong guess looks exactly like a right one. Point them
+  at the file instead.
+- **Scripts still take explicit parameters and environment variables.** The env
+  file is the low-friction path, not a requirement; a variable already exported
+  in the reader's shell wins over the file. Chapters without a `.env` file are
+  driven by environment variables with sensible defaults (`$env:LOC`, `$env:RG`,
+  `$env:SRV`). Don't hard-code values into the scripts either way.
 - **Never hard-code secrets.** Passwords, tokens, and connection strings come
   from the environment or a prompt — never commit or embed them.
 - **Keep the `SET`-options preamble in every `.sql` file.** Each SQL script opens

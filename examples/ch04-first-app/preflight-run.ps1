@@ -21,8 +21,9 @@
 
     With no arguments the server and database come from the same places the app
     itself reads them, highest first: the WardGeneral__Server / WardGeneral__Database
-    environment variables, then src/WardGeneral.Web/appsettings.Development.json,
-    then appsettings.json. Pass them explicitly to override.
+    environment variables -- which ch04.env populates, if you made one -- then
+    src/WardGeneral.Web/appsettings.Development.json, then appsettings.json. Pass
+    them explicitly to override.
 
     appsettings.json ships with an EMPTY server on purpose -- no live server name is
     ever the committed default. Supplying one is the reader's first job.
@@ -58,6 +59,12 @@ function Write-Check {
 
 Write-Host "`nWard General - run pre-flight`n" -ForegroundColor Cyan
 
+# ch04.env, if the reader made one. -Optional means "absent is fine" -- Chapter 4
+# has two other ways to configure the connection and neither is worse. This runs
+# before the chain below so the file lands in the environment-variable layer,
+# which is where the app itself looks first.
+& (Join-Path $root 'load-env.ps1') -Optional -Quiet
+
 # One source of truth for where the app points: the same configuration chain the
 # app itself reads, in the same order. Parameters override everything.
 $webDir = Join-Path $root 'src' 'WardGeneral.Web'
@@ -84,6 +91,7 @@ if (-not $Server) {
     Write-Check fail 'Configuration' 'no server configured'
     Write-Host ''
     Write-Host '  Point the app at your Hyperscale database in any one of these:' -ForegroundColor Yellow
+    Write-Host '    ch04.env                                          (copy ch04.env.template)' -ForegroundColor DarkGray
     Write-Host '    ./run.ps1 -Server <your-server>.database.windows.net' -ForegroundColor DarkGray
     Write-Host '    $env:WardGeneral__Server = ''<your-server>.database.windows.net''' -ForegroundColor DarkGray
     Write-Host '    src/WardGeneral.Web/appsettings.Development.json  (git-ignored)' -ForegroundColor DarkGray

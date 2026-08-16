@@ -40,10 +40,26 @@ SET ANSI_WARNINGS ON;
 SET NUMERIC_ROUNDABORT OFF;
 GO
 
-/* ---- Retrieval-only semantic search over clinical notes ----------------- */
+/* ---- Retrieval-only semantic search over clinical notes -----------------
+   FILTERED vector search. The three optional parameters are ordinary relational
+   predicates evaluated alongside the ANN scan — the engine's iterative filtering
+   keeps pulling candidates from the DiskANN graph until it can satisfy TOP (@TopK)
+   with rows that also pass the WHERE clause. This is a filter, not a second
+   scoring signal: nothing is blended into Similarity, and the ranking is still
+   pure cosine distance.
+
+   @NoteType defaults to Discharge deliberately. A discharge summary is the one
+   note per encounter that states the whole episode — presentation, course and
+   outcome in one document — so it is what a researcher almost always wants.
+   Progress and Consult notes are mid-episode snapshots and make a corpus search
+   noisier, not richer. Pass @NoteType = NULL to search every note type.
+   ------------------------------------------------------------------------- */
 CREATE OR ALTER PROCEDURE clinical.SearchSimilarNotes
     @QueryText NVARCHAR(MAX),                     -- free-text research query (embedded inline)
-    @TopK      INT           = 10
+    @TopK      INT           = 10,
+    @NoteType  NVARCHAR(30)  = N'Discharge',      -- NULL = all note types
+    @SinceUtc  DATETIME2(3)  = NULL,              -- NULL = no lower bound on CreatedAt
+    @Keyword   NVARCHAR(200) = NULL               -- NULL = no literal-term requirement
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -75,6 +91,9 @@ BEGIN
         METRIC     = 'cosine'
     ) AS vs
     JOIN clinical.ClinicalNote AS n ON n.NoteId = emb.NoteId
+    WHERE (@NoteType IS NULL OR n.NoteType  = @NoteType)
+      AND (@SinceUtc IS NULL OR n.CreatedAt >= @SinceUtc)
+      AND (@Keyword  IS NULL OR n.NoteText LIKE N'%' + @Keyword + N'%')
     ORDER BY vs.distance;
 END;
 GO
@@ -112,6 +131,17 @@ GO
    Students then connect to the REPLICA only:
      Server=<replica-server>.database.windows.net; Database=wardgeneral-research
    and call:  EXEC clinical.SearchSimilarNotes @QueryText = N'elderly chest pain with elevated troponin';
+
+   Narrowing the same search with filters (still one ANN scan, no score fusion):
+     EXEC clinical.SearchSimilarNotes
+          @QueryText = N'elderly chest pain with elevated troponin',
+          @SinceUtc  = '2026-01-01',
+          @Keyword   = N'troponin';
+
+   Widening it to every note type:
+     EXEC clinical.SearchSimilarNotes
+          @QueryText = N'elderly chest pain with elevated troponin',
+          @NoteType  = NULL;
    ------------------------------------------------------------------------------ */
 PRINT '09-research-vector-search.sql complete — clinical.SearchSimilarNotes + research_reader role created.';
 GO

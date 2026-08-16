@@ -99,6 +99,12 @@ else
 }
 
 @code {
+    // Set by the chart's "back to unit board" link (/?unit=NICU) so the reader
+    // returns to the unit they came from rather than the first one alphabetically.
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "unit")]
+    public string? UnitFromQuery { get; set; }
+
     private IReadOnlyList<string>? _units;
     private IReadOnlyList<BedCensusRow>? _beds;
     private IReadOnlyList<ProviderOption>? _providers;
@@ -163,7 +169,10 @@ else
             ApplyAccess();                                 // re-assert identity for this circuit
             _providers = await Repo.GetProvidersAsync();   // loaded at Admin scope → full list
             _units = await Repo.GetUnitsAsync();
-            _selectedUnit = _units.FirstOrDefault();
+            // Honor ?unit= when it names a real unit; otherwise open on the first.
+            _selectedUnit = _units.FirstOrDefault(u =>
+                                string.Equals(u, UnitFromQuery, StringComparison.OrdinalIgnoreCase))
+                            ?? _units.FirstOrDefault();
             await Load();
         }
         catch (Exception ex) { _error = ex.Message; }

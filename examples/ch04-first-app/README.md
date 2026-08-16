@@ -90,7 +90,7 @@ and which chapter gets you there.
 
 | Surface | Flag | Unlocks in | Needs |
 |---|---|---|---|
-| **Research** page (sidebar) and the chart's **AI assistance** card | `Features:AiAssistance` | Chapter 5 | `06-ai-embeddings.sql`, `07-ai-assistance.sql`, `08-research-vector-search.sql` from [`examples/ch05-ai-ready-sql/`](../ch05-ai-ready-sql/) |
+| **Research** page (sidebar) and the chart's **AI assistance** card | `Features:AiAssistance` | Chapter 5 | `06-ai-embeddings.sql`, `07-vector-index.sql`, `08-ai-assistance.sql`, `09-research-vector-search.sql` from [`examples/ch05-ai-ready-sql/`](../ch05-ai-ready-sql/) |
 | **Chat icon** — the clinical assistant dock | `Features:AiAgent` | Chapter 6 | DAB running: `setup-dab.ps1` then `run-dab.ps1` in [`examples/ch06-agentic-ai/`](../ch06-agentic-ai/) |
 | Row-level filtering behind the **"Viewing as"** selector | `RowLevelSecurity:Enabled` | Chapter 8 | The security predicate from [`examples/ch08/`](../ch08/) |
 
@@ -111,12 +111,14 @@ Chapter 5 proc is missing.
 | File | What it does |
 |---|---|
 | `WardGeneral.slnx` | The solution. Three projects, all under `src/`. |
-| `build.ps1` | Restore + build. `-Clean` for a from-scratch build, `-Configuration Release` to switch config. Runs `preflight-build.ps1` first. |
+| `build.ps1` | Restore + build. `-Clean` for a from-scratch build (stop the app first — see [Rebuilding from scratch](#rebuilding-from-scratch)), `-Configuration Release` to switch config. Runs `preflight-build.ps1` first. |
 | `run.ps1` | Start the app and open your real browser. `-Server` / `-Database` override configuration for this run. |
 | `restart.ps1` | Stop, then start. **This is how you flip a feature flag** — `-Enable` takes the complete list of flags to force on. |
 | `shutdown.ps1` | Stop the app and free the ports. |
 | `preflight-build.ps1` | Checks the .NET 10 SDK is present before building. |
 | `preflight-run.ps1` | Checks `az login`, the server firewall, and that the database answers, before starting. `-SkipFirewall` to skip the firewall step. |
+| `ch04.env.template` | The two values this chapter needs, as placeholders. Copy it to `ch04.env` and fill it in — see [Configuring the connection](#configuring-the-connection). |
+| `load-env.ps1` | Reads `ch04.env` into the environment. `run.ps1` and `preflight-run.ps1` call it for you; run it yourself to create the file the first time. |
 
 ### The projects
 
@@ -208,24 +210,74 @@ the next section.
 
 No password appears anywhere. The connection uses
 `Authentication=ActiveDirectoryDefault`, which resolves your `az login` identity
-through `DefaultAzureCredential`.
+through `DefaultAzureCredential`. The only thing to configure is **which server
+to talk to**.
 
 `appsettings.json` ships the **shape, not the values** — `Server` is
 deliberately empty. Supply yours in one of three places; **highest wins**:
 
 1. `WardGeneral__Server` / `WardGeneral__Database` environment variables — what
-   `run.ps1 -Server` sets
+   `ch04.env` fills in, and what `run.ps1 -Server` sets
 2. `appsettings.Development.json` — git-ignored, local to you
 3. `appsettings.json` itself
 
-If `Server` is still blank the app **fails at startup** and names all three
+If `Server` is still blank the app **fails at startup** and names all these
 places. That is deliberate: a silent fallback to `localhost` is a worse first
 five minutes than an explicit error.
+
+### The easy way: `ch04.env`
+
+Copy the template, fill in two values, and every script in this folder picks
+them up:
+
+```powershell
+Copy-Item ch04.env.template ch04.env
+```
+
+```ini
+WardGeneral__Server=<your-sql-server>.database.windows.net
+WardGeneral__Database=wardgeneral
+```
+
+Or run `./load-env.ps1` once with no arguments — if `ch04.env` is missing it
+makes it from the template and tells you to fill it in.
+
+`ch04.env` is **git-ignored**. Your server name never reaches a commit, and a
+`git pull` never collides with your edits. `ch04.env.template`, which holds
+nothing but placeholders, is the part that ships.
+
+`run.ps1` and `preflight-run.ps1` load it automatically, so after this
+`./run.ps1` on its own is enough — no `-Server` needed. A value still in
+`<angle brackets>` counts as unfilled and is ignored, so a half-edited file
+cannot quietly point the app somewhere wrong.
+
+A few things worth knowing:
+
+- **The file is optional.** It is the most convenient of the three ways, not a
+  new requirement. If you already use `appsettings.Development.json` or pass
+  `-Server`, nothing changes and you never need to create it.
+- **It stands on its own.** Copy the values out of your Chapter 2 notes if you
+  like, but Chapter 4 never reaches into another chapter to find them. Chapter 5
+  has its own `ch05.env` for the same reason — the chapters can be done in any
+  order, months apart.
+- **The shell wins.** If you have already exported `WardGeneral__Server` by
+  hand, the file will not overwrite it — it says so instead. Pass
+  `./load-env.ps1 -Force` if you want the file to win.
+- **This one wants the FQDN.** `WardGeneral__Server` goes into a connection
+  string, so it needs `contoso-sql-01.database.windows.net`, not the short name
+  the `az` commands take.
 
 ## Running it
 
 ```powershell
 ./build.ps1
+./run.ps1
+```
+
+That assumes you filled in `ch04.env` above. Without it, name the server on the
+command line instead:
+
+```powershell
 ./run.ps1 -Server <your-server>.database.windows.net
 ```
 
@@ -241,6 +293,35 @@ To stop:
 ```powershell
 ./shutdown.ps1
 ```
+
+### Rebuilding from scratch
+
+`build.ps1 -Clean` is the from-scratch build: it deletes every `bin/`, `obj/` and
+`publish/` folder under `src/` and then builds, so nothing stale survives. That
+is the whole of the application's state — there are no user secrets and no
+generated files elsewhere — so a clean build really does start from nothing.
+
+**Stop the app first.**
+
+```powershell
+./shutdown.ps1
+./build.ps1 -Clean
+```
+
+A running app holds its own DLLs open, and Windows will not delete a file that is
+in use. The deletion is deliberately written with `-ErrorAction SilentlyContinue`,
+because a `bin/` folder that is partly missing is normal and not worth failing
+over — but the consequence is that a locked file is skipped **silently**. The
+script still prints `removing ...` for the folder, the build still runs, and you
+are left with exactly the stale assembly you were trying to get rid of, with
+nothing in the output saying so. Stopping the app first avoids the whole problem.
+
+If you are rebuilding because you changed a feature flag rather than code, you do
+not need `-Clean` at all — use `restart.ps1 -Enable <flag>`, which stops the app,
+rebuilds and restarts it with the flag set.
+
+Nothing here touches the database. `-Clean` rebuilds the *application*; the
+Chapter 5 AI objects and the Chapter 2 schema have their own reset paths.
 
 ## Flipping a feature flag (later chapters)
 

@@ -62,12 +62,26 @@ GO
    ============================================================================ */
 
 /* Stop before doing damage if the find-and-replace above has not been done.
-   Section 2 DROPs and recreates the external model, so running this file with
-   the placeholder intact would replace a working model with one pointed at a
-   hostname that does not resolve — and nothing would look wrong until a query
-   tried to embed. After the replace, this literal no longer matches. */
-IF 'https://<your-foundry>.openai.azure.com/' LIKE '%<your-foundry>%'
-    THROW 50001, 'Replace <your-foundry> throughout this file with your Microsoft Foundry resource name before running it. See the BEFORE YOU RUN block above.', 1;
+   Section 2 creates an external model from this hostname, so running this file
+   with the placeholder intact would register a model pointed at a hostname that
+   does not resolve — and nothing would look wrong until a query tried to embed.
+
+   Two details make this guard work, and both are easy to get wrong.
+
+   The pattern brackets the angle characters — [<]your-foundry[>] — so that your
+   find-and-replace rewrites the literal being tested but NOT the pattern testing
+   it. Replace both sides and the comparison reduces to "does this URL contain
+   the name in this URL", which is true for every possible name, so the guard
+   fires forever.
+
+   And it sets NOEXEC rather than throwing, because THROW ends only its own
+   batch — every batch after the next GO still runs, DROP included. Under NOEXEC
+   the rest of the file compiles and does nothing. The last line turns it off. */
+IF 'https://<your-foundry>.openai.azure.com/' LIKE '%[<]your-foundry[>]%'
+BEGIN
+    RAISERROR('Replace <your-foundry> throughout this file with your Microsoft Foundry resource name before running it. See the BEFORE YOU RUN block above. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END
 GO
 
 /* ---- 1. Master key + passwordless credential --------------------------- */
@@ -76,35 +90,60 @@ IF NOT EXISTS (SELECT 1 FROM sys.symmetric_keys WHERE name = '##MS_DatabaseMaste
     CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'Ch@ngeMe_WardGeneral_2026!';
 GO
 
-/* Passwordless: the database's managed identity authenticates to Foundry.      */
-/* (Entra-only posture — no API key on disk. Grant it "Cognitive Services       */
-/*  OpenAI User" on the Foundry resource.)                                       */
-IF EXISTS (SELECT 1 FROM sys.database_scoped_credentials
-           WHERE name = 'https://<your-foundry>.openai.azure.com/')
-    DROP DATABASE SCOPED CREDENTIAL [https://<your-foundry>.openai.azure.com/];
-GO
+/* Nothing in this file drops anything. Every object is CREATE-if-absent and is
+   LEFT ALONE if it already exists, so a re-run is safe and silent — the same
+   contract section 3 keeps for the embeddings table, and for the same reason:
+   this script sits in front of a long, metered, expensive model run, and a
+   script that quietly rebuilds its own dependencies is a script that can throw
+   that run away. To rebuild any of it deliberately, use the teardown block at
+   the end of this file.
 
-CREATE DATABASE SCOPED CREDENTIAL [https://<your-foundry>.openai.azure.com/]
-WITH IDENTITY = 'Managed Identity',
-     SECRET   = '{"resourceid":"https://cognitiveservices.azure.com"}';
+   The re-run trap this avoids: an external model holds a reference to its
+   credential, so a DROP of the credential while the model still references it
+   fails with "Cannot drop the credential ... because it is used by an external
+   model", and the CREATE behind it then fails with "already exists". Two errors
+   on every re-run. A first run is unaffected, which is exactly why an ordering
+   like that can survive a long time unnoticed. */
+IF NOT EXISTS (SELECT 1 FROM sys.database_scoped_credentials
+               WHERE name = 'https://<your-foundry>.openai.azure.com/')
+BEGIN
+    /* Passwordless: the database's managed identity authenticates to Foundry.  */
+    /* (Entra-only posture — no API key on disk. Grant it "Cognitive Services   */
+    /*  OpenAI User" on the Foundry resource.)                                  */
+    /* The SECRET is NOT a secret — it names the token AUDIENCE. Omit it and    */
+    /* every call fails in ~78 ms with "Fail to obtain or decrypt secret for    */
+    /* credential", which reads like a key problem and is not.                  */
+    CREATE DATABASE SCOPED CREDENTIAL [https://<your-foundry>.openai.azure.com/]
+    WITH IDENTITY = 'Managed Identity',
+         SECRET   = '{"resourceid":"https://cognitiveservices.azure.com"}';
+
+    PRINT '  credential created.';
+END
+ELSE
+    PRINT '  credential already exists — left alone.';
 GO
 
 /* ---- 2. External model: the embedding deployment ----------------------- */
-IF EXISTS (SELECT 1 FROM sys.external_models WHERE name = 'WardGeneralEmbeddingModel')
-    DROP EXTERNAL MODEL WardGeneralEmbeddingModel;
-GO
+/* Also create-if-absent. If yours already exists but points somewhere stale,   */
+/* that is a deliberate act — see the teardown block at the end of this file.   */
+IF NOT EXISTS (SELECT 1 FROM sys.external_models WHERE name = 'WardGeneralEmbeddingModel')
+BEGIN
+    CREATE EXTERNAL MODEL WardGeneralEmbeddingModel
+    WITH (
+        LOCATION   = 'https://<your-foundry>.openai.azure.com/openai/deployments/text-embedding-3-large/embeddings?api-version=2024-08-01-preview',
+        API_FORMAT = 'Azure OpenAI',
+        MODEL_TYPE = EMBEDDINGS,
+        MODEL      = 'text-embedding-3-large',
+        CREDENTIAL = [https://<your-foundry>.openai.azure.com/],
+        /* Auto-retry transient throttling (HTTP 429) up to 10x — essential at volume  */
+        /* when many AI_GENERATE_EMBEDDINGS calls hit the deployment's per-minute quota.*/
+        PARAMETERS = '{"sql_rest_options":{"retry_count":10}}'
+    );
 
-CREATE EXTERNAL MODEL WardGeneralEmbeddingModel
-WITH (
-    LOCATION   = 'https://<your-foundry>.openai.azure.com/openai/deployments/text-embedding-3-large/embeddings?api-version=2024-08-01-preview',
-    API_FORMAT = 'Azure OpenAI',
-    MODEL_TYPE = EMBEDDINGS,
-    MODEL      = 'text-embedding-3-large',
-    CREDENTIAL = [https://<your-foundry>.openai.azure.com/],
-    /* Auto-retry transient throttling (HTTP 429) up to 10x — essential at volume  */
-    /* when many AI_GENERATE_EMBEDDINGS calls hit the deployment's per-minute quota.*/
-    PARAMETERS = '{"sql_rest_options":{"retry_count":10}}'
-);
+    PRINT '  external model created.';
+END
+ELSE
+    PRINT '  external model already exists — left alone.';
 GO
 
 SELECT name, model, location, api_format
@@ -198,3 +237,21 @@ GO
 
 PRINT '06-ai-embeddings.sql complete — external model + embeddings ready. Next: 07-vector-index.sql';
 GO
+
+/* Clear the placeholder guard, whether or not it fired, so the session is left
+   executing normally. If the only output you saw was the guard's error, nothing
+   above this line ran. */
+SET NOEXEC OFF;
+GO
+
+/* ---- Starting over ------------------------------------------------------ */
+/* Nothing in this file drops anything, so re-running it can never rebuild what
+   is already there. To rebuild deliberately, run reset-ai-objects.sql first and
+   then run this file again. That script is the chapter's only destructive one,
+   which is exactly why it is separate and separately named — you cannot reach it
+   by accident. Read its header before you run it: it discards every embedding,
+   and regenerating them is hours of metered model calls.
+
+   If all you want is a fresh DiskANN index, do NOT reset: drop the index alone,
+   as described at the end of 07-vector-index.sql. The vectors are the expensive
+   part; the index is not. */

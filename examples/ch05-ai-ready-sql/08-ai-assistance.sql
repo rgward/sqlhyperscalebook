@@ -68,8 +68,9 @@
    DEPLOYED WITH -NoGateway?
      You have no gateway to call, so make direct the default: change @UseGateway's
      default below from 1 to 0. (The credential block is harmless either way —
-     it validates nothing at create time.) If you add the gateway later, run
-     10-ai-gateway.sql to switch the default back.
+     it validates nothing at create time.) If you add the gateway later, put the
+     default back to 1 and re-run this script -- it is CREATE OR ALTER, so that
+     is the whole of it.
 
    All data created by these scripts is fully synthetic. No real PHI.
    ============================================================================ */
@@ -84,10 +85,22 @@ SET NUMERIC_ROUNDABORT OFF;
 GO
 
 /* Stop before doing damage if the find-and-replace above has not been done.
-   After the replace, these literals no longer match. */
-IF 'https://<your-foundry>.openai.azure.com/' LIKE '%<your-foundry>%'
-   OR 'https://<your-apim>.azure-api.net/' LIKE '%<your-apim>%'
-    THROW 50001, 'Replace <your-foundry> and <your-apim> throughout this file before running it. See the BEFORE YOU RUN block above.', 1;
+
+   The patterns bracket the angle characters — [<]your-foundry[>] — so that your
+   find-and-replace rewrites the literal being tested but NOT the pattern testing
+   it. Replace both sides and the comparison reduces to "does this URL contain
+   the name in this URL", which is true for every possible name, so the guard
+   fires forever.
+
+   And it sets NOEXEC rather than throwing, because THROW ends only its own
+   batch — every batch after the next GO still runs. Under NOEXEC the rest of the
+   file compiles and does nothing. The last line of this file turns it off. */
+IF 'https://<your-foundry>.openai.azure.com/' LIKE '%[<]your-foundry[>]%'
+   OR 'https://<your-apim>.azure-api.net/' LIKE '%[<]your-apim[>]%'
+BEGIN
+    RAISERROR('Replace <your-foundry> and <your-apim> throughout this file before running it. See the BEFORE YOU RUN block above. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END
 GO
 
 /* ---- Gateway credential (DB -> APIM, via the server's managed identity) ---- */
@@ -96,16 +109,17 @@ GO
 /* — no key. Same pattern 06 uses for Foundry. The credential is bound BY NAME to   */
 /* the URL prefix of the call, so the gateway host needs its own credential even     */
 /* though the audience is identical. Skip this if you deployed with -NoGateway.      */
-IF EXISTS (SELECT 1 FROM sys.database_scoped_credentials
-           WHERE name = 'https://<your-apim>.azure-api.net/')
-    DROP DATABASE SCOPED CREDENTIAL [https://<your-apim>.azure-api.net/];
-GO
+IF NOT EXISTS (SELECT 1 FROM sys.database_scoped_credentials
+               WHERE name = 'https://<your-apim>.azure-api.net/')
+BEGIN
+    CREATE DATABASE SCOPED CREDENTIAL [https://<your-apim>.azure-api.net/]
+    WITH IDENTITY = 'Managed Identity',
+         SECRET   = '{"resourceid":"https://cognitiveservices.azure.com"}';   -- first-party audience; the SAME token the direct Foundry path uses (06). No app registration.
 
-CREATE DATABASE SCOPED CREDENTIAL [https://<your-apim>.azure-api.net/]
-WITH IDENTITY = 'Managed Identity',
-     SECRET   = '{"resourceid":"https://cognitiveservices.azure.com"}';   -- first-party audience; the SAME token the direct Foundry path uses (06). No app registration.
-GO
-PRINT '  Gateway credential created (managed identity — no key).';
+    PRINT '  Gateway credential created (managed identity — no key).';
+END
+ELSE
+    PRINT '  Gateway credential already exists — left alone.';
 GO
 
 /* ---- Audit log: one row per assistance call ---------------------------- */
@@ -129,7 +143,14 @@ BEGIN
         ResponsePayload      NVARCHAR(MAX)  NULL,
         SuggestedTriageFlag  NVARCHAR(20)   NULL,   -- Low | Medium | High | Critical (advisory)
         Summary              NVARCHAR(MAX)  NULL,
-        CreatedAt            DATETIME2(3)   NOT NULL CONSTRAINT DF_AIAssist_CreatedAt DEFAULT SYSUTCDATETIME(),
+        /* The DEFAULT is deliberately UNNAMED. Dropping a ledger table only soft-     */
+        /* deletes it: the engine renames it to MSSQL_DroppedLedgerTable_<name>_<guid> */
+        /* and keeps it physically so ledger verification still works — and the        */
+        /* retention table KEEPS any explicitly named default constraint. Constraint   */
+        /* names are unique database-wide, so a named default here could never be      */
+        /* created again after a single drop, and this script would be un-re-runnable. */
+        /* Letting the engine generate the name keeps the deploy idempotent.           */
+        CreatedAt            DATETIME2(3)   NOT NULL DEFAULT SYSUTCDATETIME(),
         ProcessingTimeMs     INT            NOT NULL,
         CONSTRAINT PK_AIAssistanceLog PRIMARY KEY CLUSTERED (AssistanceId),
         CONSTRAINT FK_AIAssist_Encounter
@@ -407,4 +428,10 @@ END;
 GO
 
 PRINT '  clinical.GenerateClinicalAssistance created (@UseGateway defaults to 1 — calls go through the gateway).'
+GO
+
+/* Clear the placeholder guard, whether or not it fired, so the session is left
+   executing normally. If the only output you saw was the guard's error, nothing
+   above this line ran. */
+SET NOEXEC OFF;
 GO
