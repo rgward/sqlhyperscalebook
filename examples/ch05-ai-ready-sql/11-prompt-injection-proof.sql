@@ -100,6 +100,19 @@
      that is a finding worth writing down, not a reason to go hunting for a
      more evasive string.
 
+   A 403 ALONE IS NOT PROOF — READ THE MESSAGE:
+     The llm-content-safety policy also returns 403 when a request simply
+     exceeds Azure AI Content Safety's per-request character limit. That is a
+     413-shaped problem wearing a 403, and it looks identical in the status
+     code. A genuine block carries the message
+
+         Request failed content safety check.
+
+     in the response body, which step 6 surfaces in the ledger's Summary
+     column. Check for that text, not just for the number. A reader who grades
+     this run on the status code alone can conclude the shield works when what
+     actually happened is that the payload was too big to be inspected.
+
    PREREQUISITES:
      * 08-ai-assistance.sql has run (the procedure and the ledger exist).
      * The gateway exists AND add-content-safety.ps1 has been run against it.
@@ -225,7 +238,11 @@ WHERE EncounterId = @EncounterId;
    catches this and reports it. Expect:
        SuggestedTriageFlag : Medium   (the fallback default, not a model answer)
        Summary             : AI assistance unavailable (endpoint returned code 403)...
-   The model was never invoked. There is no completion to pay for.          */
+   The model was never invoked. There is no completion to pay for.
+
+   Do not grade this on the 403 alone. The same policy returns 403 for an
+   oversize request, so confirm the Summary in step 6 carries "Request failed
+   content safety check." — that is the string that says a shield fired.      */
 PRINT '-- [4/6] EXEC ... @UseGateway = 1  (expect blocked, 403) --';
 EXEC clinical.GenerateClinicalAssistance @EncounterId = @EncounterId, @UseGateway = 1;
 
@@ -250,7 +267,7 @@ SELECT TOP (2)
     ModelDeployment,                 -- carries "(via gateway)" or "(direct)"
     ResponseRetCode,                 -- 403 = blocked at the gateway, 0 = reached the model
     SuggestedTriageFlag,
-    LEFT(Summary, 300) AS Summary,
+    LEFT(Summary, 300) AS Summary,   -- a real block says "Request failed content safety check."
     ProcessingTimeMs,
     CreatedAt
 FROM clinical.AIAssistanceLog

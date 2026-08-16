@@ -643,8 +643,14 @@ the injection is stopped but *by whom, and at what cost*:
 | Blocked by | the `llm-content-safety` policy **you** wrote | Azure OpenAI's per-deployment default |
 | Elapsed | **~630 ms** | **~9,300 ms** |
 
-Three things to get right when a reader runs this:
+Four things to get right when a reader runs this:
 
+- **Grade it on the message, not the status code.** The `llm-content-safety`
+  policy also returns **403** when a request exceeds Azure AI Content Safety's
+  per-request character limit — a size problem wearing a content-safety status
+  code. A genuine block carries `Request failed content safety check.`, which
+  reaches the ledger's `Summary` column via `08`'s fallback. If a reader reports
+  "it returned 403, so it works", confirm that string before agreeing.
 - **It does not poison a clinical note, and that is deliberate.** A note on the
   current encounter would never reach the prompt — `08` only ever *embeds*
   `@caseSummary` as the vector-search seed, and the similar-cases block excludes
