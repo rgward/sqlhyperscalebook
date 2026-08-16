@@ -50,14 +50,21 @@ DECLARE @rows INT = (SELECT COUNT(*) FROM clinical.ClinicalNoteEmbeddings WHERE 
 
 IF @rows >= 100
 BEGIN
-    IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'VIX_ClinicalNoteEmbeddings_Embedding')
-        DROP INDEX VIX_ClinicalNoteEmbeddings_Embedding ON clinical.ClinicalNoteEmbeddings;
+    /* Create-if-absent. An existing index is LEFT ALONE — building DiskANN over  */
+    /* the full corpus is real work (43 s over 60,000 vectors on HS_Gen5_8), and   */
+    /* silently rebuilding it on every re-run is exactly the kind of hidden cost   */
+    /* this chapter's scripts avoid. To rebuild deliberately, see the teardown at  */
+    /* the end of this file.                                                       */
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'VIX_ClinicalNoteEmbeddings_Embedding')
+    BEGIN
+        CREATE VECTOR INDEX VIX_ClinicalNoteEmbeddings_Embedding
+        ON clinical.ClinicalNoteEmbeddings (Embedding)
+        WITH (METRIC = 'cosine', TYPE = 'diskann');
 
-    CREATE VECTOR INDEX VIX_ClinicalNoteEmbeddings_Embedding
-    ON clinical.ClinicalNoteEmbeddings (Embedding)
-    WITH (METRIC = 'cosine', TYPE = 'diskann');
-
-    PRINT '  DiskANN vector index created over ' + CAST(@rows AS VARCHAR(20)) + ' vectors.';
+        PRINT '  DiskANN vector index created over ' + CAST(@rows AS VARCHAR(20)) + ' vectors.';
+    END
+    ELSE
+        PRINT '  DiskANN vector index already exists — left alone.';
 END
 ELSE
     PRINT '  Only ' + CAST(@rows AS VARCHAR(20)) + ' embedded notes (< 100) — skipping index; exact scan will be used.';
@@ -68,6 +75,18 @@ SELECT i.name AS index_name, i.type_desc
 FROM sys.indexes AS i
 WHERE i.name = 'VIX_ClinicalNoteEmbeddings_Embedding';
 GO
+
+/* ---- Rebuilding the index — uncomment to start it over ------------------- */
+/* Safe to run: this discards only the index, never the embeddings, so a re-run  */
+/* of 07 rebuilds it without another model call. Do this if you need a newer     */
+/* index generation — a newly created index picks up the latest version your     */
+/* region supports, which an existing one does not.                             */
+/*                                                                               */
+/* This is the cheap reset, and usually the only one you want. To rebuild the    */
+/* whole AI layer including the vectors, use reset-ai-objects.sql instead — and  */
+/* read its header first, because that one is expensive to undo.                */
+
+-- DROP INDEX VIX_ClinicalNoteEmbeddings_Embedding ON clinical.ClinicalNoteEmbeddings;
 
 PRINT '07-vector-index.sql complete. Next: 08-ai-assistance.sql';
 GO

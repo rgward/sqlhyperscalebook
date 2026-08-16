@@ -88,6 +88,7 @@ naming exactly which placeholders it carries.
 | `09-research-vector-search.sql` | SQL | The retrieval-only procedure behind the Research page — semantic search with no chat step. Run it against the **primary**; because procedures live in shared storage, it is then callable on the `wardgeneral-research` named replica. This is the read scale-out beat: research queries get their own compute over the same page servers, with no data copy and no separate vector store. |
 | `10-ai-gateway.sql` | SQL | **Most readers never run this.** For the `-NoGateway` reader who later adds the gateway: creates the gateway credential and re-creates `GenerateClinicalAssistance` with APIM as its default route. |
 | `verify-embeddings.sql` | SQL | Read-only check: notes vs embedded vs missing, the vector index, and the byte length of a stored vector (3,072 dimensions). |
+| `reset-ai-objects.sql` | SQL | **The only script here that drops anything.** The "clean" option: removes the procedures, the vector index, the embeddings table, the external model and both credentials, in dependency order, so `06` → `09` can be run again from scratch. Never part of the normal flow — run it deliberately, and read its header first, because it discards every embedding. Leaves patient data and the ledger alone. |
 | `run-ai-app.ps1` | PowerShell | Builds the Chapter 4 application and starts it with the `AiAssistance` feature flag on. |
 
 ## Running the SQL scripts (and re-running them)
@@ -102,6 +103,7 @@ Run them **in this order, once**:
 | 4 | `09-research-vector-search.sql` | `06`, for the same reason. Independent of `08`. |
 | — | `07b-updateable-index-proof.sql` | `07`, with the index actually created. Optional demonstration; inserts one note and removes it again, so it is safe to run any time and safe to repeat. |
 | — | `verify-embeddings.sql` | `06` has run at least once. Read-only; safe any time. |
+| — | `reset-ai-objects.sql` | Only when you deliberately want to rebuild. Destructive; run it on its own, before `06`. |
 | — | `10-ai-gateway.sql` | Only if you deployed with `-NoGateway` and have since provisioned the gateway. Most readers never run this. |
 
 Use whichever tool you prefer — the MSSQL extension in VS Code, SSMS, Azure Data
@@ -127,15 +129,20 @@ to build and for both procedures to return real results.
 
 ### Re-running
 
-`06` is written to be safe — and cheap — to re-run. It creates the embeddings
-table only if it is absent, and its `INSERT` fills gaps rather than starting
-over. Nothing you have already paid for is thrown away. What it does recreate
-each time is the credential and the external model, which is exactly what you
-want when you are correcting an endpoint name.
+`06` is written to be safe — and cheap — to re-run. Every object it creates is
+created only if it is absent, and its `INSERT` fills gaps rather than starting
+over. Nothing you have already paid for is thrown away.
+
+That rule holds across the whole chapter: `06`, `07`, `08` and `10` create what
+is missing and leave what is already there **alone**, printing which it did. The
+reason is ordering as much as cost — an external model holds a reference to its
+credential, so a script that drops and recreates both has to get the order right
+or it fails twice on every second run, while the first run looks perfect.
 
 Against a fully populated database a re-run of `06` therefore does nothing at all.
 That is deliberate: it means you can rehearse the whole pre-flight sequence end to
-end without regenerating the corpus.
+end without regenerating the corpus. The corollary is that re-running cannot
+**repair** anything — if an object exists but is wrong, see `reset-ai-objects.sql`.
 
 - **Change the procedure logic** → re-run `08`, `09` or `10` freely. They are
   `CREATE OR ALTER` and touch no data.
@@ -144,10 +151,13 @@ end without regenerating the corpus.
 - **Start the embeddings over** → `TRUNCATE TABLE clinical.ClinicalNoteEmbeddings`,
   then re-run `06` and `07`. The note corpus itself comes from Chapter 2's
   `05-seed.sql`, which is the only script that generates it.
-- **Rebuild the vector index** → re-run `07`. It drops and recreates the index,
-  and it is the only script that touches it. Rarely necessary — the index is
-  updateable, so rows added later are indexed as they land — but it is quick and
-  it never touches the vectors.
+- **Rebuild the vector index** → drop it (the last line of `07` is the statement,
+  commented out) and re-run `07`. Rarely necessary — the index is updateable, so
+  rows added later are indexed as they land — but it is quick, about 43 seconds
+  over 60,000 vectors, and it never touches the vectors themselves.
+- **Start the whole AI layer over** → `reset-ai-objects.sql`, then `06` onward.
+  This is the expensive one: it discards every embedding, and rebuilding them is
+  hours of metered model calls.
 - **Rebuild the vector store from nothing** → drop
   `clinical.ClinicalNoteEmbeddings` yourself first, then re-run `06` and `07`.
   Deliberate and manual, because it throws away hours of work.

@@ -86,16 +86,17 @@ GO
 /* an Entra token for the gateway's audience (resourceid) and sends it as a Bearer  */
 /* header — no key. Same pattern 06/08 use for Foundry. The credential NAME must be */
 /* the gateway host (more generic than the request URL used in the proc below).     */
-IF EXISTS (SELECT 1 FROM sys.database_scoped_credentials
-           WHERE name = 'https://<your-apim>.azure-api.net/')
-    DROP DATABASE SCOPED CREDENTIAL [https://<your-apim>.azure-api.net/];
-GO
+IF NOT EXISTS (SELECT 1 FROM sys.database_scoped_credentials
+               WHERE name = 'https://<your-apim>.azure-api.net/')
+BEGIN
+    CREATE DATABASE SCOPED CREDENTIAL [https://<your-apim>.azure-api.net/]
+    WITH IDENTITY = 'Managed Identity',
+         SECRET   = '{"resourceid":"https://cognitiveservices.azure.com"}';   -- first-party audience; the SAME token the direct Foundry path uses (06/08). No app registration.
 
-CREATE DATABASE SCOPED CREDENTIAL [https://<your-apim>.azure-api.net/]
-WITH IDENTITY = 'Managed Identity',
-     SECRET   = '{"resourceid":"https://cognitiveservices.azure.com"}';   -- first-party audience; the SAME token the direct Foundry path uses (06/08). No app registration.
-GO
-PRINT '  Gateway credential created (managed identity — no key).';
+    PRINT '  Gateway credential created (managed identity — no key).';
+END
+ELSE
+    PRINT '  Gateway credential already exists — left alone.';
 GO
 
 /* ---- 2. The same procedure, with the gateway as its default -------------- */

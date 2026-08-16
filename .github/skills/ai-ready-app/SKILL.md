@@ -301,14 +301,25 @@ If they want the app on screen sooner, tell them to skip the loop and run the
 in `07` to build (it needs 100 rows) and for both procedures to return real
 results.
 
-`06` is otherwise safe — and cheap — to re-run: it creates the embeddings table
-only if absent and will not throw away vectors already paid for. Against a
-populated database a re-run does nothing at all, which is what makes it possible
-to rehearse the whole pre-flight sequence without regenerating the corpus. To
-rebuild the vector store from nothing they must drop
-`clinical.ClinicalNoteEmbeddings` themselves first — deliberately manual, because
-it discards hours of work. Rebuilding just the **index** is a different and much
-cheaper thing: re-run `07`, which drops and recreates it and touches no vectors.
+`06` is otherwise safe — and cheap — to re-run, and so are `07`, `08` and `10`.
+Every object they create is created **only if it is absent**; anything already
+there is left alone, and each script prints which it did. Against a populated
+database a re-run does nothing at all, which is what makes it possible to
+rehearse the whole pre-flight sequence without regenerating the corpus.
+
+The corollary matters when a reader is troubleshooting: **re-running cannot
+repair anything.** If an object exists but is wrong, running the script again
+will skip it and report success. The way to rebuild is `reset-ai-objects.sql` —
+the only script in the chapter that drops anything, kept separate and separately
+named so it cannot be reached by accident. It removes the procedures, the vector
+index, the embeddings table, the external model and both credentials in
+dependency order, then the reader runs `06` onward. Do not suggest it casually:
+it discards every embedding, and regenerating them is hours of metered calls. It
+leaves patient data and the `AIAssistanceLog` ledger untouched.
+
+Rebuilding just the **index** is a different and much cheaper thing — about 43
+seconds over 60,000 vectors, and no model calls at all. The `DROP INDEX`
+statement sits commented out at the end of `07`; drop it and re-run `07`.
 
 ## Step 4 — Verify
 
