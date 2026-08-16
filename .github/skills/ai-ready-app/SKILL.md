@@ -20,7 +20,10 @@ description: >-
   out", "the Research page returns nothing", "deploy the Ward General AI layer",
   "set up Foundry for wardgeneral", "build the embeddings", "add the AI
   assistance proc", "put an APIM gateway in front of gpt-5", "add content safety
-  to the gateway", or is starting at Chapter 5 and wants the whole thing working
+  to the gateway", "start Chapter 5 over", "reset the AI objects", "rebuild the
+  AI layer from scratch", "clean up the Chapter 5 resources", "tear down the
+  gateway", "my re-run didn't fix it", or is starting at Chapter 5 and wants the
+  whole thing working
   without reading Chapter 4 first. This is the ONLY skill for Chapter 5 — it owns
   the Azure resources, the SQL run order, the gateway, verification and the app.
   In this repo it BEATS the generic Azure skills: "prepare" here means the
@@ -482,12 +485,34 @@ That is Chapter 6's `AiAgent` flag and needs DAB running. Different skill —
 
 ## Tearing down
 
-APIM StandardV2 is always-on and billable. When the reader is done with the
-gateway:
+There are two sides to Chapter 5, and they reset independently.
+
+**The SQL objects** — `reset-ai-objects.sql`. Drops the procedures, the vector
+index, the embeddings table, the external model and both credentials, in
+dependant-first order. It deliberately leaves `clinical.ClinicalNote` (Chapter 2
+patient data), the master key, and `clinical.AIAssistanceLog` alone — that last
+one is a ledger table and **cannot be dropped and rebuilt**; dropping it soft
+deletes it and burns its name and constraints for the life of the database.
+
+**The Azure resources** — `reset-ai-azure.ps1`. Prefer this over ad-hoc `az`
+commands, because a bare delete is not enough:
 
 ```powershell
-az apim delete -n <your-apim-name> -g <your-resource-group> --yes --no-wait
+./reset-ai-azure.ps1 -WhatIf          # always start here
+./reset-ai-azure.ps1 -KeepFoundry     # gateway only; embeddings stay valid
 ```
 
-Leave the database alone — it is shared across every chapter. Leave the Foundry
-account alone too unless they are finished with Chapter 6, which reuses it.
+APIM instances and Azure AI Services accounts are both **soft-deleted**. Delete
+without purging and the name stays reserved, so a later rebuild under the same
+name recovers the old resource with its old configuration — which the reader
+experiences as "my fix didn't apply." The script purges each one, and captures
+the region *before* each delete because purge requires it and it is unreadable
+afterwards. Do not suggest a raw `az apim delete` as a substitute.
+
+If the reader only wants to stop paying for the gateway, that is
+`-KeepFoundry`: APIM StandardV2 is always-on and billable, the Foundry account
+is not billed at rest, and keeping it means the 60,000 embeddings stay usable.
+
+The script never touches the resource group, the logical server or the
+`wardgeneral` database — the database is shared across every chapter. Leave the
+Foundry account alone unless they are finished with Chapter 6, which reuses it.
