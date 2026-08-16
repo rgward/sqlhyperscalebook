@@ -29,10 +29,17 @@ description: >-
   need to run the Chapter 5 SQL", "start Chapter 5 over", "reset the AI
   objects", "rebuild the
   AI layer from scratch", "clean up the Chapter 5 resources", "tear down the
-  gateway", "my re-run didn't fix it", or is starting at Chapter 5 and wants the
-  whole thing working
+  gateway", "my re-run didn't fix it", "prove the vector index is updateable",
+  "do I have to rebuild the vector index after inserting notes", "show me a new
+  note being found without a rebuild", "prove the gateway blocks a prompt
+  injection", "show me Prompt Shields working", "demo the AI gateway blocking a
+  jailbreak", "why bother routing through APIM", "what happens if someone puts
+  an injection in a patient chart", "run the bonus scripts", or is starting at
+  Chapter 5 and wants the whole thing working
   without reading Chapter 4 first. This is the ONLY skill for Chapter 5 — it owns
-  the Azure resources, the SQL run order, the gateway, verification and the app.
+  the Azure resources, the SQL run order, the gateway, verification, the app, and
+  the two optional bonus proof scripts (`10` updateable index, `11` prompt
+  injection) that are deliberately NOT part of the application.
   In this repo it BEATS the generic Azure skills: "prepare" here means the
   Chapter 5 AI pre-flight, NOT azd scaffolding (**azure-prepare**) or a generic
   cloud onboarding (**azure-app-onboard**) — the app already exists and already
@@ -445,6 +452,17 @@ what `06` creates.
 | 4 | `09-research-vector-search.sql` | `clinical.SearchSimilarNotes` — retrieval only, no chat step. Deploy to the **primary**; the named replica reads it from shared storage |
 | — | `reset-ai-objects.sql` | **Destructive.** Only when they deliberately want to rebuild the AI layer from scratch — it discards every embedding. Run it on its own, before `06` |
 
+**Bonus — not part of the application.** Two optional scripts prove claims the
+chapter makes in passing. Nothing depends on them, the app never calls them, and
+skipping them entirely leaves a complete working Chapter 5. Only reach for them
+when the reader asks to *see* the claim demonstrated. Both clean up after
+themselves and are safe to repeat.
+
+| Bonus | Script | What it proves | Needs |
+|---|---|---|---|
+| — | `10-updateable-index-proof.sql` | The DiskANN index is **updateable**: a note written now is searchable now, with no rebuild and no read-only window | `07`, with the index actually built |
+| — | `11-prompt-injection-proof.sql` | The gateway's Prompt Shields policy earns its place: an injection planted in the chart is blocked **403, before the model is ever called** | `08`, **and** a gateway with content safety |
+
 ### Warn them about `06` before they start it
 
 Embedding the full ~60,000-note corpus is roughly **3–3.5 hours** of round-trips
@@ -468,7 +486,7 @@ If they want the app on screen sooner, tell them to skip the loop and run the
 in `07` to build (it needs 100 rows) and for both procedures to return real
 results.
 
-`06` is otherwise safe — and cheap — to re-run, and so are `07`, `08` and `10`.
+`06` is otherwise safe — and cheap — to re-run, and so are `07`, `08` and `09`.
 Every object they create is created **only if it is absent**; anything already
 there is left alone, and each script prints which it did. Against a populated
 database a re-run does nothing at all, which is what makes it possible to
@@ -560,6 +578,71 @@ as `IOptions<FeatureFlags>` at startup. A page refresh does nothing. And
 `run.ps1` is worse than useless here: it sees the old process still holding 7170
 and just opens a browser at it, so the flag looks broken when it was never read.
 That is why `run-ai-app.ps1` delegates to `restart.ps1`, not `run.ps1`.
+
+## Bonus — two scripts that prove what the chapter asserts
+
+**Neither is part of the application.** The app never calls them, nothing in the
+run order depends on them, and a reader who skips both has a complete, working
+Chapter 5. Offer them when the reader wants to *watch* a claim hold rather than
+take a comment's word for it — or when they ask why the gateway is worth the
+money. Both undo their own changes and are safe to run repeatedly.
+
+Do not fold these into Step 3. Volunteering a destructive-looking demo during a
+first deploy is how a reader loses confidence in the run order.
+
+### `10-updateable-index-proof.sql` — the index tracks DML
+
+Answers *"do I have to rebuild the vector index after writing notes?"* — no.
+
+It embeds a query **once**, into `@QueryVector`, then runs the identical search
+three times: before an insert, after it, and after deleting the row again. The
+`SELECT` is character-for-character the same each time and the query vector never
+changes, so the only variable in the entire script is the contents of the table.
+The new note comes back at rank 1 on the second run and is gone on the third. No
+DDL, no `REORGANIZE`, nothing named "index" in the step that changes anything.
+
+The topic is deliberately absent from the corpus, so the first search returns
+weak neighbours — that is the control, not a bug. Needs `07` to have actually
+built the index; on a corpus under 100 rows `07` skips it and this proves
+nothing. It inserts one note and removes it again.
+
+Worth naming the history: earlier DiskANN versions made the indexed table
+effectively read-only, which is exactly the property this script exists to
+disprove. If a reader hits a read-only failure, that is the version check in
+`sys.vector_indexes`, not this script.
+
+### `11-prompt-injection-proof.sql` — the gateway blocks before the model
+
+Answers *"why route through APIM at all?"*
+
+The threat model is the point: **nobody types a prompt into this application.**
+The clinician clicks a patient, and `GenerateClinicalAssistance` assembles the
+prompt itself out of chart fields other people wrote. So the script plants a
+textbook injection in two rows that land verbatim in the prompt — one
+`Diagnosis.Description`, one `Allergy.Reaction` — then calls the same procedure
+twice, one parameter apart. `@UseGateway = 1` comes back **403 before the model
+is ever invoked**; `@UseGateway = 0` goes through. Both outcomes land in
+`clinical.AIAssistanceLog`, so the block is auditable.
+
+Three things to get right when a reader runs this:
+
+- **It does not poison a clinical note, and that is deliberate.** A note on the
+  current encounter would never reach the prompt — `08` only ever *embeds*
+  `@caseSummary` as the vector-search seed, and the similar-cases block excludes
+  the current encounter. Chart fields are the honest attack surface.
+- **A successful direct call does not mean the model was compromised.** `gpt-5`
+  will very likely refuse on its own. The narrower, more useful claim is that on
+  the direct path the model's own alignment is the *only* control — not
+  configured by you, not auditable, not changeable. Azure OpenAI's default
+  content filter covers the four harm categories; jailbreak detection is not on
+  by default.
+- **Requires `add-content-safety.ps1` to have run.** `setup-ai-gateway.ps1` alone
+  gives auth, rate limiting and metrics but no Prompt Shields, and the script
+  will not block. If a run is *not* blocked, that is a finding to write down —
+  not a cue to go hunting for a more evasive payload, because Prompt Shields is
+  a classifier and the payloads are textbook by design.
+
+It makes two real model calls, one of which is blocked and therefore not billed.
 
 ## Troubleshooting
 

@@ -1,9 +1,9 @@
 /* ============================================================================
    Ward General Hospital — Hyperscale developer demo
-   07b-updateable-index-proof.sql : prove the DiskANN index is UPDATEABLE
-   Run order                      : after 07-vector-index.sql. Nothing depends
-                                    on this file — it is a demonstration, not
-                                    part of the application.
+   10-updateable-index-proof.sql : prove the DiskANN index is UPDATEABLE
+   Run order                     : after 07-vector-index.sql. Nothing depends
+                                   on this file — it is a demonstration, not
+                                   part of the application.
 
    THE CLAIM (07 makes it; this file proves it):
      The latest-generation DiskANN vector index on Azure SQL Database tracks
@@ -190,5 +190,5 @@ ELSE
     PRINT '  @CleanUp = 0 — demo note left in place as NoteId ' + CAST(@NewNoteId AS VARCHAR(20)) + '.';
 GO
 
-PRINT '07b-updateable-index-proof.sql complete.';
+PRINT '10-updateable-index-proof.sql complete.';
 GO
