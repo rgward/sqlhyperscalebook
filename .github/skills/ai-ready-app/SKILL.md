@@ -196,6 +196,26 @@ recreating it, buying another 30–45 minute provision. Never suggest it for a
 re-run or a rehearsal — only to recover an APIM instance that is genuinely broken.
 It stops at the edge of the database and prints the SQL run order.
 
+Because it only ever creates what is absent, `deploy-ai.ps1` cannot repair a
+resource that exists but is wrong — the same limitation the SQL scripts have. The
+way out is **`reset-ai-azure.ps1`**, the Azure-side counterpart to
+`reset-ai-objects.sql`. It deletes the role assignments, the APIM instance, the
+Content Safety account and the Foundry account, in reverse dependency order, and
+**purges** each one: Azure AI Services accounts and APIM instances are
+soft-deleted, so without a purge the name stays taken and a rebuild silently
+recovers the old resource with its old configuration — which reads as "my fix
+didn't apply." It never touches the resource group, the logical server or the
+`wardgeneral` database.
+
+It supports `-WhatIf`, and that is how a reader should always start. Two switches
+matter when advising: **`-KeepFoundry`** rebuilds only the gateway and leaves the
+embedding model intact, so the vectors already in the database stay valid and the
+reader does **not** re-embed the corpus — this is the right answer whenever the
+gateway is the broken part. **`-RemoveServerIdentity`** is off by default because
+the identity is shared with other chapters. Deleting the Foundry account is the
+expensive path: rebuilding means a fresh APIM provision at 30–45 minutes, and if
+the reader also resets the database objects, hours of re-embedding.
+
 ### Naming, and how a reader uses their own
 
 Every name the scripts default to is an environment-variable override —
