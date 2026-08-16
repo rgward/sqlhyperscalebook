@@ -50,6 +50,73 @@ below. Either way **you run the SQL yourself.** That is deliberate: in Chapter 2
 the schema DDL is the lesson, and here the T-SQL *is* the chapter. Automating it
 away would automate away the subject.
 
+## First — fill in `ch05.env`
+
+Nothing in this chapter has a built-in default. A default resource name is
+always *somebody's* environment, and a reader who forgets an argument would
+silently aim at it. So your names go in one file, once:
+
+```powershell
+cd examples/ch05-ai-ready-sql
+Copy-Item ch05.env.template ch05.env    # then open it and fill it in
+./check-ai-env.ps1
+```
+
+`ch05.env` is git-ignored, so your names never land in a commit and your edits
+never collide with a `git pull`. It is a plain `KEY=VALUE` file with a comment
+over every entry explaining what the value is and where it is used. There are no
+secrets in it — this chapter reaches Azure OpenAI with a managed identity, so
+there is no key and no password anywhere in Chapter 5.
+
+**The file stands on its own.** If you did Chapter 2, `RG` and `SRV` are the
+values you already used and you can copy them straight across, but nothing here
+reaches into another chapter to find them.
+
+Every script in this folder reads these values, so you set them once:
+
+| Value | Goes to |
+|---|---|
+| `RG`, `SRV`, `AI_RESOURCE`, `PUBLISHER_EMAIL`, `SUBSCRIPTION_ID`, `CS_RESOURCE` | `deploy-ai.ps1` |
+| `AI_RESOURCE` | the `<your-foundry>` placeholder you paste into `06`, `08`, `10` |
+| `APIM_NAME` | the `<your-apim>` placeholder, and `reset-ai-azure.ps1` |
+| `WardGeneral__Server`, `WardGeneral__Database` | the app itself, so `run-ai-app.ps1` needs no `-Server` or `-Database` |
+
+A variable already exported in your shell wins over the file, and the loader
+tells you when that happens rather than overwriting it. If you would rather not
+use the file at all, every script still takes explicit parameters.
+
+### Check before you build: `check-ai-env.ps1`
+
+```powershell
+./check-ai-env.ps1          # add -NoGateway if you are skipping APIM
+```
+
+Read-only — every call is a GET, and it creates, changes and deletes nothing.
+It reads `ch05.env`, stops if any value is still empty or still in
+`<angle brackets>`, then reports each resource as **exists** or
+**WILL BE CREATED**:
+
+```
+Resource                Name                            Status
+--------                ----                            ------
+Resource group          rg-contoso                      exists
+SQL server              contoso-sql-01                  exists
+Foundry account         contoso-ai                      exists
+Model deployment        text-embedding-3-large          exists
+APIM gateway            contoso-ai-gateway              WILL BE CREATED
+```
+
+**Read that list before you deploy.** Anything you expected to already have,
+showing up as *will be created*, is a typo in `ch05.env` or the wrong
+subscription — not a missing resource. Catching it here is free. Catching it
+afterwards can mean a 30–45 minute APIM provision you did not want.
+
+It also catches the one case where a re-run against a working environment still
+creates something: `deploy-ai.ps1` finds Content Safety by the derived name
+`<AI_RESOURCE>-contentsafety`, so if yours is called anything else, a run builds
+a second one beside it and re-points the gateway policy at the new one. Put the
+real name in `CS_RESOURCE` and the check tells you to pass `-CsResourceName`.
+
 ## Before you run the SQL — replace the placeholders
 
 Two of these values name resources that are **globally unique**, so no default
@@ -77,6 +144,9 @@ naming exactly which placeholders it carries.
 
 | File | Type | What it does |
 |---|---|---|
+| `ch05.env.template` | Config | The template for your resource names. Copy it to `ch05.env` and fill it in — that file is git-ignored, so your names stay out of commits. Every entry carries a comment saying what it is and where it is used. No secrets: Chapter 5 is passwordless throughout. |
+| `load-env.ps1` | PowerShell | Reads `ch05.env` into the environment. Creates the file from the template if it is missing, and refuses to continue while any value is still empty or still in `<angle brackets>`. A variable already exported in your shell wins over the file, and it says so. Dot-source it (`. ./load-env.ps1`) to keep the values for a whole session. |
+| `check-ai-env.ps1` | PowerShell | **Read-only.** Reports what `ch05.env` names, what already exists in Azure, and what `deploy-ai.ps1` would therefore create. Run it before the deploy — a resource you expected to have, listed as *will be created*, is a typo or the wrong subscription. Also catches a Content Safety resource whose name is not the derived one, which is the single case where a re-run still creates something. |
 | `deploy-ai.ps1` | PowerShell | The Azure side, in one command. Creates the Foundry account, both model deployments, the server's system-assigned managed identity and its **Cognitive Services OpenAI User** role, and — unless `-NoGateway` — APIM plus content safety. Stops at the edge of the database and prints the SQL run order. Idempotent. |
 | `azureaideploy.ps1` | PowerShell | The worker `deploy-ai.ps1` calls. Run it directly if you want finer control over which pieces get created. |
 | `setup-ai-gateway.ps1` | PowerShell | Provisions the APIM StandardV2 instance and wires the Foundry backend. A first provision takes ~30–45 minutes and is billable. |

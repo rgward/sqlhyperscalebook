@@ -32,7 +32,10 @@ description: >-
   runs.
   Scope is ORCHESTRATION and GUIDANCE — it runs the Azure pre-flight, then states
   the SQL run order and explains the scripts on request. **It does not run the
-  SQL.** For the app's configuration, screens and other feature flags see
+  SQL.** A bare request with **no resource names in it is complete** — the
+  reader's names live in `ch05.env`, which they fill in once from
+  `ch05.env.template`; never interview them value by value (Step 0).
+  For the app's configuration, screens and other feature flags see
   **wardgeneral-app**; to provision the database itself see **deploy-hyperscale**.
   Do NOT use to stand up DAB / the SQL MCP server (Chapter 6) or to deploy
   row-level security (Chapter 8).
@@ -118,6 +121,55 @@ EXEC clinical.GenerateClinicalAssistance @EncounterId = 1001, @UseGateway = 0;  
   primary and the replica reads it; the replica's identity needs Foundry access
   too.
 
+## Step 0 — `ch05.env`, then `check-ai-env.ps1`
+
+**The reader's resource names live in a file, not in the conversation.** Do not
+interview them value by value, and do not go discovering names and guessing
+which one they meant. Both approaches put the reader's environment somewhere it
+cannot be reviewed, corrected or reused — the chat window.
+
+```powershell
+cd examples/ch05-ai-ready-sql
+./check-ai-env.ps1
+```
+
+That single command does everything Step 0 needs:
+
+1. `load-env.ps1` reads `ch05.env`. **If it does not exist, it is created from
+   `ch05.env.template` and the run stops.** Tell the reader to open it and fill
+   it in. That is the one thing you need from them, and it is a file to edit,
+   not five questions to answer.
+2. Any value still empty or still carrying `<angle brackets>` is reported by
+   name, and the run stops. A partly-filled file never reaches Azure.
+3. Every named resource is probed read-only and reported as **exists** or
+   **WILL BE CREATED**, with a closing line saying how many would be created.
+
+**Read the WILL BE CREATED lines back to the reader before running the deploy.**
+That list is the whole point of the check. A resource they expected to already
+have showing up as "will be created" means a typo in `ch05.env` or the wrong
+subscription — not a missing resource. Catching that here costs nothing;
+catching it afterwards can mean a 30–45 minute APIM provision they did not want.
+
+`check-ai-env.ps1` is read-only. Every call is a GET. It is always safe to run,
+including on someone else's environment, and it is the right first move when a
+reader reports that something is not working.
+
+The file also feeds the rest of the chapter, so nothing is asked for twice:
+
+| From `ch05.env` | Used by |
+|---|---|
+| `RG`, `SRV`, `AI_RESOURCE`, `PUBLISHER_EMAIL`, `SUBSCRIPTION_ID`, `CS_RESOURCE` | `deploy-ai.ps1` — it already reads these as its parameter defaults |
+| `AI_RESOURCE` | the `<your-foundry>` placeholder the reader edits into `06`, `08`, `10` (Step 2) |
+| `APIM_NAME` | the `<your-apim>` placeholder, and `reset-ai-azure.ps1` |
+| `WardGeneral__Server`, `WardGeneral__Database` | the app itself, at the highest precedence it honours — so `run-ai-app.ps1` needs no `-Server` or `-Database` (Step 5) |
+
+A variable already exported in the reader's shell **wins over the file**, and
+`load-env.ps1` says so rather than overwriting it silently. Someone who exported
+`SRV` by hand meant it.
+
+If the reader would rather not use the file at all, every script still takes
+explicit parameters. The file is the low-friction path, not a requirement.
+
 ## Step 1 — Pre-flight: the Azure AI resources
 
 ### Ask about the gateway first
@@ -169,8 +221,11 @@ has them set from the Chapter 2 deploy can just run `./deploy-ai.ps1`.
 - `-PublisherEmail` is APIM's required publisher contact. Not needed with
   `-NoGateway`.
 - The APIM and Content Safety resources are named for them, derived from the
-  Foundry name (`<foundry>-gateway`, `<foundry>-contentsafety`), unless they
-  override `-ApimName` / `-CsResourceName`.
+  Foundry name (`<foundry>-gateway`, `<foundry>-contentsafety`). `deploy-ai.ps1`
+  has **no `-ApimName`** — the gateway name is always derived. Content Safety
+  can be overridden with `-CsResourceName`, and `ch05.env`'s `APIM_NAME` exists
+  for `check-ai-env.ps1` and `reset-ai-azure.ps1`, both of which do accept a
+  non-derived gateway name.
 
 **Ask whether they already have a Content Safety resource, and what it is
 called.** The derived name is how the script decides one exists. If theirs is
