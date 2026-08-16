@@ -20,7 +20,14 @@ description: >-
   out", "the Research page returns nothing", "deploy the Ward General AI layer",
   "set up Foundry for wardgeneral", "build the embeddings", "add the AI
   assistance proc", "put an APIM gateway in front of gpt-5", "add content safety
-  to the gateway", "start Chapter 5 over", "reset the AI objects", "rebuild the
+  to the gateway", "what do I need before I start Chapter 5", "what are the
+  prerequisites for Chapter 5", "what permissions do I need", "what RBAC roles
+  do I need to deploy the AI resources", "is Contributor enough", "role
+  assignment failed / does not have authorization to perform action
+  'Microsoft.Authorization/roleAssignments/write'", "do I have enough quota for
+  gpt-5", "deployment create failed on quota", "what database permissions do I
+  need to run the Chapter 5 SQL", "start Chapter 5 over", "reset the AI
+  objects", "rebuild the
   AI layer from scratch", "clean up the Chapter 5 resources", "tear down the
   gateway", "my re-run didn't fix it", or is starting at Chapter 5 and wants the
   whole thing working
@@ -121,6 +128,58 @@ EXEC clinical.GenerateClinicalAssistance @EncounterId = 1001, @UseGateway = 0;  
   primary and the replica reads it; the replica's identity needs Foundry access
   too.
 
+### Azure permissions — raise this *before* Step 1, not after it fails
+
+`deploy-ai.ps1` both creates resources and grants them access to each other, and
+those need different rights. Creating Foundry, the model deployments, APIM and
+Content Safety, and assigning the server's managed identity, all need
+**Contributor** on the resource group. But it also makes three role assignments
+— the SQL server's identity and the gateway's identity each get **Cognitive
+Services OpenAI User** on Foundry (`azureaideploy.ps1`, `setup-ai-gateway.ps1`),
+and the gateway's identity gets **Cognitive Services User** on Content Safety
+(`add-content-safety.ps1`) — and each needs
+`Microsoft.Authorization/roleAssignments/write`: **Owner**, **User Access
+Administrator**, or **Role Based Access Control Administrator**. Contributor
+cannot create role assignments.
+
+This matters because of *where* it fails. The reader gets Foundry and both model
+deployments created and billing, then the run dies on the grant, and every later
+step depends on it — Chapter 5 authenticates with a managed identity and no key.
+If the reader has not said what rights they hold, have them check before you run
+anything:
+
+```powershell
+$sub = az account show --query id -o tsv
+$me  = az ad signed-in-user show --query id -o tsv
+az role assignment list --assignee $me `
+  --scope "/subscriptions/$sub/resourceGroups/<their-rg>" `
+  --include-inherited --query "[].roleDefinitionName" -o tsv
+```
+
+**Do not treat a clean `check-ai-env.ps1` as permission to proceed.** Its probes
+are read-only `GET`s — they report what exists, never what the reader may create
+or grant. Say so if they read a green pre-flight as an all-clear.
+
+- **Model quota** — each deployment asks for capacity **100**. If the region has
+  under 100 units free on `OpenAI.GlobalStandard.gpt-5` or
+  `OpenAI.GlobalStandard.text-embedding-3-large`, `deployment create` fails.
+  Filter the usage list in PowerShell, not with `--query`; on Windows `az.cmd`
+  re-parses the argument and a JMESPath expression breaks before the CLI sees it.
+
+  ```powershell
+  $want = @('OpenAI.GlobalStandard.gpt-5','OpenAI.GlobalStandard.text-embedding-3-large')
+  az cognitiveservices usage list -l <region> -o json | ConvertFrom-Json |
+    Where-Object { $want -contains $_.name.value } |
+    ForEach-Object { '{0}  used {1} of {2}' -f $_.name.value, $_.currentValue, $_.limit }
+  ```
+
+- **Database rights for `06`–`09`** — the reader connects with **CONTROL** on
+  `wardgeneral` (in practice `db_owner`, which the Chapter 2 admin login has).
+  That covers the database-scoped credential and the external model, and implies
+  **EXECUTE ANY EXTERNAL ENDPOINT** for `sp_invoke_external_rest_endpoint`. No
+  `sp_configure` step is needed — the procedure ships disabled on SQL Server 2025
+  and Managed Instance, but not on Azure SQL Database.
+
 ## Step 0 — `ch05.env`, then `check-ai-env.ps1`
 
 **The reader's resource names live in a file, not in the conversation.** Do not
@@ -172,31 +231,43 @@ explicit parameters. The file is the low-friction path, not a requirement.
 
 ## Step 1 — Pre-flight: the Azure AI resources
 
-### Ask about the gateway first
+### The gateway — caution them, do not interview them
 
-Before running anything, ask **one** question:
+`ch05.env` already carries this decision. `PUBLISHER_EMAIL` exists for nothing
+but APIM, so a reader who filled it in has asked for the gateway, and
+`deploy-ai.ps1` builds one by default. Do not turn a filled-in file back into a
+question.
 
-> **Do you want the APIM AI gateway?**
->
-> The chapter uses it — it is where Chapter 5's governance beat lives: token
-> limits, content safety on the way in and the way out, and a single audited
-> egress point for every model call the database makes. It is technically
-> optional; the AI assistance procedure works without it by calling the model
-> deployment directly.
->
-> The cost of saying yes: a first APIM StandardV2 provision takes **~30–45
-> minutes** and the instance is **always-on and billable** until you delete it.
->
-> **Recommended: yes**, unless you are on a tight budget or want the app on
-> screen in the next few minutes.
+What they do need, once, is the price of that default — and **Step 0 tells you
+whether to say it.** If `check-ai-env.ps1` reported the APIM gateway row as
+**WILL BE CREATED**, say this, and say it *before* you start `deploy-ai.ps1`:
 
-Do not skip this question and do not answer it for them. It is the one
-create-time decision in Chapter 5 that costs real money and real waiting, and a
-reader who discovers a 40-minute provision after the fact is entitled to be
-annoyed. If they say no, add `-NoGateway`, tell them to set `@UseGateway`'s
-default to `0` in `08` as that script instructs, and tell them they can add the
-gateway later by re-running `deploy-ai.ps1` without the switch and then running
-`10-ai-gateway.sql` — nothing is lost.
+> The APIM AI gateway is where Chapter 5's governance beat lives — token limits,
+> content safety on the way in and the way out, and a single audited egress point
+> for every model call the database makes. A first StandardV2 provision takes
+> **~30–45 minutes**, and the instance is **always-on and billable** until it is
+> deleted.
+
+A reader who discovers a 40-minute provision once it is already under way is
+entitled to be annoyed — that is the whole reason this caution exists, and Step 0
+is what lets you deliver it in time.
+
+If Step 0 reported the gateway as **exists**, say none of it. The provision does
+not happen a second time, and warning about 40 minutes of work that will not occur
+teaches the reader to skim past you.
+
+**You are the only warning.** `deploy-ai.ps1` prints no time-or-cost caution of its
+own — by the time it runs the decision is already made, and a warning there would
+be too late to act on. If you skip this because Step 0 said WILL BE CREATED and you
+did not read the row, nothing downstream catches it for you.
+
+The gateway is technically optional: the AI assistance procedure works without it
+by calling the model deployment directly. If *they* raise skipping it, add
+`-NoGateway`, tell them to set `@UseGateway`'s default to `0` in `08` as that
+script instructs, and tell them the gateway can be added later by re-running
+`deploy-ai.ps1` without the switch, putting that default back to `1` and re-running
+`08` — it is `CREATE OR ALTER`, so nothing is lost. Offer that as an escape hatch
+when they ask for it, not as a decision you put back to them.
 
 ### Then run it
 
@@ -211,8 +282,9 @@ cd examples/ch05-ai-ready-sql
 Nothing here has a default. That is deliberate: a default name is always
 *somebody's* environment, and a reader who forgets an argument would silently
 aim at it. Each one has an environment-variable equivalent — `SRV`, `RG`,
-`AI_RESOURCE`, `PUBLISHER_EMAIL`, `SUBSCRIPTION_ID` — so a session that still
-has them set from the Chapter 2 deploy can just run `./deploy-ai.ps1`.
+`AI_RESOURCE`, `PUBLISHER_EMAIL`, `SUBSCRIPTION_ID`, `CS_RESOURCE` — so a reader
+who filled in `ch05.env` (or still has them set from the Chapter 2 deploy) can
+just run `./deploy-ai.ps1` with no arguments at all.
 
 - `-SqlServerName` is the **short** name, not the FQDN. It is the server whose
   system-assigned managed identity gets the role.
@@ -222,18 +294,35 @@ has them set from the Chapter 2 deploy can just run `./deploy-ai.ps1`.
   `-NoGateway`.
 - The APIM and Content Safety resources are named for them, derived from the
   Foundry name (`<foundry>-gateway`, `<foundry>-contentsafety`). `deploy-ai.ps1`
-  has **no `-ApimName`** — the gateway name is always derived. Content Safety
-  can be overridden with `-CsResourceName`, and `ch05.env`'s `APIM_NAME` exists
-  for `check-ai-env.ps1` and `reset-ai-azure.ps1`, both of which do accept a
-  non-derived gateway name.
+  has **no `-ApimName`** — the gateway name is always derived. Content Safety can
+  be overridden with `-CsResourceName`, whose default is `$env:CS_RESOURCE`, so
+  `ch05.env` is the normal way to set it and the switch is rarely typed.
+  `ch05.env`'s `APIM_NAME` exists for `check-ai-env.ps1` and `reset-ai-azure.ps1`,
+  both of which do accept a non-derived gateway name.
 
-**Ask whether they already have a Content Safety resource, and what it is
-called.** The derived name is how the script decides one exists. If theirs is
-named anything else, a run creates a *second* Content Safety resource beside it
-and re-points the gateway policy at the new one — the single place in this
-pre-flight where a re-run against a working environment still creates something.
-Pass `-CsResourceName <their name>` (or `-NoContentSafety` to leave it alone).
-Both are on `deploy-ai.ps1` as well as `azureaideploy.ps1`.
+**Content Safety is already handled by `CS_RESOURCE` in `ch05.env`. Do not ask for
+it, and do not report passing it as work you have to do.** `load-env.ps1` sets
+`$env:CS_RESOURCE`, and `deploy-ai.ps1` declares
+`[string] $CsResourceName = ($env:CS_RESOURCE ?? '')` — the filled-in value is the
+parameter's default. It is already passed. Adding `-CsResourceName` to the command
+line changes nothing.
+
+So a name that differs from the derived `<foundry>-contentsafety` is **not a
+problem to flag** — it is the reason that line exists in the file. Telling a reader
+who filled it in that a second resource "would" be created is alarming and wrong:
+the file is what prevents that.
+
+Left at its template default, the derived name is used, and that derived name is
+how the script decides one already exists. That is the case worth a one-line
+caution, because it is the single place in the pre-flight where a re-run against a
+working environment still **creates** something — an existing Content Safety
+resource under some other name, with `CS_RESOURCE` left blank, means a run builds a
+*second* one beside it and re-points the gateway policy at the new one.
+
+Either way, do not narrate it. `deploy-ai.ps1` echoes the resolved name in its
+opening banner (`content safety : ...`) before it does anything — point at that.
+(`-NoContentSafety` skips it entirely. Both switches are on `deploy-ai.ps1` as well
+as `azureaideploy.ps1`.)
 
 What lands:
 
@@ -308,9 +397,9 @@ is genuinely unusual — **there is no app registration anywhere in it.**
   the completion. A block returns HTTP **403**.
 - `08-ai-assistance.sql` creates a second credential named for the gateway URL
   and builds the procedure with `@UseGateway BIT = 1` as the default, so the
-  governed route is live the first time the app calls it.
-- `10-ai-gateway.sql` does the same two things for a reader who deployed with
-  `-NoGateway` and added the gateway afterwards. Most readers never run it.
+  governed route is live the first time the app calls it. A reader who deployed
+  with `-NoGateway` and adds the gateway afterwards re-runs this same file with
+  the default put back to `1`; there is no separate gateway script.
 
 `deploy-ai.ps1` runs all three provisioning scripts for you. The pieces are
 separate so a reader can add the gateway to a working direct-path deployment
@@ -354,7 +443,7 @@ what `06` creates.
 | 2 | `07-vector-index.sql` | The DiskANN vector index over those embeddings. One statement, its own file — so it can be rebuilt without going near the corpus |
 | 3 | `08-ai-assistance.sql` | The gateway credential, then `clinical.GenerateClinicalAssistance` — retrieval, the `gpt-5` call via `sp_invoke_external_rest_endpoint` **routed through APIM**, and the append-only `clinical.AIAssistanceLog` ledger |
 | 4 | `09-research-vector-search.sql` | `clinical.SearchSimilarNotes` — retrieval only, no chat step. Deploy to the **primary**; the named replica reads it from shared storage |
-| — | `10-ai-gateway.sql` | **Only for a reader who took `-NoGateway` and later provisioned the gateway.** Creates the gateway credential and re-creates the procedure with APIM as its default. Skip it otherwise — `08` already did this |
+| — | `reset-ai-objects.sql` | **Destructive.** Only when they deliberately want to rebuild the AI layer from scratch — it discards every embedding. Run it on its own, before `06` |
 
 ### Warn them about `06` before they start it
 

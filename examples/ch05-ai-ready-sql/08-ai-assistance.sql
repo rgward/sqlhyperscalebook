@@ -68,8 +68,9 @@
    DEPLOYED WITH -NoGateway?
      You have no gateway to call, so make direct the default: change @UseGateway's
      default below from 1 to 0. (The credential block is harmless either way —
-     it validates nothing at create time.) If you add the gateway later, run
-     10-ai-gateway.sql to switch the default back.
+     it validates nothing at create time.) If you add the gateway later, put the
+     default back to 1 and re-run this script -- it is CREATE OR ALTER, so that
+     is the whole of it.
 
    All data created by these scripts is fully synthetic. No real PHI.
    ============================================================================ */

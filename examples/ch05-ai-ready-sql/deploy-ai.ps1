@@ -149,11 +149,12 @@ Write-Host "  sql server     : $SqlServerName" -ForegroundColor Gray
 Write-Host "  gateway        : $(if ($NoGateway) { 'no -- the proc calls the gpt-5 deployment directly' } else { 'yes -- APIM + content safety' })" -ForegroundColor Gray
 Write-Host "  content safety : $(if ($NoGateway -or $NoContentSafety) { 'skipped' } elseif ($CsResourceName) { $CsResourceName } else { "$AiResourceName-contentsafety (default)" })" -ForegroundColor Gray
 
-if (-not $NoGateway) {
-    Write-Host ''
-    Write-Host '  Note: a first APIM StandardV2 provision takes ~30-45 minutes and is billable.' -ForegroundColor Yellow
-    Write-Host '        Re-runs skip it. -NoGateway avoids it entirely.' -ForegroundColor Yellow
-}
+# No APIM time-and-cost warning here, deliberately. By the time this script is
+# running the decision is already made, so a warning at this point is too late to
+# act on and only competes with the banner above. check-ai-env.ps1 is where that
+# caution lives: it reports the gateway as WILL BE CREATED and says what the
+# provision costs in time and money, before anyone commits to a deploy. One
+# warning, in the one place a reader can still change their mind.
 
 $azureArgs = @{
     ResourceGroup  = $ResourceGroup
@@ -222,7 +223,8 @@ Write-Host '      progress with verify-embeddings.sql and stop when MISSING=0.' 
 if ($NoGateway) {
     Write-Host ''
     Write-Host '      Changed your mind about the gateway later? Re-run this script without' -ForegroundColor Gray
-    Write-Host '      -NoGateway, then run 10-ai-gateway.sql. Nothing is lost.' -ForegroundColor Gray
+    Write-Host '      -NoGateway, put @UseGateway''s default in 08 back to 1, and re-run 08.' -ForegroundColor Gray
+    Write-Host '      It is CREATE OR ALTER, so nothing is lost.' -ForegroundColor Gray
 }
 Write-Host ''
 Write-Host ' Then put it on screen:' -ForegroundColor Cyan

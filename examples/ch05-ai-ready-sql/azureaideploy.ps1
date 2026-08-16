@@ -69,8 +69,8 @@
 .PARAMETER NoGateway
     Skip the APIM AI gateway and content safety entirely. The database then calls
     the model deployment directly, and 08-ai-assistance.sql needs its @UseGateway
-    default changed from 1 to 0 (the script says where). 10-ai-gateway.sql exists
-    to reverse this later if you change your mind.
+    default changed from 1 to 0 (the script says where). To reverse this later,
+    put the default back to 1 and re-run 08 -- it is CREATE OR ALTER.
 
 .PARAMETER NoContentSafety
     Provision the gateway but skip the content-safety resource and its policy.
@@ -272,7 +272,7 @@ Write-Host '   2. 07-vector-index.sql           the DiskANN vector index' -Foreg
 Write-Host '   3. 08-ai-assistance.sql          the assistance proc + its append-only ledger' -ForegroundColor Gray
 Write-Host '   4. 09-research-vector-search.sql the retrieval-only proc for the named replica' -ForegroundColor Gray
 if (-not $Gateway) {
-    Write-Host '   Later, if you add the gateway: re-run without -NoGateway, then 10-ai-gateway.sql' -ForegroundColor Gray
+    Write-Host '   Later, if you add the gateway: re-run without -NoGateway, then re-run 08' -ForegroundColor Gray
 }
 Write-Host ''
 Write-Host ' 06 embeds ~60K notes (~3-3.5 hr) — longer than an Entra token lives, so the' -ForegroundColor Gray

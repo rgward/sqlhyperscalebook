@@ -135,13 +135,15 @@ if (-not $NoGateway) {
     $csOk = [bool] (Get-AzValue @('cognitiveservices', 'account', 'show', '-n', $cs, '-g', $rg, '--query', 'name', '-o', 'tsv'))
     Add-Row 'Content Safety' $cs $csOk 'WILL BE CREATED'
 
-    # The one value in this chapter that changes behaviour rather than naming.
-    if ($cs -ne $csDeriv) {
-        $notes.Add("CS_RESOURCE is set to '$cs', which is not the derived name '$csDeriv'. Pass -CsResourceName $cs to deploy-ai.ps1, or it will create '$csDeriv' alongside yours and re-point the gateway policy at the new one.")
-    } elseif (-not $csOk) {
+    # The one value in this chapter that changes behaviour rather than naming -
+    # but only worth a note when something is actually about to be created. A
+    # resource that already exists needs no comment: the row above says so, and
+    # CS_RESOURCE being a non-derived name is the entry working, not a problem.
+    # Say nothing then, or the reader goes hunting for an action that isn't there.
+    if (-not $csOk) {
         $existingCs = Get-AzValue @('cognitiveservices', 'account', 'list', '-g', $rg, '--query', "[?kind=='ContentSafety'].name", '-o', 'tsv')
         if ($existingCs) {
-            $notes.Add("No Content Safety resource named '$csDeriv', but this group already has: $($existingCs -replace '\r?\n', ', '). If you meant to reuse one, put its name in CS_RESOURCE - otherwise a second one is created.")
+            $notes.Add("No Content Safety resource named '$cs', but this group already has: $($existingCs -replace '\r?\n', ', '). If you meant to reuse one, put its name in CS_RESOURCE - otherwise a second one is created.")
         }
     }
 }
