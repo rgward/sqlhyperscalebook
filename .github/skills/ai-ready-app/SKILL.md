@@ -322,8 +322,10 @@ Read-only, safe any time. It reports:
 
 - `NOTES` vs `EMBEDDED` vs `NULL_EMB` vs `MISSING` — **you want `MISSING=0`**
 - that `VIX_ClinicalNoteEmbeddings_Embedding` exists
-- the byte length of a stored vector — **6,144 bytes** = 3,072 dimensions ×
-  float16
+- the byte length of a stored vector — **6,152 bytes** = 3,072 dimensions ×
+  float16 (6,144 bytes of payload) **plus 8 bytes** the vector type carries per
+  value. The 8 bytes are constant — same for `float32`, same at any dimension —
+  and are not documented on Learn; they are observed against a live database.
 
 `MISSING` greater than zero means the corpus is incomplete, not broken. Send them
 back to re-run `06`. Its step-4 loop skips what already exists.

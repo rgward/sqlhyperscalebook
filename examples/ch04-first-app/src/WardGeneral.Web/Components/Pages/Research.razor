@@ -21,6 +21,15 @@
     <input class="form-control"
            placeholder="Describe a case, e.g. 'elderly chest pain with elevated troponin'"
            @bind="Query" @bind:event="oninput" @onkeydown="OnKey" />
+    <span class="input-group-text">Top</span>
+    <select class="form-select flex-grow-0" style="width:5.5rem"
+            @bind="TopK" disabled="@_busy"
+            title="How many notes to return. The vector search is ranked, so a larger number shows where one cohort ends and the next begins.">
+        <option value="10">10</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+    </select>
     <button class="btn btn-primary" @onclick="Search"
             disabled="@(_busy || string.IsNullOrWhiteSpace(Query))">
         @(_busy ? "Searching…" : "Search")
@@ -61,6 +70,13 @@ else
 
 @code {
     private string Query = "";
+
+    // How many notes to return. Passed straight through to @TopK on
+    // clinical.SearchSimilarNotes, which becomes the TOP (N) of the
+    // approximate vector search — so this is a real change to the query,
+    // not a client-side trim of a fixed result set.
+    private int TopK = 10;
+
     private IReadOnlyList<NoteSearchResult>? _results;
     private bool _busy;
     private string? _error;
@@ -78,7 +94,7 @@ else
         StateHasChanged();
         try
         {
-            _results = await Repo.SearchSimilarNotesAsync(Query.Trim(), topK: 10);
+            _results = await Repo.SearchSimilarNotesAsync(Query.Trim(), TopK);
         }
         catch (Exception ex)
         {

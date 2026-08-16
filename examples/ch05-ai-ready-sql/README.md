@@ -83,11 +83,11 @@ naming exactly which placeholders it carries.
 | `add-content-safety.ps1` | PowerShell | Adds the input and output content-safety policies to the gateway. |
 | `06-ai-embeddings.sql` | SQL | The external model, the credential, `clinical.ClinicalNoteEmbeddings`, and the embeddings themselves. The longest-running script here. |
 | `07-vector-index.sql` | SQL | The DiskANN vector index over those embeddings. One statement, kept in its own file because it is the piece you may legitimately want to rebuild on its own — the vectors are hours of metered work, the index is not. |
+| `07b-updateable-index-proof.sql` | SQL | Optional, and not part of the application. Proves the index is **updateable**: it embeds a query once, searches, inserts one note and its embedding, then runs the identical search against the same query vector and finds the new note at rank 1. Deletes it again and searches a third time. No rebuild anywhere. |
 | `08-ai-assistance.sql` | SQL | `clinical.GenerateClinicalAssistance`: retrieval over the corpus, a chat call through `sp_invoke_external_rest_endpoint` routed via the APIM gateway, and the append-only `clinical.AIAssistanceLog` ledger. Also creates the credential the gateway hop uses. |
 | `09-research-vector-search.sql` | SQL | The retrieval-only procedure behind the Research page — semantic search with no chat step. Run it against the **primary**; because procedures live in shared storage, it is then callable on the `wardgeneral-research` named replica. This is the read scale-out beat: research queries get their own compute over the same page servers, with no data copy and no separate vector store. |
 | `10-ai-gateway.sql` | SQL | **Most readers never run this.** For the `-NoGateway` reader who later adds the gateway: creates the gateway credential and re-creates `GenerateClinicalAssistance` with APIM as its default route. |
 | `verify-embeddings.sql` | SQL | Read-only check: notes vs embedded vs missing, the vector index, and the byte length of a stored vector (3,072 dimensions). |
-| `reseed-notes.sql` | SQL | Maintenance helper: rebuilds `clinical.ClinicalNote` only, leaving an empty embeddings table. Patients, encounters, labs and medications are left untouched. |
 | `run-ai-app.ps1` | PowerShell | Builds the Chapter 4 application and starts it with the `AiAssistance` feature flag on. |
 
 ## Running the SQL scripts (and re-running them)
@@ -100,6 +100,7 @@ Run them **in this order, once**:
 | 2 | `07-vector-index.sql` | `06`, with at least 100 embedded notes. Below that it skips the index and says so; exact scan still works. |
 | 3 | `08-ai-assistance.sql` | `06` — the procedure reads the table and external model `06` creates. Faster with `07`, correct without it. |
 | 4 | `09-research-vector-search.sql` | `06`, for the same reason. Independent of `08`. |
+| — | `07b-updateable-index-proof.sql` | `07`, with the index actually created. Optional demonstration; inserts one note and removes it again, so it is safe to run any time and safe to repeat. |
 | — | `verify-embeddings.sql` | `06` has run at least once. Read-only; safe any time. |
 | — | `10-ai-gateway.sql` | Only if you deployed with `-NoGateway` and have since provisioned the gateway. Most readers never run this. |
 
@@ -140,8 +141,9 @@ end without regenerating the corpus.
   `CREATE OR ALTER` and touch no data.
 - **Fill in missing embeddings** → re-run `06`. Its step-4 loop embeds only what
   is missing, 1,000 rows per committed batch, so it resumes rather than restarts.
-- **Rebuild the note corpus** → `reseed-notes.sql`, then re-run `06` and `07`.
-  This leaves patients and encounters intact.
+- **Start the embeddings over** → `TRUNCATE TABLE clinical.ClinicalNoteEmbeddings`,
+  then re-run `06` and `07`. The note corpus itself comes from Chapter 2's
+  `05-seed.sql`, which is the only script that generates it.
 - **Rebuild the vector index** → re-run `07`. It drops and recreates the index,
   and it is the only script that touches it. Rarely necessary — the index is
   updateable, so rows added later are indexed as they land — but it is quick and
@@ -154,6 +156,27 @@ end without regenerating the corpus.
   goes through APIM, `@UseGateway = 0` calls the deployment directly. Same
   payload, same result set — the returned `Path` column and the audit row tell
   you which one you got.
+
+### If you re-run Chapter 2's `05-seed.sql`
+
+Reseeding the database **removes everything in this folder's output**, and you
+have to deploy `06`, `07` and `08` again afterwards.
+
+The reason is foreign keys. Two tables created here point at data the seed owns —
+`clinical.ClinicalNoteEmbeddings` at `ClinicalNote`, and `clinical.AIAssistanceLog`
+at `Encounter` — and a foreign key blocks `TRUNCATE` outright, whether or not the
+child holds a single row. So the seed drops both before it reloads. Embeddings
+are derived data and meaningless once the notes they were computed from are gone,
+so this is not a loss so much as a consequence: **the full embedding run has to
+happen again, and it is the expensive step.** Reseed deliberately, not casually.
+
+`clinical.AIAssistanceLog` is dropped rather than emptied because `08` creates it
+as an append-only ledger table, which supports neither `DELETE` nor `TRUNCATE`
+([Ledger considerations and limitations](https://learn.microsoft.com/sql/relational-databases/security/ledger/ledger-limits),
+items 3 and 4). Dropping one is a soft delete by design — the object is renamed
+to `MSSQL_DroppedLedgerTable_*` and physically retained so the ledger digest
+stays verifiable ([DROP TABLE, Remarks](https://learn.microsoft.com/sql/t-sql/statements/drop-table-transact-sql#remarks)).
+Each reseed leaves one more behind and **they are meant to stay.** Leave them.
 
 ## Adding the gateway later
 

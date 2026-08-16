@@ -63,10 +63,22 @@ SET NUMERIC_ROUNDABORT OFF;
 GO
 
 /* Stop before doing damage if the find-and-replace above has not been done.
-   After the replace, these literals no longer match. */
-IF 'https://<your-foundry>.openai.azure.com/' LIKE '%<your-foundry>%'
-   OR 'https://<your-apim>.azure-api.net/' LIKE '%<your-apim>%'
-    THROW 50001, 'Replace <your-foundry> and <your-apim> throughout this file before running it. See the BEFORE YOU RUN block above.', 1;
+
+   The patterns bracket the angle characters — [<]your-foundry[>] — so that your
+   find-and-replace rewrites the literal being tested but NOT the pattern testing
+   it. Replace both sides and the comparison reduces to "does this URL contain
+   the name in this URL", which is true for every possible name, so the guard
+   fires forever.
+
+   And it sets NOEXEC rather than throwing, because THROW ends only its own
+   batch — every batch after the next GO still runs. Under NOEXEC the rest of the
+   file compiles and does nothing. The last line of this file turns it off. */
+IF 'https://<your-foundry>.openai.azure.com/' LIKE '%[<]your-foundry[>]%'
+   OR 'https://<your-apim>.azure-api.net/' LIKE '%[<]your-apim[>]%'
+BEGIN
+    RAISERROR('Replace <your-foundry> and <your-apim> throughout this file before running it. See the BEFORE YOU RUN block above. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END
 GO
 
 /* ---- 1. Gateway credential (DB -> APIM, via the server's managed identity) ---- */
@@ -337,4 +349,10 @@ END;
 GO
 
 PRINT '  clinical.GenerateClinicalAssistance now defaults to the gateway (@UseGateway = 1).'
+GO
+
+/* Clear the placeholder guard, whether or not it fired, so the session is left
+   executing normally. If the only output you saw was the guard's error, nothing
+   above this line ran. */
+SET NOEXEC OFF;
 GO

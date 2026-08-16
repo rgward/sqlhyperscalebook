@@ -13,7 +13,9 @@ SELECT i.name AS index_name, i.type_desc
 FROM sys.indexes i
 WHERE i.name = 'VIX_ClinicalNoteEmbeddings_Embedding';
 
--- 3. Prove a stored vector is real: byte length (3072 dims x float16 = 6144 bytes)
+-- 3. Prove a stored vector is real: byte length. 3072 dims x float16 = 6144 bytes
+--    of payload, plus 8 bytes the vector type carries per value = 6152. The same
+--    8 bytes show up as max_length in sys.columns, and hold for float32 too.
 SELECT TOP (1)
     NoteId,
     DATALENGTH(Embedding) AS embedding_bytes

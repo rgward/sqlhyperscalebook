@@ -65,9 +65,24 @@ GO
    Section 2 DROPs and recreates the external model, so running this file with
    the placeholder intact would replace a working model with one pointed at a
    hostname that does not resolve — and nothing would look wrong until a query
-   tried to embed. After the replace, this literal no longer matches. */
-IF 'https://<your-foundry>.openai.azure.com/' LIKE '%<your-foundry>%'
-    THROW 50001, 'Replace <your-foundry> throughout this file with your Microsoft Foundry resource name before running it. See the BEFORE YOU RUN block above.', 1;
+   tried to embed.
+
+   Two details make this guard work, and both are easy to get wrong.
+
+   The pattern brackets the angle characters — [<]your-foundry[>] — so that your
+   find-and-replace rewrites the literal being tested but NOT the pattern testing
+   it. Replace both sides and the comparison reduces to "does this URL contain
+   the name in this URL", which is true for every possible name, so the guard
+   fires forever.
+
+   And it sets NOEXEC rather than throwing, because THROW ends only its own
+   batch — every batch after the next GO still runs, DROP included. Under NOEXEC
+   the rest of the file compiles and does nothing. The last line turns it off. */
+IF 'https://<your-foundry>.openai.azure.com/' LIKE '%[<]your-foundry[>]%'
+BEGIN
+    RAISERROR('Replace <your-foundry> throughout this file with your Microsoft Foundry resource name before running it. See the BEFORE YOU RUN block above. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END
 GO
 
 /* ---- 1. Master key + passwordless credential --------------------------- */
@@ -197,4 +212,10 @@ PRINT '  Embeddings present: ' + CAST(@n AS VARCHAR(20));
 GO
 
 PRINT '06-ai-embeddings.sql complete — external model + embeddings ready. Next: 07-vector-index.sql';
+GO
+
+/* Clear the placeholder guard, whether or not it fired, so the session is left
+   executing normally. If the only output you saw was the guard's error, nothing
+   above this line ran. */
+SET NOEXEC OFF;
 GO

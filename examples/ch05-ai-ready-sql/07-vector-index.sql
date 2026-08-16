@@ -19,7 +19,9 @@
      ref: https://learn.microsoft.com/azure/azure-sql/database/doc-changes-updates-release-notes-whats-new  (accessed 2026-07-20)
 
    Because the index is updateable, re-running this script after adding notes
-   is unnecessary — new rows are indexed as they land.
+   is unnecessary — new rows are indexed as they land. 07b-updateable-index-proof.sql
+   demonstrates exactly that, if you want to watch it happen rather than take
+   this comment's word for it.
 
    PREREQUISITES:
      * 06-ai-embeddings.sql already run, with at least 100 embedded notes.
