@@ -111,7 +111,7 @@ Chapter 5 proc is missing.
 | File | What it does |
 |---|---|
 | `WardGeneral.slnx` | The solution. Three projects, all under `src/`. |
-| `build.ps1` | Restore + build. `-Clean` for a from-scratch build, `-Configuration Release` to switch config. Runs `preflight-build.ps1` first. |
+| `build.ps1` | Restore + build. `-Clean` for a from-scratch build (stop the app first — see [Rebuilding from scratch](#rebuilding-from-scratch)), `-Configuration Release` to switch config. Runs `preflight-build.ps1` first. |
 | `run.ps1` | Start the app and open your real browser. `-Server` / `-Database` override configuration for this run. |
 | `restart.ps1` | Stop, then start. **This is how you flip a feature flag** — `-Enable` takes the complete list of flags to force on. |
 | `shutdown.ps1` | Stop the app and free the ports. |
@@ -241,6 +241,35 @@ To stop:
 ```powershell
 ./shutdown.ps1
 ```
+
+### Rebuilding from scratch
+
+`build.ps1 -Clean` is the from-scratch build: it deletes every `bin/`, `obj/` and
+`publish/` folder under `src/` and then builds, so nothing stale survives. That
+is the whole of the application's state — there are no user secrets and no
+generated files elsewhere — so a clean build really does start from nothing.
+
+**Stop the app first.**
+
+```powershell
+./shutdown.ps1
+./build.ps1 -Clean
+```
+
+A running app holds its own DLLs open, and Windows will not delete a file that is
+in use. The deletion is deliberately written with `-ErrorAction SilentlyContinue`,
+because a `bin/` folder that is partly missing is normal and not worth failing
+over — but the consequence is that a locked file is skipped **silently**. The
+script still prints `removing ...` for the folder, the build still runs, and you
+are left with exactly the stale assembly you were trying to get rid of, with
+nothing in the output saying so. Stopping the app first avoids the whole problem.
+
+If you are rebuilding because you changed a feature flag rather than code, you do
+not need `-Clean` at all — use `restart.ps1 -Enable <flag>`, which stops the app,
+rebuilds and restarts it with the flag set.
+
+Nothing here touches the database. `-Clean` rebuilds the *application*; the
+Chapter 5 AI objects and the Chapter 2 schema have their own reset paths.
 
 ## Flipping a feature flag (later chapters)
 

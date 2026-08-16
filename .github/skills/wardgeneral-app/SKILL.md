@@ -114,6 +114,7 @@ because it comes next in this file.
 | **run / start** ("run the app", "start the hospital app") | steps 1, 2, 4 | `run.ps1` |
 | **build and run** (both named) | steps 1, 2, 3, 4 | `run.ps1` |
 | **restart / flip a flag** | step 5 | `restart.ps1` |
+| **rebuild from scratch** ("clean build", "rebuild it clean", "start the app over") | `shutdown.ps1`, then step 3 with `-Clean` | `build.ps1 -Clean` |
 | **stop** | — | `shutdown.ps1` |
 
 A build touches nothing in Azure: no sign-in, no subscription, no firewall rule,
@@ -178,6 +179,29 @@ az login   # or sign in to Visual Studio / VS Code with an identity that has DB 
 ./examples/ch04-first-app/build.ps1
 # -Configuration Release, or -Publish to dotnet publish the web app
 ```
+
+**Rebuilding from scratch.** `-Clean` deletes every `bin/`, `obj/` and `publish/`
+folder under `src/` before building. That is all of the app's state — there are
+no user secrets — so it genuinely starts from nothing.
+
+**Stop the app before a clean build.**
+```powershell
+./examples/ch04-first-app/shutdown.ps1
+./examples/ch04-first-app/build.ps1 -Clean
+```
+
+A running app holds its DLLs open and Windows will not delete a file in use. The
+deletion uses `-ErrorAction SilentlyContinue`, so a locked file is skipped
+**silently** — the script still prints `removing ...`, the build still succeeds,
+and the stale assembly survives with nothing in the output saying so. If a reader
+reports that a code change "didn't take effect" after a clean build, this is the
+first thing to check: was the app running?
+
+Do not reach for `-Clean` to pick up a **feature flag** — that is `restart.ps1
+-Enable <flag>` (step 5), which stops, rebuilds and restarts in one move.
+
+`-Clean` rebuilds the *application only*. It touches no Azure resource and no
+database; the Chapter 5 AI objects have their own reset path (`ai-ready-app`).
 `build.ps1` calls `preflight-build.ps1` first (SDK 10+, HTTPS dev cert).
 
 **If the reader only asked to build, you are done here.** Report the result and
