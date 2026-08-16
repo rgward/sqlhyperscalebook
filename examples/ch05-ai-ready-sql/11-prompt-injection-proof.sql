@@ -62,9 +62,12 @@
              "jailbreak": { "detected": true, "filtered": true }, ... } }
 
      **Prompt Shields for direct attacks is GA and ON BY DEFAULT** on an Azure
-     OpenAI deployment (Learn, "Configure content filters" -> content filter
-     configurability table, accessed 2026-08-16). It was optional and default
-     OFF back when it was called "Jailbreak risk detection"; that changed.
+     OpenAI deployment. "User prompt injection attack (jailbreak)" is listed as
+     a default policy for text models (Learn, "Default Guardrail policies for
+     Azure OpenAI", accessed 2026-08-16), and the same page documents exactly
+     what we saw: a filtered request "returns an HTTP 400 error with a
+     content_filter code". It was optional and default OFF back when it was
+     called "Jailbreak risk detection"; that changed.
 
      So this demo does NOT show "governed = safe, direct = compromised." Both
      paths refuse. What it shows is more honest and more useful:
@@ -82,10 +85,12 @@
 
      One more wrinkle worth knowing: Prompt Shields for INDIRECT attacks —
      injections that arrive inside data rather than typed by a user, which is
-     precisely this threat model — is **default OFF** (same Learn table). Our
-     payload happens to read like a textbook DIRECT attack, so the direct-
-     attack shield caught it. A subtler injection shaped for the data channel
-     is exactly the gap the gateway is there to close.
+     precisely this threat model — is **default OFF**, and switching it on
+     requires you to mark up which part of the prompt is untrusted document
+     content (Learn, "Configure content filters" -> "Understand other filters"
+     table, accessed 2026-08-16). Our payload happens to read like a textbook
+     DIRECT attack, so the direct-attack shield caught it. A subtler injection
+     shaped for the data channel is exactly the gap the gateway closes.
 
    DETECTION IS A MODEL, NOT A REGEX:
      Prompt Shields is a classifier. The payloads below are deliberately
