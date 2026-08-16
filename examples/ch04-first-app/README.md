@@ -117,6 +117,8 @@ Chapter 5 proc is missing.
 | `shutdown.ps1` | Stop the app and free the ports. |
 | `preflight-build.ps1` | Checks the .NET 10 SDK is present before building. |
 | `preflight-run.ps1` | Checks `az login`, the server firewall, and that the database answers, before starting. `-SkipFirewall` to skip the firewall step. |
+| `ch04.env.template` | The two values this chapter needs, as placeholders. Copy it to `ch04.env` and fill it in — see [Configuring the connection](#configuring-the-connection). |
+| `load-env.ps1` | Reads `ch04.env` into the environment. `run.ps1` and `preflight-run.ps1` call it for you; run it yourself to create the file the first time. |
 
 ### The projects
 
@@ -208,24 +210,74 @@ the next section.
 
 No password appears anywhere. The connection uses
 `Authentication=ActiveDirectoryDefault`, which resolves your `az login` identity
-through `DefaultAzureCredential`.
+through `DefaultAzureCredential`. The only thing to configure is **which server
+to talk to**.
 
 `appsettings.json` ships the **shape, not the values** — `Server` is
 deliberately empty. Supply yours in one of three places; **highest wins**:
 
 1. `WardGeneral__Server` / `WardGeneral__Database` environment variables — what
-   `run.ps1 -Server` sets
+   `ch04.env` fills in, and what `run.ps1 -Server` sets
 2. `appsettings.Development.json` — git-ignored, local to you
 3. `appsettings.json` itself
 
-If `Server` is still blank the app **fails at startup** and names all three
+If `Server` is still blank the app **fails at startup** and names all these
 places. That is deliberate: a silent fallback to `localhost` is a worse first
 five minutes than an explicit error.
+
+### The easy way: `ch04.env`
+
+Copy the template, fill in two values, and every script in this folder picks
+them up:
+
+```powershell
+Copy-Item ch04.env.template ch04.env
+```
+
+```ini
+WardGeneral__Server=<your-sql-server>.database.windows.net
+WardGeneral__Database=wardgeneral
+```
+
+Or run `./load-env.ps1` once with no arguments — if `ch04.env` is missing it
+makes it from the template and tells you to fill it in.
+
+`ch04.env` is **git-ignored**. Your server name never reaches a commit, and a
+`git pull` never collides with your edits. `ch04.env.template`, which holds
+nothing but placeholders, is the part that ships.
+
+`run.ps1` and `preflight-run.ps1` load it automatically, so after this
+`./run.ps1` on its own is enough — no `-Server` needed. A value still in
+`<angle brackets>` counts as unfilled and is ignored, so a half-edited file
+cannot quietly point the app somewhere wrong.
+
+A few things worth knowing:
+
+- **The file is optional.** It is the most convenient of the three ways, not a
+  new requirement. If you already use `appsettings.Development.json` or pass
+  `-Server`, nothing changes and you never need to create it.
+- **It stands on its own.** Copy the values out of your Chapter 2 notes if you
+  like, but Chapter 4 never reaches into another chapter to find them. Chapter 5
+  has its own `ch05.env` for the same reason — the chapters can be done in any
+  order, months apart.
+- **The shell wins.** If you have already exported `WardGeneral__Server` by
+  hand, the file will not overwrite it — it says so instead. Pass
+  `./load-env.ps1 -Force` if you want the file to win.
+- **This one wants the FQDN.** `WardGeneral__Server` goes into a connection
+  string, so it needs `contoso-sql-01.database.windows.net`, not the short name
+  the `az` commands take.
 
 ## Running it
 
 ```powershell
 ./build.ps1
+./run.ps1
+```
+
+That assumes you filled in `ch04.env` above. Without it, name the server on the
+command line instead:
+
+```powershell
 ./run.ps1 -Server <your-server>.database.windows.net
 ```
 

@@ -9,7 +9,12 @@ description: >-
   "run the Ward General app", "Run Ward General Hospital app", "start the Ward
   General Hospital app", "start the hospital app", "get the chart app running",
   "build the Chapter 4 app", or wants to point the app at the wardgeneral
-  Hyperscale database and see the patient chart in a browser. Covers: the example
+  Hyperscale database and see the patient chart in a browser. ALSO USE WHEN they
+  say "configure the app", "point the app at my database", "set up ch04.env",
+  "where do I put my server name", or "the app can't find my server" — their
+  values live in ch04.env, which they fill in once from ch04.env.template; never
+  interview them for a server name and never go discovering one (step 1).
+  Covers: the example
   layout, configuring the passwordless (Microsoft Entra) connection, building with
   build.ps1, running with run.ps1, restarting with restart.ps1 -Enable to pick up
   a feature flag, stopping with shutdown.ps1, and what each screen shows. Scope is
@@ -56,6 +61,9 @@ examples/ch04-first-app/
       appsettings.json                   shape only — Server ships EMPTY on purpose
       appsettings.Development.json       git-ignored: YOUR server / database go here
   WardGeneral.slnx        solution (both projects)
+  ch04.env.template       the two values this chapter needs, as placeholders
+  ch04.env                git-ignored: YOUR filled-in copy (create it, step 1)
+  load-env.ps1            reads ch04.env into the environment
   build.ps1               builds the solution
   run.ps1                 runs the app and opens your default browser
   restart.ps1             stops it, then runs it again (use after a config change)
@@ -125,45 +133,57 @@ don't ask the reader for a server name just to compile.
 
 *Skip this step for a build-only request — compiling needs no server name.*
 
-**Before running the app, ASK the reader for their logical server name.** The
-committed `appsettings.json` ships with `"Server": ""` — no live server name is
-ever a committed default — so this step is mandatory, not optional. Don't guess a
-name and don't reuse one from another chapter's output.
+**The reader's server name lives in a file, not in the conversation.** Do not
+interview them for it, and do not run `az sql server list` and guess which of the
+results they meant. Both put their environment somewhere it cannot be reviewed,
+corrected or reused — the chat window.
 
-If they don't know it, offer to find it:
 ```powershell
-az sql server list -o table
+cd examples/ch04-first-app
+./load-env.ps1
 ```
 
-Then write it to the **git-ignored** local overlay,
-`examples/ch04-first-app/src/WardGeneral.Web/appsettings.Development.json`:
-```json
-{
-  "WardGeneral": {
-    "Server": "<your-server>.database.windows.net",
-    "Database": "wardgeneral"
-  }
-}
+If `ch04.env` does not exist, that **creates it from `ch04.env.template` and
+stops**. Tell the reader to open it and fill in two values:
+
+```ini
+WardGeneral__Server=<your-sql-server>.database.windows.net
+WardGeneral__Database=wardgeneral
 ```
 
-ASP.NET Core layers three sources, highest wins — explain this once, because it is
-the reusable pattern, not a Ward General quirk:
+That is the one thing you need from them, and it is a file to edit rather than a
+question to answer. `run.ps1` and `preflight-run.ps1` both load it automatically,
+so once it is filled in `./run.ps1` needs no `-Server`.
+
+Two details that decide whether this works:
+
+- **`WardGeneral__Server` wants the FQDN**, `contoso-sql-01.database.windows.net`
+  — it goes into a connection string. The short name is what the `az` commands
+  take, and the two are not interchangeable. This is the most likely thing a
+  reader gets wrong.
+- **A value still in `<angle brackets>` is treated as unfilled and ignored**, so a
+  half-edited file cannot quietly point the app somewhere wrong. A variable
+  already exported in the reader's shell **wins over the file**, and `load-env.ps1`
+  says so rather than overwriting it silently.
+
+The file is **optional** — it is the low-friction path, not a requirement. Two
+other ways still work, and if the reader already uses one, leave it alone:
 
 | Layer | Where | Use it for |
 |---|---|---|
 | 1. `appsettings.json` | committed | the **shape**, and only values that are true everywhere (`Database`, `Deployment`) |
 | 2. `appsettings.Development.json` | git-ignored | **your** environment — server name, AI endpoint |
-| 3. `WardGeneral__Server` env var | shell | one-off overrides; `run.ps1 -Server` sets exactly this |
+| 3. `WardGeneral__Server` env var | shell | what `ch04.env` populates; `run.ps1 -Server` sets exactly this |
 
-So `./run.ps1 -Server <your-server>.database.windows.net` works with no file edit
-at all — offer that if the reader just wants to try it once.
+Highest wins. So `./run.ps1 -Server <your-server>.database.windows.net` works with
+no file at all — offer that if the reader just wants to try it once.
 
 None of these is a secret: there is no password, and the connection uses the
 reader's Entra sign-in. They are *environment* values, kept out of the commit so
 nobody inherits someone else's server.
 
 If `Server` is still blank, the app **fails at startup** with a message naming
-all three options — by design. That is not a bug to work around.
+every option — by design. That is not a bug to work around.
 
 The Azure OpenAI endpoint (`Agent:Endpoint`) is blank for the same reason, but a
 Chapter 4 reader never needs it — it belongs to the `AiAgent` flag (Chapter 6,
@@ -301,9 +321,13 @@ app. It self-hides only if `clinical.vChartNoteSignals` hasn't been deployed.
   subscription is active, not a missing rule. `az account show`, then
   `az account set --subscription <name-or-id>` and re-run.
 - **"WardGeneral:Server is not configured"** — expected on a fresh clone;
-  `appsettings.json` ships blank. Do step 1.
-- **"No such host is known"** — the server name is wrong. Check
-  `appsettings.Development.json` (or `$env:WardGeneral__Server`) against
+  `appsettings.json` ships blank. Do step 1. If they *did* create `ch04.env`,
+  check the value is not still in `<angle brackets>` — that counts as unfilled
+  and is ignored on purpose.
+- **"No such host is known"** — the server name is wrong. The usual cause is the
+  **short name where the FQDN belongs**: `WardGeneral__Server` needs
+  `contoso-sql-01.database.windows.net`, not `contoso-sql-01`. Check `ch04.env`
+  (or `appsettings.Development.json`, or `$env:WardGeneral__Server`) against
   `az sql server list -o table`.
 - **HSTS / blank page on http://** — a prior HTTPS run cached HSTS for localhost.
   `run.ps1` serves both HTTP and HTTPS to handle this; use the HTTPS URL.

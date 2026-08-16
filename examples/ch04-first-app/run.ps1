@@ -14,9 +14,10 @@
     The server and database are not hard-coded here. Leave -Server and -Database
     alone and the app reads them from the same layered configuration the
     pre-flight does, highest first: the WardGeneral__Server / WardGeneral__Database
-    environment variables, then src/WardGeneral.Web/appsettings.Development.json
-    (git-ignored, where your values belong), then appsettings.json -- which ships
-    with an EMPTY server on purpose, so no live name is ever committed.
+    environment variables -- which ch04.env populates, if you made one -- then
+    src/WardGeneral.Web/appsettings.Development.json (git-ignored, where your
+    values belong), then appsettings.json -- which ships with an EMPTY server on
+    purpose, so no live name is ever committed.
 
     Passing -Server or -Database exports the matching environment variable, so the
     override reaches the app and the pre-flight alike -- one place to configure,
@@ -70,6 +71,11 @@ if ($OpenOnly) {
 }
 
 if (-not (Test-Path $proj)) { throw "Web project not found: $proj" }
+
+# ch04.env, if the reader made one. Loaded here as well as in the pre-flight so
+# that -SkipPreflight does not silently lose the reader's configuration. Loading
+# twice is harmless: the second pass sets the same values.
+& (Join-Path $root 'load-env.ps1') -Optional -Quiet
 
 # If something is already listening on the port, don't try to start a second
 # instance — just open the browser.
