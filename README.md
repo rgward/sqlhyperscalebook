@@ -33,6 +33,11 @@ real-world healthcare decision-making.
 examples/ch02-getting-started/  Getting started: provision, connect, build the schema, seed
 examples/ch03-architecture/     Architecture: read-only DMV scripts that make the
                            Hyperscale tiers visible on the database from Chapter 2
+examples/ch04-first-app/        The first app: a Blazor patient chart over the
+                           Chapter 2 database, and the one connection it makes
+examples/ch05-ai-ready-sql/     AI-ready SQL: embeddings, a vector index, in-engine
+                           AI assistance and vector search — plus the APIM AI
+                           gateway the engine calls through
                            ... (more added as chapters are completed)
 figures/                   The book's architecture diagrams, as SVG, by chapter
 ```
