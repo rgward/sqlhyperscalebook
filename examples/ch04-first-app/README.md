@@ -8,6 +8,11 @@ systems. It is an ASP.NET Core **Blazor** app on **.NET 10**
 talking to `wardgeneral` over **raw ADO.NET** — no ORM — with a **passwordless**
 Microsoft Entra connection.
 
+> **Where it runs.** The app itself runs **locally** in Kestrel at
+> `https://localhost:7170` and connects over the network to the `wardgeneral`
+> **Azure SQL Hyperscale database in Azure**. Only the web process is local;
+> this example does not deploy the app to Azure App Service or Container Apps.
+
 > **New here?** Read the [repository README](../../README.md) first — it covers
 > the scenario and prerequisites. This chapter assumes `wardgeneral` already
 > exists with its schema and seed data (see
