@@ -9,7 +9,7 @@
      1. Pull the live chart for an encounter (clinical.vPatientChart)
      2. Embed a short "case summary" of that chart and run VECTOR_SEARCH over
         clinical.ClinicalNoteEmbeddings to find the most semantically similar
-        historical notes (retrieval-augmented grounding — RAG, in the engine)
+        historical notes (retrieval-augmented generation — RAG, in the engine)
      3. Send chart + similar-case context to the Collier Health Foundry chat
         deployment via sp_invoke_external_rest_endpoint — routed through the
         Azure API Management AI gateway, so every model call is rate-limited,

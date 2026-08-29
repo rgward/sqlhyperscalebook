@@ -39,11 +39,9 @@ All paths below are workspace-relative to the repo root. The example lives in
 **All data is synthetic — no real patient data (PHI), ever.**
 
 > **Where it runs.** The app runs **locally** (Kestrel on `https://localhost:7170`)
-> so it is trivial to build and run on any laptop while reading. In reality it belongs
-> in **Azure App Service** (or a Container App) — ideally with VNet
-> integration so it reaches the database over the private endpoint. The database,
-> managed-identity auth, RLS, and Private Link all live in Azure regardless of where the
-> app runs; only this web process is local.
+> and connects over the network to the `wardgeneral` **Azure SQL Hyperscale
+> database in Azure**. Only the web process is local; this example does not deploy
+> the app to Azure App Service or Container Apps.
 
 ## What's in the example
 
