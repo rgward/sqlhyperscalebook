@@ -1,6 +1,6 @@
 # Ward General database object catalog
 
-This catalog covers the reader-deployed database objects through Chapter 6. Chapter 3 creates no objects; it inspects the Hyperscale architecture. Chapter 4 adds the application that uses the Chapter 2 contracts. Chapters 5 and 6 extend the database.
+This catalog covers the reader-deployed database objects through Chapter 7. Chapter 3 creates no objects; it inspects the Hyperscale architecture. Chapter 4 adds the application that uses the Chapter 2 contracts. Chapters 5 and 6 extend the database. Chapter 7 adds one bounded database-scoped observability session.
 
 All patient data in the examples is synthetic.
 
@@ -87,6 +87,12 @@ All patient data in the examples is synthetic.
 | `clinical.SaveShiftHandoff` | Procedure | 6 | Saves one approval-gated SBAR handoff. | Chapter 6 `save_handoff` MCP tool | Derives patient and system-provider identity; request-key uniqueness makes retries idempotent. |
 | `clinical.PlaceImagingOrder` | Procedure | 6 | Provides a bounded, idempotent imaging-order write contract. | None yet | Deliberately absent from DAB, MCP, and the application to demonstrate that database capability is not agent permission. |
 | `Ward General Assistant (system)` | Seeded provider row | 6 | Attributes unauthenticated Chapter 6 handoffs truthfully. | `clinical.SaveShiftHandoff` | Chapter 8 replaces system attribution with authenticated clinician identity. |
+
+## Observability objects
+
+| Object | Type | Chapter | Purpose | Used by | Notes |
+| --- | --- | ---: | --- | --- | --- |
+| `wardgeneral_health` | Database-scoped Extended Events session | 7 | Captures severity 16 or higher system errors, deadlock XML, and attentions in a bounded ring buffer. | Chapter 7 engine-events workflow | Starts with the database and remains running until the optional teardown stops and drops it. |
 
 ## Indexes with a teaching role
 

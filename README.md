@@ -40,6 +40,8 @@ examples/ch05-ai-ready-sql/     AI-ready SQL: embeddings, a vector index, in-eng
                            gateway the engine calls through
 examples/ch06-agentic-ai/       Agentic AI: a two-turn shift handoff over seven
                            bounded SQL MCP tools and an approval-gated write
+examples/ch07-observability/    Observability: performance, availability, engine
+                           events, retained errors, and connection history
                            ... (more added as chapters are completed)
 figures/                   The book's architecture diagrams, as SVG, by chapter
 ```
@@ -49,7 +51,7 @@ orchestrate them live under `.github/skills/` so VS Code discovers them the
 moment you open the repo.
 
 The [database object catalog](examples/ch06-agentic-ai/OBJECT-CATALOG.md) maps
-every reader-deployed object through Chapter 6 to its owning chapter, purpose,
+every reader-deployed object through Chapter 7 to its owning chapter, purpose,
 and application, SQL, or MCP caller.
 
 ## Prerequisites
