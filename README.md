@@ -38,6 +38,10 @@ examples/ch04-first-app/        The first app: a Blazor patient chart over the
 examples/ch05-ai-ready-sql/     AI-ready SQL: embeddings, a vector index, in-engine
                            AI assistance and vector search — plus the APIM AI
                            gateway the engine calls through
+examples/ch06-agentic-ai/       Agentic AI: a two-turn shift handoff over seven
+                           bounded SQL MCP tools and an approval-gated write
+examples/ch07-observability/    Observability: performance, availability, engine
+                           events, retained errors, and connection history
                            ... (more added as chapters are completed)
 figures/                   The book's architecture diagrams, as SVG, by chapter
 ```
@@ -45,6 +49,10 @@ figures/                   The book's architecture diagrams, as SVG, by chapter
 Each chapter's scripts live under `examples/`; the Copilot **skills** that
 orchestrate them live under `.github/skills/` so VS Code discovers them the
 moment you open the repo.
+
+The [database object catalog](examples/ch06-agentic-ai/OBJECT-CATALOG.md) maps
+every reader-deployed object through Chapter 7 to its owning chapter, purpose,
+and application, SQL, or MCP caller.
 
 ## Prerequisites
 
@@ -169,4 +177,4 @@ by side and the layout does not move — only what has been added to it.
 
 ## License
 
-License TBD (to be set with the publisher before public release).
+The examples are licensed under the [MIT License](LICENSE).

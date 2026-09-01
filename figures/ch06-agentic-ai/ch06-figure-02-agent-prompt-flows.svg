@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ward General — the three-turn shift-handoff agent flow after Chapter 6.
+  Focused companion to Figure 6-1: this figure omits the wider application and
+  Hyperscale architecture and shows only the components that participate in an
+  agent turn: roster discovery, handoff preparation, and approval.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900"
+     font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0E7490"/>
+    </marker>
+    <style>
+      .header { font-size: 13px; font-weight: 700; fill: #FFFFFF; }
+      .prompt { font-size: 11px; font-weight: 700; fill: #374151; }
+      .main { font-size: 10px; font-weight: 700; fill: #0E7490; }
+      .detail { font-size: 8.5px; fill: #4B5563; }
+      .small { font-size: 8px; fill: #6B7280; }
+      .row { fill: #FFFFFF; stroke: #CBD5E1; stroke-width: 1.2; }
+      .agent { fill: #E8F5F8; stroke: #0E7490; stroke-width: 1.4; }
+      .model { fill: #EAF5F3; stroke: #0F766E; stroke-width: 1.4; }
+      .sql { fill: #EFF6FF; stroke: #0072C6; stroke-width: 1.4; }
+      .flow { fill: none; stroke: #0E7490; stroke-width: 1.8; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="#EFF1F4"/>
+  <text x="40" y="42" font-size="22" font-weight="700" fill="#1F2937">How a shift handoff moves through the Ward General agent</text>
+  <text x="40" y="66" font-size="11" fill="#4B5563">Microsoft Agent Framework carries conversation state, loads the handoff skill, invokes imported MCP tools, and holds the write for approval.</text>
+
+  <!-- Column headers -->
+  <rect x="40" y="92" width="268" height="48" rx="6" fill="#374151"/>
+  <text x="174" y="121" class="header" text-anchor="middle">Prompt in the chat dock</text>
+
+  <rect x="332" y="92" width="196" height="48" rx="6" fill="#0E7490"/>
+  <text x="430" y="112" class="header" text-anchor="middle">MAF agent</text>
+  <text x="430" y="127" font-size="8.5" fill="#DDF5FA" text-anchor="middle">conversation + orchestration</text>
+
+  <rect x="552" y="92" width="196" height="48" rx="6" fill="#0F766E"/>
+  <text x="650" y="112" class="header" text-anchor="middle">Foundry LLM</text>
+  <text x="650" y="127" font-size="8.5" fill="#DDF5F1" text-anchor="middle">chooses the next action</text>
+
+  <rect x="772" y="92" width="276" height="48" rx="6" fill="#0E7490"/>
+  <text x="910" y="112" class="header" text-anchor="middle">MAF execution</text>
+  <text x="910" y="127" font-size="8.5" fill="#DDF5FA" text-anchor="middle">skill context · MCP client · approval</text>
+
+  <rect x="1072" y="92" width="224" height="48" rx="6" fill="#0E7490"/>
+  <text x="1184" y="112" class="header" text-anchor="middle">DAB SQL MCP server</text>
+  <text x="1184" y="127" font-size="8.5" fill="#DDF5FA" text-anchor="middle">maps tool to procedure</text>
+
+  <rect x="1320" y="92" width="240" height="48" rx="6" fill="#0072C6"/>
+  <text x="1440" y="112" class="header" text-anchor="middle">wardgeneral primary</text>
+  <text x="1440" y="127" font-size="8.5" fill="#E6F2FB" text-anchor="middle">executes the SQL contract</text>
+
+  <!-- Turn 1: discover the roster -->
+  <rect x="40" y="170" width="1520" height="190" rx="8" class="row"/>
+  <text x="56" y="216" class="prompt">1. “Which patients should I</text>
+  <text x="56" y="234" class="prompt">prepare for a shift handoff?”</text>
+  <text x="56" y="266" class="small">The agent returns at most three</text>
+  <text x="56" y="281" class="small">encounters with cited evidence.</text>
+  <rect x="332" y="196" width="196" height="138" rx="6" class="agent"/>
+  <text x="430" y="226" class="main" text-anchor="middle">Start conversation</text>
+  <text x="430" y="247" class="detail" text-anchor="middle">send prompt, base instructions,</text>
+  <text x="430" y="263" class="detail" text-anchor="middle">tool schemas, and available</text>
+  <text x="430" y="279" class="detail" text-anchor="middle">skill information to the model</text>
+  <rect x="552" y="196" width="196" height="138" rx="6" class="model"/>
+  <text x="650" y="226" class="main" text-anchor="middle">1 · Request shift-handoff</text>
+  <text x="650" y="245" class="detail" text-anchor="middle">structured model response</text>
+  <line x1="572" y1="260" x2="728" y2="260" stroke="#A7CFC9" stroke-width="1"/>
+  <text x="650" y="283" class="main" text-anchor="middle">3 · Request candidates</text>
+  <text x="650" y="302" class="detail" text-anchor="middle">get_handoff_candidates</text>
+  <rect x="772" y="196" width="276" height="138" rx="6" class="agent"/>
+  <text x="910" y="220" class="main" text-anchor="middle">2 · Load skill instructions</text>
+  <text x="910" y="239" class="detail" text-anchor="middle">AgentSkillsProvider adds guidance</text>
+  <text x="910" y="255" class="detail" text-anchor="middle">and MAF invokes the model again</text>
+  <line x1="792" y1="270" x2="1028" y2="270" stroke="#9CCBD5" stroke-width="1"/>
+  <text x="910" y="293" class="main" text-anchor="middle">4 · Execute requested tool</text>
+  <text x="910" y="312" class="detail" text-anchor="middle">MCP client invokes imported tool</text>
+  <rect x="1072" y="196" width="224" height="138" rx="6" class="agent"/>
+  <text x="1184" y="235" class="main" text-anchor="middle">get_handoff_candidates</text>
+  <text x="1184" y="256" class="detail" text-anchor="middle">map the MCP entity to its</text>
+  <text x="1184" y="272" class="detail" text-anchor="middle">configured stored procedure</text>
+  <rect x="1320" y="196" width="240" height="138" rx="6" class="sql"/>
+  <text x="1440" y="235" class="main" text-anchor="middle">clinical.GetHandoffCandidates</text>
+  <text x="1440" y="256" class="detail" text-anchor="middle">return shift evidence</text>
+  <text x="1440" y="272" class="detail" text-anchor="middle">for active encounters</text>
+
+  <!-- Turn 2: prepare the selected encounter and hold the write -->
+  <rect x="40" y="386" width="1520" height="220" rx="8" class="row"/>
+  <text x="56" y="434" class="prompt">2. “Prepare a shift handoff</text>
+  <text x="56" y="452" class="prompt">for encounter X.”</text>
+  <text x="56" y="484" class="small">X is selected from turn 1.</text>
+  <text x="56" y="499" class="small">No write occurs in this turn.</text>
+  <rect x="332" y="414" width="196" height="164" rx="6" class="agent"/>
+  <text x="430" y="457" class="main" text-anchor="middle">Continue same session</text>
+  <text x="430" y="478" class="detail" text-anchor="middle">preserve roster response</text>
+  <text x="430" y="494" class="detail" text-anchor="middle">and loaded skill context</text>
+  <text x="430" y="526" class="main" text-anchor="middle">Hold proposed write</text>
+  <text x="430" y="546" class="detail" text-anchor="middle">show exact arguments</text>
+  <rect x="552" y="414" width="196" height="164" rx="6" class="model"/>
+  <text x="650" y="450" class="main" text-anchor="middle">Recover EncounterId</text>
+  <text x="650" y="471" class="detail" text-anchor="middle">select chart tool</text>
+  <text x="650" y="487" class="detail" text-anchor="middle">compose four SBAR sections</text>
+  <text x="650" y="519" class="main" text-anchor="middle">Propose save_handoff</text>
+  <text x="650" y="539" class="detail" text-anchor="middle">wait for human decision</text>
+  <rect x="772" y="414" width="276" height="164" rx="6" class="agent"/>
+  <text x="910" y="450" class="main" text-anchor="middle">get_patient_chart</text>
+  <text x="910" y="471" class="detail" text-anchor="middle">MCP client executes the read</text>
+  <text x="910" y="503" class="main" text-anchor="middle">save_handoff</text>
+  <text x="910" y="524" class="detail" text-anchor="middle">approval wrapper intercepts call</text>
+  <text x="910" y="540" class="detail" text-anchor="middle">before it reaches DAB</text>
+  <rect x="1072" y="414" width="224" height="164" rx="6" class="agent"/>
+  <text x="1184" y="457" class="main" text-anchor="middle">get_patient_chart</text>
+  <text x="1184" y="478" class="detail" text-anchor="middle">map tool to chart procedure</text>
+  <rect x="1320" y="414" width="240" height="164" rx="6" class="sql"/>
+  <text x="1440" y="457" class="main" text-anchor="middle">clinical.GetPatientChart</text>
+  <text x="1440" y="478" class="detail" text-anchor="middle">return current patient facts</text>
+
+  <!-- Turn 3: approve the exact held call -->
+  <rect x="40" y="632" width="1520" height="190" rx="8" class="row"/>
+  <text x="56" y="680" class="prompt">3. “Approve”</text>
+  <text x="56" y="712" class="small">Decline ends the flow and</text>
+  <text x="56" y="727" class="small">writes zero rows.</text>
+  <rect x="332" y="658" width="196" height="138" rx="6" class="agent"/>
+  <text x="430" y="697" class="main" text-anchor="middle">Resume held call</text>
+  <text x="430" y="718" class="detail" text-anchor="middle">send approval response</text>
+  <text x="430" y="734" class="detail" text-anchor="middle">for the exact proposed content</text>
+  <rect x="552" y="658" width="196" height="138" rx="6" class="model"/>
+  <text x="650" y="697" class="main" text-anchor="middle">No new tool decision</text>
+  <text x="650" y="718" class="detail" text-anchor="middle">the write call was already</text>
+  <text x="650" y="734" class="detail" text-anchor="middle">chosen in turn 2</text>
+  <rect x="772" y="658" width="276" height="138" rx="6" class="agent"/>
+  <text x="910" y="697" class="main" text-anchor="middle">Execute held save_handoff</text>
+  <text x="910" y="718" class="detail" text-anchor="middle">same arguments and RequestKey</text>
+  <text x="910" y="734" class="detail" text-anchor="middle">that the clinician approved</text>
+  <rect x="1072" y="658" width="224" height="138" rx="6" class="agent"/>
+  <text x="1184" y="697" class="main" text-anchor="middle">save_handoff</text>
+  <text x="1184" y="718" class="detail" text-anchor="middle">map the approved MCP entity</text>
+  <text x="1184" y="734" class="detail" text-anchor="middle">to its configured procedure</text>
+  <rect x="1320" y="658" width="240" height="138" rx="6" class="sql"/>
+  <text x="1440" y="697" class="main" text-anchor="middle">clinical.SaveShiftHandoff</text>
+  <text x="1440" y="718" class="detail" text-anchor="middle">insert one recommendation</text>
+  <text x="1440" y="734" class="detail" text-anchor="middle">return RecommendationId</text>
+
+  <!-- Direction arrows: each turn follows the same left-to-right request path. -->
+  <g>
+    <path d="M308,265 L326,265" class="flow"/><path d="M528,265 L546,265" class="flow"/><path d="M748,265 L766,265" class="flow"/><path d="M1048,265 L1066,265" class="flow"/><path d="M1296,265 L1314,265" class="flow"/>
+    <path d="M308,496 L326,496" class="flow"/><path d="M528,496 L546,496" class="flow"/><path d="M748,496 L766,496" class="flow"/><path d="M1048,496 L1066,496" class="flow"/><path d="M1296,496 L1314,496" class="flow"/>
+    <path d="M308,727 L326,727" class="flow"/><path d="M528,727 L546,727" class="flow"/><path d="M748,727 L766,727" class="flow"/><path d="M1048,727 L1066,727" class="flow"/><path d="M1296,727 L1314,727" class="flow"/>
+  </g>
+
+  <text x="800" y="870" font-size="10" font-weight="700" fill="#0E7490" text-anchor="middle">Results return through the same path: SQL → DAB/MCP → MAF → LLM → streamed chat response</text>
+</svg>
