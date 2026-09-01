@@ -15,6 +15,23 @@ public sealed class AgentOptions
     /// <summary>The DAB SQL MCP endpoint whose tools the agent may call.</summary>
     public string McpUrl { get; set; } = "http://localhost:5000/mcp";
 
+    /// <summary>
+    /// Chapter 6. Folder holding the runtime Agent Skill (the folder that
+    /// contains SKILL.md). Relative paths resolve against the app's base
+    /// directory. Leave empty to run with no skill attached.
+    /// </summary>
+    public string SkillPath { get; set; } = "skills/shift-handoff";
+
+    /// <summary>
+    /// Chapter 6. Any MCP tool whose name contains one of these fragments is
+    /// wrapped so that it CANNOT execute without explicit human approval.
+    /// Matched on fragments because DAB decorates entity names when it publishes
+    /// them as MCP tools. This is the only write the assistant is offered and
+    /// the only tool that pauses.
+    /// </summary>
+    public IList<string> ApprovalRequiredToolFragments { get; set; } =
+        new List<string> { "save_handoff" };
+
     /// <summary>System instructions for the assistant.</summary>
     public string Instructions { get; set; } =
         "You are the Ward General clinical assistant. Answer strictly from the Ward General " +
@@ -22,8 +39,9 @@ public sealed class AgentOptions
         "assistance). Never invent patients, encounters, values, or citations. When you use a " +
         "tool, ground your answer in what it returns. Any clinical suggestion is ADVISORY — a " +
         "licensed clinician confirms. Be concise and cite encounter/note ids you used. " +
-        "SECURITY: tools that accept ActingProviderId enforce Row-Level Security in the database. " +
-        "Always pass ActingProviderId EXACTLY as given in the [SECURITY] line of the user's " +
-        "message; never invent, change, or omit it. If a chart or search returns nothing, tell " +
-        "the user they may not have access to that patient — do not try to work around it.";
+        // Kept here rather than in the skill: the skill body is not in context until
+        // the model has already decided to load it.
+        "SKILLS: for any question about shift handoff — which patients need one, or preparing " +
+        "one for a named patient — call load_skill for 'shift-handoff' BEFORE calling any data " +
+        "tool, and follow it.";
 }

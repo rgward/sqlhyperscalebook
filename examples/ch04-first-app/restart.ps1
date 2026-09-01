@@ -14,7 +14,10 @@
     restart, not a page refresh. Later chapters turn panels on with -Enable:
 
         ./restart.ps1 -Enable AiAssistance              # Chapter 5 (AI card + Research)
-        ./restart.ps1 -Enable AiAgent                   # Chapter 6 (chat icon; needs DAB)
+        ./restart.ps1 -Enable AiAgent                   # Chapter 6 (chat icon; needs the
+                                                        #   Chapter 6 app evolution, and the
+                                                        #   SQL MCP endpoint already running --
+                                                        #   the pre-flight will refuse without it)
         ./restart.ps1 -Enable RowLevelSecurity          # Chapter 8
         ./restart.ps1 -Enable AiAssistance,AiAgent      # more than one
         ./restart.ps1                                   # back to the defaults
@@ -28,8 +31,12 @@
     has to work that way -- $env: writes land in the process environment and
     would otherwise outlive the script.)
 
-    No rebuild is involved. run.ps1 uses `dotnet run`, so the app reads
-    src/WardGeneral.Web/appsettings.json from the project directory directly.
+    No separate build step is involved: run.ps1 uses `dotnet run`, which compiles
+    the current sources on the way up and reads
+    src/WardGeneral.Web/appsettings.json from the project directory directly. So
+    a restart does pick up source edits -- which is what Chapter 6 relies on --
+    but run build.ps1 first when you want compiler errors reported on their own
+    rather than mixed into startup output.
 
     Usage:
       ./restart.ps1                 # stop, then start and open the browser

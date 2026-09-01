@@ -74,6 +74,9 @@
 
 .assistant-messages {
     flex: 1 1 auto;
+    /* Without this a long reply refuses to shrink and pushes the approval
+       buttons off the bottom of the dock. */
+    min-height: 0;
     overflow-y: auto;
     padding: 0.75rem 1rem;
     display: flex;
@@ -120,6 +123,122 @@
     white-space: nowrap;
 }
 
+.chart-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+}
+
+.chart-link {
+    font-size: 0.7rem;
+    background: #eef3fb;
+    border: 1px solid #c3d4ec;
+    color: #1a4f8a;
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.chart-link:hover { background: #dde8f7; text-decoration: underline; }
+
+/* Chapter 6 — the agent's working. Deliberately plain and monospaced: this is
+   diagnostic output the reader is meant to read as evidence, not chrome. */
+.agent-trace {
+    margin: 0.5rem 1rem 0;
+    border-top: 1px solid #e3e3e3;
+    padding-top: 0.4rem;
+}
+
+.trace-toggle {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.7rem;
+    color: #5a5a5a;
+    cursor: pointer;
+}
+
+.trace-toggle:hover { color: #1b1b1b; text-decoration: underline; }
+
+.trace-steps {
+    margin: 0.4rem 0 0;
+    padding-left: 1.1rem;
+    max-height: 11rem;
+    overflow-y: auto;
+}
+
+.trace-step {
+    font-size: 0.68rem;
+    margin-bottom: 0.4rem;
+    color: #444;
+}
+
+.trace-head { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: baseline; }
+
+.trace-tool { font-weight: 600; color: #1b1b1b; }
+
+.trace-timing, .trace-size { color: #777; }
+
+.trace-args {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.62rem;
+    color: #666;
+    word-break: break-all;
+    margin-top: 0.1rem;
+}
+
+.trace-failed .trace-tool { color: #a12222; }
+.trace-error { color: #a12222; margin-top: 0.1rem; }
+
+/* Chapter 6 — the approval gate. Amber, not red: this is a decision point,
+   not a failure. It sits between the transcript and the input so the reader
+   cannot keep typing past it. */
+.assistant-approval {
+    flex: 0 0 auto;
+    margin: 0.5rem 1rem 0;
+    padding: 0.6rem 0.75rem;
+    background: #fff8e6;
+    border: 1px solid #e6c56a;
+    border-radius: 0.5rem;
+}
+
+.approval-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #7a5200;
+    margin-bottom: 0.35rem;
+}
+
+.approval-tool {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.7rem;
+    color: #3d3d3d;
+    background: #fff;
+    border: 1px solid #ecdcb0;
+    border-radius: 0.3rem;
+    padding: 0.3rem 0.4rem;
+    margin-bottom: 0.5rem;
+    overflow-wrap: anywhere;
+    /* A handoff is four paragraphs of prose, so the proposed call is long.
+       It scrolls in place rather than pushing Approve out of reach. */
+    max-height: 9rem;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+.approval-attribution {
+    font-size: 0.7rem;
+    color: #6b5a2a;
+    margin-bottom: 0.5rem;
+}
+
+.approval-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
 .assistant-suggestions {
     display: flex;
     flex-wrap: wrap;
@@ -149,3 +268,16 @@
 }
 
 .assistant-input textarea { resize: none; font-size: 0.85rem; }
+
+/* Chapter 6 - while a turn is in flight the controls have to read as
+   unavailable, not merely swallow what is typed into them. */
+.assistant-input textarea:disabled {
+    background: #f2f3f5;
+    color: #8a8a8a;
+    cursor: not-allowed;
+}
+
+.assistant-input .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}

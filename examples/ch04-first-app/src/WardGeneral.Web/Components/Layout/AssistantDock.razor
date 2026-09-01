@@ -51,6 +51,18 @@
                         </div>
                     }
                     <div class="msg-text">@m.Text.ToString()</div>
+                    @* Chapter 6. Built by the app from the encounter ids the reply cited,
+                       never from a URL the model wrote. The ranking ends here; the
+                       clinician acts on the chart. *@
+                    @if (!m.User && m.Encounters.Count > 0)
+                    {
+                        <div class="chart-links">
+                            @foreach (var id in m.Encounters)
+                            {
+                                <a class="chart-link" href="@($"/chart/{id}")">Open chart — encounter @id</a>
+                            }
+                        </div>
+                    }
                 </div>
             }
             @if (_busy && (_messages.Count == 0 || _messages[^1].User))
@@ -59,18 +71,75 @@
             }
         </div>
 
+        @* Chapter 6. The agent's working, not the app's. Collapsed by default
+           because a clinician would not want it, but it is the only place the
+           reader can see which tool the model chose and the arguments it chose
+           them with. *@
+        @if (_convo is not null && _convo.Trace.Steps.Count > 0)
+        {
+            <div class="agent-trace">
+                <button class="trace-toggle" @onclick="() => _traceOpen = !_traceOpen">
+                    @(_traceOpen ? "▾" : "▸") What the agent did — @_convo.Trace.Steps.Count tool call@(_convo.Trace.Steps.Count == 1 ? "" : "s")
+                </button>
+                @if (_traceOpen)
+                {
+                    <ol class="trace-steps">
+                        @foreach (var s in _convo.Trace.Steps)
+                        {
+                            <li class="trace-step @(s.Error is null ? "" : "trace-failed")">
+                                <div class="trace-head">
+                                    <span class="trace-tool">@s.Tool</span>
+                                    <span class="trace-timing">@s.ElapsedMs ms</span>
+                                    @if (s.Error is null)
+                                    {
+                                        <span class="trace-size">@s.ResultChars chars</span>
+                                    }
+                                </div>
+                                <div class="trace-args">@s.Arguments</div>
+                                @if (s.Error is not null)
+                                {
+                                    <div class="trace-error">@s.Error</div>
+                                }
+                            </li>
+                        }
+                    </ol>
+                }
+            </div>
+        }
+
+        @* Chapter 6. The assistant proposed a WRITE and the framework held it.
+           Nothing has reached the database yet. The clinician decides here. *@
+        @if (_pending is not null)
+        {
+            <div class="assistant-approval">
+                <div class="approval-title">⏸ Approval required — nothing has been written yet</div>
+                <div class="approval-tool">@_pending</div>
+                @* The model proposed the arguments above; this line is what the
+                   app knows, and the two must agree for the call to run. *@
+                <div class="approval-attribution">
+                    Attributed to <strong>@(Access.ProviderName ?? "nobody — signed in as Admin")</strong>
+                </div>
+                <div class="approval-actions">
+                    <button class="btn btn-success btn-sm" @onclick="() => Decide(true)" disabled="@_busy">Approve</button>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="() => Decide(false)" disabled="@_busy">Decline</button>
+                </div>
+            </div>
+        }
+
         <div class="assistant-suggestions">
             @foreach (var s in Suggestions())
             {
-                <button class="suggestion" @onclick="() => UseSuggestion(s)" disabled="@_busy">@s</button>
+                <button class="suggestion" @onclick="() => UseSuggestion(s)" disabled="@(_busy || _pending is not null)">@s</button>
             }
         </div>
 
         <div class="assistant-input">
-            <textarea class="form-control" rows="2" placeholder="Ask Ward General…"
-                      @bind="_input" @bind:event="oninput" @onkeydown="OnKey"></textarea>
+            <textarea class="form-control" rows="2"
+                      placeholder="@(_busy ? "Working…" : _pending is not null ? "Approve or decline first…" : "Ask Ward General…")"
+                      @bind="_input" @bind:event="oninput" @onkeydown="OnKey"
+                      disabled="@(_busy || _pending is not null)"></textarea>
             <button class="btn btn-primary btn-sm" @onclick="Send"
-                    disabled="@(_busy || string.IsNullOrWhiteSpace(_input))">Send</button>
+                    disabled="@(_busy || _pending is not null || string.IsNullOrWhiteSpace(_input))">Send</button>
         </div>
     </aside>
 }
@@ -83,16 +152,47 @@
     private AssistantConversation? _convo;
     private CancellationTokenSource? _cts;
 
+    // Chapter 6. Set when the framework raises a tool-approval request; the
+    // description of the held call, shown verbatim so the clinician approves
+    // what the model actually proposed rather than a paraphrase of it.
+    private string? _pending;
+
+    // Chapter 6. Trace panel state, kept per dock rather than per conversation
+    // so opening it once keeps it open across turns.
+    private bool _traceOpen;
+
     private void Toggle() => _open = !_open;
 
+    // Chapter 6. The handoff is two turns, so the chips are the second one. A
+    // roster reply becomes one chip per encounter it named -- built from the ids
+    // the app parsed, never from text the model wrote -- and a saved handoff
+    // hands the shift back to the roster instead of offering the same patient
+    // twice. The trace is cleared each turn, so it describes only the last one.
     private IEnumerable<string> Suggestions()
     {
+        var justSaved = _convo?.Trace.Steps.Any(
+            s => s.Error is null && s.Tool.Contains("save_handoff", StringComparison.OrdinalIgnoreCase)) ?? false;
+
+        var cited = justSaved
+            ? null
+            : _messages.LastOrDefault(m => !m.User && !m.Error)?.Encounters;
+
+        if (cited is { Count: > 0 })
+        {
+            foreach (var id in cited.Take(3))
+                yield return $"Prepare a shift handoff for encounter {id}";
+            yield return "Which patients need a shift handoff?";
+            yield break;
+        }
+
         yield return "How many active patients are in ICU A?";
         yield return "Find similar cases: elderly chest pain with elevated troponin";
         if (Page.EncounterId is int e)
-            yield return $"Summarize encounter {e} and suggest a triage level";
+            yield return $"Prepare a shift handoff for encounter {e}";
         else
-            yield return "Which of my patients should I prioritize right now?";
+            // Not "my patients" -- until Chapter 8 there is no acting clinician, so the
+            // roster tool runs as Admin and returns every active patient.
+            yield return "Which patients need a shift handoff?";
     }
 
     private async Task OnKey(KeyboardEventArgs e)
@@ -119,19 +219,46 @@
         // (possibly slow) first agent call (MCP connect + tool list on first use).
         await Task.Yield();
 
-        Msg? reply = null;
         _convo ??= Agent.NewConversation();
         _cts = new CancellationTokenSource();
 
+        await Consume(Agent.AskAsync(text, _convo, Page.Describe(), _cts.Token));
+    }
+
+    /// <summary>
+    /// Chapter 6. Send the clinician's decision back into the same run. Approving
+    /// executes the call the model already proposed — the app never rebuilds it,
+    /// so the handoff that lands is the handoff that was shown.
+    /// </summary>
+    private async Task Decide(bool approved)
+    {
+        if (_convo is null || _pending is null || _busy) return;
+
+        _pending = null;
+        _messages.Add(new Msg { User = true, Text = new(approved ? "Approved." : "Declined.") });
+        _busy = true;
+        StateHasChanged();
+        await Task.Yield();
+
+        _cts = new CancellationTokenSource();
+        await Consume(Agent.RespondToApprovalAsync(_convo, approved,
+            approved ? null : "The clinician declined this order.", _cts.Token));
+    }
+
+    private async Task Consume(IAsyncEnumerable<AssistantUpdate> stream)
+    {
+        Msg? reply = null;
         try
         {
-            await foreach (var u in Agent.AskAsync(text, _convo, Page.Describe(), Access.ProviderId ?? 0, _cts.Token))
+            await foreach (var u in stream)
             {
                 reply ??= AddReply();
                 if (u.Kind == AssistantUpdateKind.Token)
                     reply.Text.Append(u.Text);
                 else if (u.Kind == AssistantUpdateKind.ToolCall)
                     reply.Tools.Add(string.IsNullOrEmpty(u.ToolArgs) ? u.ToolName! : $"{u.ToolName}({u.ToolArgs})");
+                else if (u.Kind == AssistantUpdateKind.ApprovalRequest)
+                    _pending = string.IsNullOrEmpty(u.ToolArgs) ? u.ToolName! : $"{u.ToolName}({u.ToolArgs})";
 
                 await InvokeAsync(StateHasChanged);
             }
@@ -143,9 +270,29 @@
             reply.Text.Append("Assistant unavailable — ").Append(ex.Message);
         }
 
+        if (reply is not null && !reply.Error)
+            reply.Encounters = CitedEncounters(reply.Text.ToString());
+
         _busy = false;
         await InvokeAsync(StateHasChanged);
     }
+
+    // Chapter 6. The model is told to cite encounter ids; this is what turns the
+    // ones it cited into navigation. Tolerant of how it phrases the citation --
+    // "encounter 200354", "EncounterId 200354", "encounter #200354", "encounter
+    // id: 200354" -- because the app should not go blind over a space.
+    private static readonly System.Text.RegularExpressions.Regex EncounterRef =
+        new(@"encounter\s*(?:id)?\s*[#:]?\s*(\d{1,9})",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase |
+            System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static List<int> CitedEncounters(string text) =>
+        EncounterRef.Matches(text)
+            .Select(m => int.TryParse(m.Groups[1].Value, out var id) ? id : 0)
+            .Where(id => id > 0)
+            .Distinct()
+            .Take(5)
+            .ToList();
 
     private Msg AddReply()
     {
@@ -166,5 +313,6 @@
         public bool Error;
         public System.Text.StringBuilder Text = new();
         public List<string> Tools = new();
+        public List<int> Encounters = new();
     }
 }
