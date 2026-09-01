@@ -255,7 +255,8 @@ The backing SQL: `AiAssistance` needs `06-ai-embeddings.sql` +
 from
 `examples/ch05-ai-ready-sql/` (the `wardgeneral-research` named replica the
 Research page reads already exists — Ch 3 provisions it); `AiAgent` needs DAB
-running (`examples/ch06-agentic-ai/setup-dab.ps1`, then `run-dab.ps1`);
+and the shared-app Chapter 6 evolution complete — use **wardgeneral-agent** to
+deploy its SQL/DAB contracts, rebuild the app, and start both MCP endpoints;
 `RowLevelSecurity` needs the Chapter 8 security policy deployed.
 
 For `AiAssistance` there is a shortcut that does the deploy and the flag

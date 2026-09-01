@@ -27,7 +27,10 @@
 
     The chat/agent panel needs the Data API Builder SQL MCP server on
     http://localhost:5000. That is Chapter 6 — start it separately with
-    ../ch06-agentic-ai/run-dab.ps1, in its own shell, before or after this script.
+    ../ch06-agentic-ai/run-dab.ps1, in its own shell, BEFORE this script. When the
+    AiAgent flag is on the pre-flight checks that endpoint and refuses to start
+    without it, because an agent with no tools is a worse outcome than an app that
+    declines to launch.
 #>
 [CmdletBinding()]
 param(

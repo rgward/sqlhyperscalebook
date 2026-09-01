@@ -77,38 +77,6 @@ public sealed class ChartRepository
     public Task<PatientChart?> GetPatientChartByBedAsync(int bedId, CancellationToken ct = default) =>
         ReadChartAsync("clinical.GetPatientChartByBed", ("@BedId", SqlDbType.Int, (object)bedId), ct);
 
-    /// <summary><c>clinical.RecordVitals</c> — append one observation.</summary>
-    public async Task RecordVitalsAsync(
-        int encounterId, string observationType, decimal valueNumeric, string? unit = null, CancellationToken ct = default)
-    {
-        await using var conn = _connections.Create();
-        await OpenWithContextAsync(conn, ct);
-
-        await using var cmd = NewProc(conn, "clinical.RecordVitals");
-        AddParam(cmd, "@EncounterId", SqlDbType.Int, encounterId);
-        AddParam(cmd, "@ObservationType", SqlDbType.NVarChar, observationType, 20);
-        AddParam(cmd, "@ValueNumeric", SqlDbType.Decimal, valueNumeric);
-        AddParam(cmd, "@Unit", SqlDbType.NVarChar, unit, 20);
-
-        await cmd.ExecuteNonQueryAsync(ct);
-    }
-
-    /// <summary><c>clinical.AddClinicalNote</c> — append a free-text note.</summary>
-    public async Task AddClinicalNoteAsync(
-        int encounterId, int authorProviderId, string noteType, string noteText, CancellationToken ct = default)
-    {
-        await using var conn = _connections.Create();
-        await OpenWithContextAsync(conn, ct);
-
-        await using var cmd = NewProc(conn, "clinical.AddClinicalNote");
-        AddParam(cmd, "@EncounterId", SqlDbType.Int, encounterId);
-        AddParam(cmd, "@AuthorProviderId", SqlDbType.Int, authorProviderId);
-        AddParam(cmd, "@NoteType", SqlDbType.NVarChar, noteType, 20);
-        AddParam(cmd, "@NoteText", SqlDbType.NVarChar, noteText, -1);
-
-        await cmd.ExecuteNonQueryAsync(ct);
-    }
-
     /// <summary>
     /// <c>clinical.GenerateClinicalAssistance</c> — advisory AI for the attending: a
     /// <b>suggested</b> triage flag (to confirm/override) plus a grounded summary. Vector
@@ -334,8 +302,10 @@ ORDER BY pr.FullName;", conn)
 
     /// <summary>
     /// Like <see cref="GetNullableString"/> but tolerant of a column that isn't in the
-    /// result set. The direct assistance proc (07) omits <c>Path</c>; the gateway proc (09)
-    /// adds it. Returns null when the column is absent instead of throwing.
+    /// result set. The current Chapter 5 assistance proc (<c>08-ai-assistance.sql</c>)
+    /// emits <c>Path</c> whichever route it took, but an earlier deployment may not.
+    /// Returns null when the column is absent instead of throwing, so the card degrades
+    /// to showing no route rather than failing the whole call.
     /// </summary>
     private static string? GetOptionalString(SqlDataReader r, string col)
     {

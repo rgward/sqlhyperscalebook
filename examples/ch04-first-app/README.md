@@ -84,10 +84,15 @@ than for the whole book.
 
 ## What this is — and isn't
 
-The app is the book's through-line. It is written **once, here**, and never
-gains per-chapter code deltas. Later chapters change the *database* — a new
-proc, a new index, a security predicate — and the reader flips a **feature
-flag**. Nothing in `src/` is edited again.
+The app is the book's through-line. It is written **once, here**, and stays one
+application for the whole book. Most later chapters change only the *database* —
+a new proc, a new index, a security predicate — and the reader flips a **feature
+flag**; Chapters 5 and 8 work exactly that way, with nothing in `src/` edited.
+
+Chapter 6 is the exception. Agentic behavior cannot live in SQL alone: the
+running application owns the agent skill, tool routing, and the human approval
+boundary. So Chapter 6 evolves *this* app in place and rebuilds it. It still
+does not fork the app — see [`examples/ch06-agentic-ai/`](../ch06-agentic-ai/).
 
 Which is why the app you run in Chapter 4 already contains surfaces you cannot
 use yet. They are **greyed out, not hidden**: you can see what the app becomes
@@ -96,7 +101,7 @@ and which chapter gets you there.
 | Surface | Flag | Unlocks in | Needs |
 |---|---|---|---|
 | **Research** page (sidebar) and the chart's **AI assistance** card | `Features:AiAssistance` | Chapter 5 | `06-ai-embeddings.sql`, `07-vector-index.sql`, `08-ai-assistance.sql`, `09-research-vector-search.sql` from [`examples/ch05-ai-ready-sql/`](../ch05-ai-ready-sql/) |
-| **Chat icon** — the clinical assistant dock | `Features:AiAgent` | Chapter 6 | DAB running: `setup-dab.ps1` then `run-dab.ps1` in [`examples/ch06-agentic-ai/`](../ch06-agentic-ai/) |
+| **Chat icon** — the clinical assistant dock | `Features:AiAgent` | Chapter 6 | The Chapter 6 app evolution, its shift-handoff SQL, and its MCP endpoint over the primary — see [`examples/ch06-agentic-ai/`](../ch06-agentic-ai/) |
 | Row-level filtering behind the **"Viewing as"** selector | `RowLevelSecurity:Enabled` | Chapter 8 | The security predicate from [`examples/ch08/`](../ch08/) |
 
 Row-level security is the one that looks like nothing is gated: the selector is
@@ -131,7 +136,7 @@ Chapter 5 proc is missing.
 |---|---|
 | `src/WardGeneral.Web` | The Blazor Web App (Interactive Server). Pages, layout, feature flags. |
 | `src/WardGeneral.Data` | Class library. Raw ADO.NET over `Microsoft.Data.SqlClient`, one method per stored procedure. No ORM. |
-| `src/WardGeneral.Agent` | The Chapter 6 assistant. Project-referenced by `Web` so it **compiles here in Chapter 4**; its UI stays locked until the `AiAgent` flag is on. |
+| `src/WardGeneral.Agent` | The read-only assistant shell Chapter 6 evolves into the approval-gated agentic workflow. Project-referenced by `Web`; its UI stays locked until the `AiAgent` flag is on. |
 
 `WardGeneral.Web` is the presentation layer and nothing more. It is an ASP.NET
 Core Blazor application in **Interactive Server** render mode, so every component
@@ -143,10 +148,11 @@ dock — and none of it knows a connection string. The project takes
 `ChartRepository` and `ResearchRepository` by injection from `WardGeneral.Data`
 and asks them for a chart; where that chart comes from, and which replica
 answered, is decided a layer below. The one thing `Web` owns outright is
-`FeatureFlags`, bound from configuration: it reveals each chapter's surface as
-that chapter's SQL is deployed, without a source edit. The data layer never sees
-it — a flag decides whether a card renders, not whether the procedure behind it
-works.
+`FeatureFlags`, bound from configuration: a flag reveals a surface only after
+that chapter's required application and SQL work is complete. Chapter 5 needs
+only SQL deployment; Chapter 6 evolves the shared application and rebuilds it.
+The data layer never sees the flag — it decides whether a surface renders, not
+whether the procedure behind it works.
 
 ## Build the Application
 

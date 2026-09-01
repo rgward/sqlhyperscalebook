@@ -23,6 +23,7 @@ public sealed class WardGeneralAgent : IAsyncDisposable
     private readonly AgentOptions _opts;
     private readonly ILogger<WardGeneralAgent> _log;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly List<McpClient> _mcpClients = [];
     private McpClient? _mcp;
     private AIAgent? _agent;
 
@@ -30,6 +31,22 @@ public sealed class WardGeneralAgent : IAsyncDisposable
     {
         _opts = opts.Value;
         _log = log;
+    }
+
+    private async Task<IList<McpClientTool>> ConnectAsync(string name, string url, CancellationToken ct)
+    {
+        var client = await McpClient.CreateAsync(
+            new HttpClientTransport(new HttpClientTransportOptions
+            {
+                Name = name,
+                Endpoint = new Uri(url)
+            }),
+            cancellationToken: ct);
+
+        _mcpClients.Add(client);
+        var tools = await client.ListToolsAsync(cancellationToken: ct);
+        _log.LogInformation("Connected to MCP endpoint {Name} at {Url} with {Count} tools.", name, url, tools.Count);
+        return tools;
     }
 
     private async Task<AIAgent> GetAgentAsync(CancellationToken ct)
@@ -41,27 +58,70 @@ public sealed class WardGeneralAgent : IAsyncDisposable
             if (_agent is not null) return _agent;
 
             // Connect to the DAB SQL MCP server (HTTP transport) and pull its tools.
-            _mcp = await McpClient.CreateAsync(
-                new HttpClientTransport(new HttpClientTransportOptions
-                {
-                    Name = "wardgeneral-dab",
-                    Endpoint = new Uri(_opts.McpUrl)
-                }),
-                cancellationToken: ct);
+            var mcpTools = await ConnectAsync("wardgeneral-dab", _opts.McpUrl, ct);
+            _mcp = _mcpClients[0];
 
-            IList<McpClientTool> tools = await _mcp.ListToolsAsync(cancellationToken: ct);
+            // Chapter 6: the approval gate. The two writes are wrapped so the
+            // framework raises a request instead of executing. Everything else
+            // stays a plain call, because a prompt the reader has to click
+            // through on every read is a prompt they stop reading. Tracing wraps
+            // everything, and composes inside the gate so an approved write is
+            // traced too.
+            List<AITool> tools = [];
+            var gated = 0;
+            foreach (var tool in mcpTools)
+            {
+                AIFunction traced = new TracedAIFunction(tool);
+                if (RequiresApproval(tool.Name))
+                {
+                    tools.Add(new ApprovalRequiredAIFunction(traced));
+                    gated++;
+                }
+                else
+                {
+                    tools.Add(traced);
+                }
+            }
+
+            if (gated == 0 && _opts.ApprovalRequiredToolFragments.Count > 0)
+            {
+                _log.LogWarning(
+                    "No MCP tool name matched {Fragments}, so NOTHING is approval-gated. " +
+                    "Check that the primary DAB config exposes the write procedures.",
+                    string.Join(", ", _opts.ApprovalRequiredToolFragments));
+            }
 
             // Chat Completions agent over the reasoning model (passwordless / Entra).
             var chat = new AzureOpenAIClient(new Uri(_opts.Endpoint), new DefaultAzureCredential())
                 .GetChatClient(_opts.Deployment)
                 .AsIChatClient();
 
-            _agent = chat.AsAIAgent(
-                instructions: _opts.Instructions,
-                name: "WardGeneralAssistant",
-                tools: [.. tools.Cast<AITool>()]);
+            var agentOptions = new ChatClientAgentOptions
+            {
+                Name = "WardGeneralAssistant",
+                ChatOptions = new ChatOptions
+                {
+                    Instructions = _opts.Instructions,
+                    Tools = tools
+                }
+            };
 
-            _log.LogInformation("Ward General assistant ready with {Count} MCP tools.", tools.Count);
+            // Chapter 6: the runtime Agent Skill. A context provider, not a tool -
+            // the model asks for the skill when it decides the question calls for
+            // it, and the framework loads the prose then. Loading and reading a
+            // skill would ALSO require approval by default; both are turned off
+            // here so the single prompt the reader sees is the saved handoff.
+            var skills = CreateSkillsProvider();
+            if (skills is not null)
+            {
+                agentOptions.AIContextProviders = [skills];
+            }
+
+            _agent = chat.AsAIAgent(agentOptions);
+
+            _log.LogInformation(
+                "Ward General assistant ready with {Count} MCP tools ({Gated} approval-gated).",
+                tools.Count, gated);
             return _agent;
         }
         finally
@@ -70,37 +130,102 @@ public sealed class WardGeneralAgent : IAsyncDisposable
         }
     }
 
+    private bool RequiresApproval(string toolName)
+        => _opts.ApprovalRequiredToolFragments.Any(
+               f => toolName.Contains(f, StringComparison.OrdinalIgnoreCase));
+
+    private AgentSkillsProvider? CreateSkillsProvider()
+    {
+        if (string.IsNullOrWhiteSpace(_opts.SkillPath)) return null;
+
+        var path = Path.IsPathRooted(_opts.SkillPath)
+            ? _opts.SkillPath
+            : Path.Combine(AppContext.BaseDirectory, _opts.SkillPath);
+
+        if (!Directory.Exists(path))
+        {
+            _log.LogWarning("Agent skill folder {Path} was not found; running without a skill.", path);
+            return null;
+        }
+
+        _log.LogInformation("Loading agent skill from {Path}.", path);
+        return new AgentSkillsProvider(path, options: new AgentSkillsProviderOptions
+        {
+            DisableLoadSkillApproval = true,
+            DisableReadSkillResourceApproval = true
+        });
+    }
+
     /// <summary>Start a new multi-turn conversation (its own agent thread).</summary>
     public AssistantConversation NewConversation() => new();
 
     /// <summary>
     /// Ask the assistant. Streams tokens and tool-call notifications as they occur.
     /// <paramref name="context"/> (optional) seeds the current page — e.g. the
-    /// encounter being viewed. <paramref name="actingProviderId"/> is the acting
-    /// clinician (0 = Admin) — injected so the model passes it to the RLS-scoped
-    /// tools; the engine then filters charts/encounters to that provider.
+    /// encounter being viewed.
     /// </summary>
     public async IAsyncEnumerable<AssistantUpdate> AskAsync(
         string userText,
         AssistantConversation convo,
         string? context = null,
-        int actingProviderId = 0,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         var agent = await GetAgentAsync(ct);
         convo.Session ??= await agent.CreateSessionAsync(ct);
 
-        var who = actingProviderId == 0
-            ? "Admin (may see all patients)"
-            : "scoped to their own patients by Row-Level Security";
-        var security =
-            $"[SECURITY] The acting clinician is provider id {actingProviderId} ({who}). " +
-            $"Pass ActingProviderId={actingProviderId} on every Ward General tool call that accepts it. " +
-            "Never change or omit it.";
+        // Each answer shows only its own work, so the previous turn's steps go.
+        convo.Trace.Clear();
+        AgentTrace.Current = convo.Trace;
 
         var message = string.IsNullOrWhiteSpace(context)
-            ? $"{security}\n{userText}"
-            : $"{security}\n(Context: {context})\n{userText}";
+            ? userText
+            : $"(Context: {context})\n{userText}";
+
+        await foreach (var update in StreamAsync(agent, convo, new ChatMessage(ChatRole.User, message), ct))
+            yield return update;
+    }
+
+    /// <summary>
+    /// Chapter 6. Answer the pending approval request and let the run continue.
+    /// Approving executes the tool call the model already proposed — the app does
+    /// not rebuild it, so what the clinician saw is exactly what runs. Declining
+    /// hands the model a refusal and the write never reaches the database.
+    /// </summary>
+    public async IAsyncEnumerable<AssistantUpdate> RespondToApprovalAsync(
+        AssistantConversation convo,
+        bool approved,
+        string? reason = null,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        if (convo.Session is null || convo.Pending.Count == 0)
+            yield break;
+
+        var agent = await GetAgentAsync(ct);
+
+        // The approved write is a tool call like any other, so it is traced too.
+        AgentTrace.Current = convo.Trace;
+
+        List<AIContent> responses = [];
+        foreach (var request in convo.Pending)
+        {
+            responses.Add(new ToolApprovalResponseContent(request.RequestId, approved, request.ToolCall)
+            {
+                Reason = reason
+            });
+        }
+        convo.Pending.Clear();
+
+        await foreach (var update in StreamAsync(agent, convo, new ChatMessage(ChatRole.User, responses), ct))
+            yield return update;
+    }
+
+    private async IAsyncEnumerable<AssistantUpdate> StreamAsync(
+        AIAgent agent,
+        AssistantConversation convo,
+        ChatMessage message,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        convo.Session ??= await agent.CreateSessionAsync(ct);
 
         await foreach (var update in agent.RunStreamingAsync(message, convo.Session, cancellationToken: ct))
         {
@@ -109,8 +234,22 @@ public sealed class WardGeneralAgent : IAsyncDisposable
 
             foreach (var content in update.Contents)
             {
-                if (content is FunctionCallContent call)
-                    yield return AssistantUpdate.Tool(call.Name, DescribeArgs(call.Arguments));
+                switch (content)
+                {
+                    // Order matters: an approval request also carries the tool
+                    // call, and reporting it as a plain call would tell the
+                    // reader something ran when nothing has.
+                    case ToolApprovalRequestContent request:
+                        convo.Pending.Add(request);
+                        yield return AssistantUpdate.Approval(
+                            request.ToolCall is FunctionCallContent fc ? fc.Name : "tool call",
+                            request.ToolCall is FunctionCallContent f ? DescribeArgs(f.Arguments) : null);
+                        break;
+
+                    case FunctionCallContent call:
+                        yield return AssistantUpdate.Tool(call.Name, DescribeArgs(call.Arguments));
+                        break;
+                }
             }
         }
     }
@@ -122,7 +261,9 @@ public sealed class WardGeneralAgent : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (_mcp is not null) await _mcp.DisposeAsync();
+        foreach (var client in _mcpClients) await client.DisposeAsync();
+        _mcpClients.Clear();
+        _mcp = null;
         _gate.Dispose();
     }
 }
@@ -131,17 +272,32 @@ public sealed class WardGeneralAgent : IAsyncDisposable
 public sealed class AssistantConversation
 {
     internal AgentSession? Session { get; set; }
+
+    /// <summary>
+    /// Chapter 6. Tool calls the framework has held back pending human approval.
+    /// Kept on the conversation, not on the agent, because the agent is a
+    /// singleton shared by every user of the app.
+    /// </summary>
+    internal List<ToolApprovalRequestContent> Pending { get; } = [];
+
+    /// <summary>Chapter 6. The tool calls made during the current turn.</summary>
+    public AgentTrace Trace { get; } = new();
+
+    /// <summary>True when the assistant is waiting on the clinician to decide.</summary>
+    public bool AwaitingApproval => Pending.Count > 0;
 }
 
-/// <summary>A streamed unit from the assistant: either a token of text or a tool call.</summary>
+/// <summary>A streamed unit from the assistant: text, a tool call, or a request to approve one.</summary>
 public sealed record AssistantUpdate(AssistantUpdateKind Kind, string? Text, string? ToolName, string? ToolArgs)
 {
     public static AssistantUpdate Token(string text) => new(AssistantUpdateKind.Token, text, null, null);
     public static AssistantUpdate Tool(string name, string? args) => new(AssistantUpdateKind.ToolCall, null, name, args);
+    public static AssistantUpdate Approval(string name, string? args) => new(AssistantUpdateKind.ApprovalRequest, null, name, args);
 }
 
 public enum AssistantUpdateKind
 {
     Token,
-    ToolCall
+    ToolCall,
+    ApprovalRequest
 }

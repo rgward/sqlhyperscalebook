@@ -25,4 +25,15 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
   </ItemGroup>
 
+  <!--
+    The Chapter 6 runtime Agent Skill. This is prose the model loads on demand -
+    not code - so it ships as content beside the binary rather than as an
+    embedded resource, which keeps it readable and editable next to the app.
+    Chapter 4 copies it and never reads it; AgentSkillsProvider only comes to
+    life once the AiAgent feature flag is on.
+  -->
+  <ItemGroup>
+    <Content Include="skills\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
