@@ -257,7 +257,8 @@ from
 Research page reads already exists — Ch 3 provisions it); `AiAgent` needs DAB
 and the shared-app Chapter 6 evolution complete — use **wardgeneral-agent** to
 deploy its SQL/DAB contracts, rebuild the app, and start both MCP endpoints;
-`RowLevelSecurity` needs the Chapter 8 security policy deployed.
+`RowLevelSecurity` needs the security policy published and deployed with
+Chapter 8.
 
 For `AiAssistance` there is a shortcut that does the deploy and the flag
 together — `examples/ch05-ai-ready-sql/run-ai-app.ps1` builds this app and starts

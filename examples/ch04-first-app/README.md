@@ -102,7 +102,7 @@ and which chapter gets you there.
 |---|---|---|---|
 | **Research** page (sidebar) and the chart's **AI assistance** card | `Features:AiAssistance` | Chapter 5 | `06-ai-embeddings.sql`, `07-vector-index.sql`, `08-ai-assistance.sql`, `09-research-vector-search.sql` from [`examples/ch05-ai-ready-sql/`](../ch05-ai-ready-sql/) |
 | **Chat icon** — the clinical assistant dock | `Features:AiAgent` | Chapter 6 | The Chapter 6 app evolution, its shift-handoff SQL, and its MCP endpoint over the primary — see [`examples/ch06-agentic-ai/`](../ch06-agentic-ai/) |
-| Row-level filtering behind the **"Viewing as"** selector | `RowLevelSecurity:Enabled` | Chapter 8 | The security predicate from [`examples/ch08/`](../ch08/) |
+| Row-level filtering behind the **"Viewing as"** selector | `RowLevelSecurity:Enabled` | Chapter 8 | The security predicate published with Chapter 8 |
 
 Row-level security is the one that looks like nothing is gated: the selector is
 live in Chapter 4, it just doesn't filter. Chapter 8's payoff *is* the same
