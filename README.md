@@ -173,9 +173,10 @@ so they stay crisp at any zoom and you can open one and adapt it.
 | 4 | [Application architecture](figures/ch04-first-app/ch04-figure-01-application-architecture-wide.svg) | The Ward General app, and the one connection it makes. |
 | 5 | [Application architecture](figures/ch05-ai-ready-sql/ch05-figure-01-application-architecture.svg) | The same app once the engine itself calls out to models. |
 | 6 | [Application architecture](figures/ch06-agentic-ai/ch06-figure-01-application-architecture.svg) | The same app once an agent, DAB and the SQL MCP server join it. |
+| 8 | [Security architecture](figures/ch08-security/ch08-figure-01-application-architecture.svg) | The same app with provider context, Row-Level Security, and the production Private Link path. |
 
-Chapters 4, 5 and 6 are drawn on **one shared grid** on purpose. Put them side
-by side and the layout does not move — only what has been added to it.
+Chapters 4, 5, 6 and 8 are drawn on **one shared grid** on purpose. Put them
+side by side and the layout does not move — only what has been added to it.
 
 ## License
 
