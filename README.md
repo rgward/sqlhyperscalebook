@@ -42,6 +42,8 @@ examples/ch06-agentic-ai/       Agentic AI: a two-turn shift handoff over seven
                            bounded SQL MCP tools and an approval-gated write
 examples/ch07-observability/    Observability: performance, availability, engine
                            events, retained errors, and connection history
+examples/ch08-security/         Security: Row-Level Security in Ward General and
+                           an optional bounded Azure SQL auditing investigation
                            ... (more added as chapters are completed)
 figures/                   The book's architecture diagrams, as SVG, by chapter
 ```
