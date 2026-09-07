@@ -164,62 +164,36 @@ elseif (-not $Server -or -not $Database) {
     $failures++
 }
 else {
-    # Microsoft.Data.SqlClient ships with the app, not with PowerShell. The
-    # assembly at the root of the build output is a facade -- loading it gives
-    # "not supported on this platform". The real implementation lives under
-    # runtimes/<rid>/lib, so look there, in the build output and the NuGet cache.
-    $rid = if ($IsWindows) { 'win' } else { 'unix' }
-    $candidates = @()
-    $candidates += Get-ChildItem -Path (Join-Path $root 'src') -Filter 'Microsoft.Data.SqlClient.dll' -Recurse -ErrorAction SilentlyContinue
-    $candidates += Get-ChildItem -Path (Join-Path $HOME '.nuget' 'packages' 'microsoft.data.sqlclient') -Filter 'Microsoft.Data.SqlClient.dll' -Recurse -ErrorAction SilentlyContinue
-
-    $driver = $candidates |
-        Where-Object { $_.DirectoryName -match "[\\/]runtimes[\\/]$rid[\\/]lib[\\/]net" } |
-        Sort-Object FullName -Descending |
+    $isGoSqlcmd = {
+        param([string] $Executable)
+        if (-not $Executable) { return $false }
+        & $Executable --version 2>&1 | Out-Null
+        return $LASTEXITCODE -eq 0
+    }
+    $sqlcmdPath = @(
+        $env:SQLCMD,
+        (Join-Path $env:LOCALAPPDATA 'Programs\sqlcmd\sqlcmd.exe'),
+        'C:\Program Files\SqlCmd\sqlcmd.exe',
+        (Get-Command sqlcmd -ErrorAction SilentlyContinue).Source
+    ) | Where-Object { $_ -and (Test-Path $_) -and (& $isGoSqlcmd $_) } |
         Select-Object -First 1
 
-    if (-not $driver) {
-        Write-Check warn 'Database' 'SQL client not found - build the app first, then re-run'
+    if (-not $sqlcmdPath) {
+        Write-Check warn 'Database' 'Go-based sqlcmd not found - install Microsoft.Sqlcmd and re-run'
         $warnings++
     }
     else {
         try {
-            # On Windows the client prefers a native SNI companion that the app
-            # locates through deps.json at run time. PowerShell has no deps.json,
-            # so use the fully managed networking stack instead. Must be set
-            # before the connection type is first touched.
-            if ($IsWindows) {
-                [System.AppContext]::SetSwitch('Switch.Microsoft.Data.SqlClient.UseManagedNetworkingOnWindows', $true)
-            }
-            # Add-Type throws if some other copy of this assembly is already in
-            # the process, so only load when the type is genuinely absent.
-            if (-not ('Microsoft.Data.SqlClient.SqlConnection' -as [type])) {
-                Add-Type -Path $driver.FullName -ErrorAction Stop
-            }
-
-            $token = az account get-access-token --resource https://database.windows.net/ --query accessToken -o tsv 2>$null
-            if (-not $token) { throw 'could not acquire an Entra token for Azure SQL' }
-
-            $conn = [Microsoft.Data.SqlClient.SqlConnection]::new(
-                "Server=tcp:$Server,1433;Database=$Database;Encrypt=True;Connect Timeout=15")
-            $conn.AccessToken = $token.Trim()
-            $conn.Open()
-
-            # Schema AND data. A reader who ran the Chapter 2 schema scripts but
-            # skipped the seed gets a working app with empty screens, which is a
-            # confusing place to land.
-            $cmd = $conn.CreateCommand()
-            $cmd.CommandText = @"
-SELECT CASE WHEN OBJECT_ID('clinical.Patient') IS NOT NULL
-             AND OBJECT_ID('clinical.GetPatientChart') IS NOT NULL THEN 1 ELSE 0 END,
-       CASE WHEN OBJECT_ID('clinical.Patient') IS NULL THEN -1
-            ELSE (SELECT COUNT(*) FROM clinical.Patient) END
-"@
-            $r = $cmd.ExecuteReader()
-            $null = $r.Read()
-            $hasSchema = $r.GetInt32(0) -eq 1
-            $patients = $r.GetInt32(1)
-            $r.Close(); $conn.Close()
+            $queryPath = Join-Path $root 'preflight-database.sql'
+            $result = @(& $sqlcmdPath -S $Server -d $Database -G -C -b `
+                -h -1 -W -s '|' -i $queryPath
+            )
+            if ($LASTEXITCODE -ne 0) { throw "sqlcmd exited with code $LASTEXITCODE" }
+            $row = [string] ($result | Where-Object { $_ -match '\|' } | Select-Object -Last 1)
+            $values = $row.Split('|')
+            if ($values.Count -ne 2) { throw "unexpected database preflight output: $result" }
+            $hasSchema = [int] $values[0].Trim() -eq 1
+            $patients = [int] $values[1].Trim()
 
             if (-not $hasSchema) {
                 Write-Check fail 'Database' 'connected, but the Chapter 2 schema is missing - run the Chapter 2 schema scripts'
@@ -278,12 +252,15 @@ else {
     }
     if (-not $mcpUrl) { $mcpUrl = 'http://localhost:5000/mcp' }
 
-    # Delegated to Chapter 6's probe, the same way the firewall check is
-    # delegated to Chapter 2's script. The probe is the definition of what the
-    # endpoint offers, so there is no second copy of that logic to drift.
-    $probe = Join-Path $root '..' 'ch06-agentic-ai' 'probe-mcp.ps1'
+    $rlsOn = $env:RowLevelSecurity__Enabled -eq 'true'
+    $probe = if ($rlsOn) {
+        Join-Path $root '..' 'ch08-security' 'rls' 'probe-secured-mcp.ps1'
+    }
+    else {
+        Join-Path $root '..' 'ch06-agentic-ai' 'probe-mcp.ps1'
+    }
     if (-not (Test-Path $probe)) {
-        Write-Check warn 'SQL MCP endpoint' "Chapter 6 probe not found at $probe"
+        Write-Check warn 'SQL MCP endpoint' "MCP probe not found at $probe"
         $warnings++
     }
     else {
@@ -291,9 +268,14 @@ else {
         if ($LASTEXITCODE -ne 0 -or -not $tools) {
             Write-Check fail 'SQL MCP endpoint' "nothing answering at $mcpUrl"
             Write-Host ''
-            Write-Host '  The AiAgent flag is on, so the app needs the Chapter 6 SQL MCP server.' -ForegroundColor Yellow
+            Write-Host '  The AiAgent flag is on, so the app needs its SQL MCP server.' -ForegroundColor Yellow
             Write-Host '  Start it in its own shell, and wait for it to bind, before starting the app:' -ForegroundColor Yellow
-            Write-Host '    ./examples/ch06-agentic-ai/run-dab.ps1' -ForegroundColor DarkGray
+            if ($rlsOn) {
+                Write-Host '    ./examples/ch08-security/rls/02-run-secured-dab.ps1' -ForegroundColor DarkGray
+            }
+            else {
+                Write-Host '    ./examples/ch06-agentic-ai/run-dab.ps1' -ForegroundColor DarkGray
+            }
             Write-Host ''
             $failures++
             $global:LASTEXITCODE = 0

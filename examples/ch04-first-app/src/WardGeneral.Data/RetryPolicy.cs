@@ -16,31 +16,34 @@ namespace WardGeneral.Data;
 /// </summary>
 public static class RetryPolicy
 {
-    // Transient/retryable errors that matter on Azure SQL / Hyperscale, including the
-    // ones seen during a scale operation or a failover.
+    // Extend the driver-owned baseline with transport resets and Azure SQL failover
+    // subcodes that can surface as top-level SqlException numbers.
     private static readonly int[] TransientErrorNumbers =
-    {
-        40613, // Database currently unavailable (opening/failover)
-        40197, // Service error processing request (reconfiguration)
-        40501, // Service busy
-        49918, 49919, 49920, // Cannot process request / too many operations
-        4060,  // Cannot open database (transient during failover)
-        10928, 10929, // Resource governance limits
-        233,   // No process on the other end of the pipe (connection dropped)
-        64,    // A connection was successfully established but then failed
-        -2,    // Timeout
-        20     // Instance not currently able to accept the connection
-    };
+    [
+        .. SqlConfigurableRetryFactory.BaselineTransientErrors,
+        64,    // Transport failure after a connection was established.
+        10053, // Established connection aborted by the local host.
+        10054, // Established connection reset by the remote host.
+        40020, // Azure SQL failover subcode that can surface as the top-level error.
+        40166  // Azure SQL failover subcode that can surface as the top-level error.
+    ];
 
-    /// <summary>Create a fresh exponential-backoff retry provider (5 tries, ~2s→30s).</summary>
-    public static SqlRetryLogicBaseProvider CreateProvider()
+    /// <summary>Create a fresh exponential-backoff provider for connection opens.</summary>
+    public static SqlRetryLogicBaseProvider CreateConnectionProvider() => CreateProvider();
+
+    /// <summary>Create a fresh provider for a command the caller has established is read-only.</summary>
+    public static SqlRetryLogicBaseProvider CreateReadOnlyCommandProvider() =>
+        CreateProvider(_ => true);
+
+    private static SqlRetryLogicBaseProvider CreateProvider(Predicate<string>? authorizedSqlCondition = null)
     {
         var options = new SqlRetryLogicOption
         {
             NumberOfTries = 5,
             DeltaTime = TimeSpan.FromSeconds(2),
             MaxTimeInterval = TimeSpan.FromSeconds(30),
-            TransientErrors = TransientErrorNumbers
+            TransientErrors = TransientErrorNumbers,
+            AuthorizedSqlCondition = authorizedSqlCondition
         };
 
         return SqlConfigurableRetryFactory.CreateExponentialRetryProvider(options);

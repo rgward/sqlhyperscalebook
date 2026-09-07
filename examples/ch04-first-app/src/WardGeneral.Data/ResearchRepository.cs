@@ -40,7 +40,7 @@ public sealed class ResearchRepository
         {
             CommandType = CommandType.StoredProcedure,
             CommandTimeout = 60, // embed + vector search on a serverless replica warming up
-            RetryLogicProvider = RetryPolicy.CreateProvider()
+            RetryLogicProvider = RetryPolicy.CreateReadOnlyCommandProvider()
         };
         cmd.Parameters.Add("@QueryText", SqlDbType.NVarChar, -1).Value = queryText;
         cmd.Parameters.Add("@TopK", SqlDbType.Int).Value = topK;
