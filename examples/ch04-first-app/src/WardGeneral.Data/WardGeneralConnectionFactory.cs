@@ -79,7 +79,7 @@ public sealed class WardGeneralConnectionFactory
         var connection = new SqlConnection(builder.ConnectionString)
         {
             // Retry transparently on transient faults (scale ops, failover).
-            RetryLogicProvider = RetryPolicy.CreateProvider()
+            RetryLogicProvider = RetryPolicy.CreateConnectionProvider()
         };
 
         return connection;
@@ -110,7 +110,7 @@ public sealed class WardGeneralConnectionFactory
 
         return new SqlConnection(builder.ConnectionString)
         {
-            RetryLogicProvider = RetryPolicy.CreateProvider()
+            RetryLogicProvider = RetryPolicy.CreateConnectionProvider()
         };
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Client;
+using WardGeneral.Data;
 
 namespace WardGeneral.Agent;
 
@@ -22,25 +23,31 @@ public sealed class WardGeneralAgent : IAsyncDisposable
 {
     private readonly AgentOptions _opts;
     private readonly ILogger<WardGeneralAgent> _log;
+    private readonly AccessContext _access;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly List<McpClient> _mcpClients = [];
     private McpClient? _mcp;
     private AIAgent? _agent;
 
-    public WardGeneralAgent(IOptions<AgentOptions> opts, ILogger<WardGeneralAgent> log)
+    public WardGeneralAgent(
+        IOptions<AgentOptions> opts,
+        ILogger<WardGeneralAgent> log,
+        AccessContext access)
     {
         _opts = opts.Value;
         _log = log;
+        _access = access;
     }
 
     private async Task<IList<McpClientTool>> ConnectAsync(string name, string url, CancellationToken ct)
     {
+        var httpClient = new HttpClient(new ActingProviderHandler(_access));
         var client = await McpClient.CreateAsync(
             new HttpClientTransport(new HttpClientTransportOptions
             {
                 Name = name,
                 Endpoint = new Uri(url)
-            }),
+            }, httpClient, ownsHttpClient: true),
             cancellationToken: ct);
 
         _mcpClients.Add(client);

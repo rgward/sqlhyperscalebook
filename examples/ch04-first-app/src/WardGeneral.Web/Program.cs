@@ -30,10 +30,10 @@ builder.Services.AddScoped<AccessContext>();
 
 // In-app clinical assistant. Microsoft Agent Framework
 // agent whose tools are the DAB SQL MCP server (the same clinical.* procs the DAL
-// and VS Code Copilot use). Singleton (one agent, built once); per-circuit page
-// context grounds answers on the current view. See WardGeneral.Agent + AssistantDock.
+// and VS Code Copilot use). Scoped so Chapter 8 can carry the circuit's acting
+// provider to DAB without exposing identity as a model-selected tool argument.
 builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection("Agent"));
-builder.Services.AddSingleton<WardGeneralAgent>();
+builder.Services.AddScoped<WardGeneralAgent>();
 builder.Services.AddScoped<WardGeneral.Web.Services.PageContext>();
 
 var app = builder.Build();

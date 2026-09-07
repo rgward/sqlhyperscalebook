@@ -25,6 +25,10 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\WardGeneral.Data\WardGeneral.Data.csproj" />
+  </ItemGroup>
+
   <!--
     The Chapter 6 runtime Agent Skill. This is prose the model loads on demand -
     not code - so it ships as content beside the binary rather than as an

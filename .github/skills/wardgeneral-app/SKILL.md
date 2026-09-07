@@ -74,7 +74,7 @@ The **SQL lives with the chapter that teaches it**, not in this folder: schema +
 seed in `examples/ch02-getting-started/`, embeddings and AI assistance in
 `examples/ch05-ai-ready-sql/`, DAB / MCP and the AI gateway in
 `examples/ch06-agentic-ai/`, Row-Level
-Security in `examples/ch08/`.
+Security in `examples/ch08-security/`.
 
 The web app references the DAL library (it compiles into the app's output — one
 deployable unit), so the same DAL can be reused elsewhere. Every database call
@@ -305,7 +305,7 @@ app. It self-hides only if `clinical.vChartNoteSignals` hasn't been deployed.
   as** selector writes the acting clinician into `SESSION_CONTEXT` (per-circuit
   `AccessContext`), and `security.EncounterAccessPolicy` on `clinical.Encounter`
   filters rows in the engine — the trusted-subsystem pattern. See
-  `examples/ch08/10-row-level-security.sql`.
+  `examples/ch08-security/rls/row-level-security.sql`.
 - **Resiliency and read scale-out (Chapter 9)** — `RetryPolicy` retries transient
   faults; reads pass `ApplicationIntent=ReadOnly` to reach a secondary replica.
 - **Native `json` (Chapter 5)** — the chart's sections come back as native `json`,

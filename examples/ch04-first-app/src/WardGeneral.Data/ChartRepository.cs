@@ -42,7 +42,7 @@ public sealed class ChartRepository
         await using var conn = _connections.Create();
         await OpenWithContextAsync(conn, ct);
 
-        await using var cmd = NewProc(conn, "clinical.SearchEncounters");
+        await using var cmd = NewReadOnlyProc(conn, "clinical.SearchEncounters");
         AddParam(cmd, "@Status", SqlDbType.NVarChar, status, 20);
         AddParam(cmd, "@PatientId", SqlDbType.Int, patientId);
         AddParam(cmd, "@DepartmentId", SqlDbType.Int, departmentId);
@@ -91,7 +91,10 @@ public sealed class ChartRepository
         await using var conn = _connections.Create();
         await OpenWithContextAsync(conn, ct);
 
-        await using var cmd = NewProc(conn, "clinical.GenerateClinicalAssistance");
+        await using var cmd = new SqlCommand("clinical.GenerateClinicalAssistance", conn)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
         cmd.CommandTimeout = 130; // the proc waits up to 120s on gpt-5
         AddParam(cmd, "@EncounterId", SqlDbType.Int, encounterId);
 
@@ -117,7 +120,7 @@ public sealed class ChartRepository
         await using var conn = _connections.Create();
         await OpenWithContextAsync(conn, ct);
 
-        await using var cmd = NewProc(conn, proc);
+        await using var cmd = NewReadOnlyProc(conn, proc);
         AddParam(cmd, key.Name, key.Type, key.Value);
 
         await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -167,7 +170,7 @@ public sealed class ChartRepository
         await using var cmd = new SqlCommand(
             "SELECT DISTINCT UnitName FROM ops.vBedCensus ORDER BY UnitName", conn)
         {
-            RetryLogicProvider = RetryPolicy.CreateProvider()
+            RetryLogicProvider = RetryPolicy.CreateReadOnlyCommandProvider()
         };
 
         var units = new List<string>();
@@ -194,7 +197,10 @@ WHERE (@Unit IS NULL OR UnitName = @Unit)
   AND (@OccupiedOnly = 0 OR EncounterId IS NOT NULL)
 ORDER BY UnitName, BedNumber;";
 
-        await using var cmd = new SqlCommand(sql, conn) { RetryLogicProvider = RetryPolicy.CreateProvider() };
+        await using var cmd = new SqlCommand(sql, conn)
+        {
+            RetryLogicProvider = RetryPolicy.CreateReadOnlyCommandProvider()
+        };
         cmd.Parameters.Add("@Unit", SqlDbType.NVarChar, 100).Value = (object?)unitName ?? DBNull.Value;
         cmd.Parameters.Add("@OccupiedOnly", SqlDbType.Bit).Value = occupiedOnly;
 
@@ -261,7 +267,7 @@ JOIN ops.Provider AS pr ON pr.ProviderId = e.AttendingProviderId
 WHERE e.Status = N'Active'
 ORDER BY pr.FullName;", conn)
         {
-            RetryLogicProvider = RetryPolicy.CreateProvider()
+            RetryLogicProvider = RetryPolicy.CreateReadOnlyCommandProvider()
         };
 
         var list = new List<ProviderOption>();
@@ -271,13 +277,12 @@ ORDER BY pr.FullName;", conn)
         return list;
     }
 
-    private static SqlCommand NewProc(SqlConnection conn, string name)
+    private static SqlCommand NewReadOnlyProc(SqlConnection conn, string name)
     {
         var cmd = new SqlCommand(name, conn)
         {
             CommandType = CommandType.StoredProcedure,
-            // Retry the execute too (connection open is retried by the connection).
-            RetryLogicProvider = RetryPolicy.CreateProvider()
+            RetryLogicProvider = RetryPolicy.CreateReadOnlyCommandProvider()
         };
         return cmd;
     }
