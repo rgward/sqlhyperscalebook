@@ -44,6 +44,8 @@ examples/ch07-observability/    Observability: performance, availability, engine
                            events, retained errors, and connection history
 examples/ch08-security/         Security: Row-Level Security in Ward General and
                            an optional bounded Azure SQL auditing investigation
+examples/ch09-availability/     Resiliency: observe application retry during a
+                           manual failover and create a verified PITR test copy
                            ... (more added as chapters are completed)
 figures/                   The book's architecture diagrams, as SVG, by chapter
 ```
