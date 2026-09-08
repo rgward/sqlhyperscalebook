@@ -12,8 +12,10 @@ Chapter 6 DAB configuration are prerequisites. Chapter 8 does not redeploy
 them; it changes their security boundary and rebuilds the app where necessary.
 
 Start with the [`rls/` README](rls/) for the primary example or the
-[`auditing/` README](auditing/) for the optional audit investigation. Both
-workflows reuse the server and database configured in
+[`auditing/` README](auditing/) for the optional audit investigation. The
+[`tde/` README](tde/) documents the separate optional Azure workflow that
+configures a versionless customer-managed key as the logical server's TDE
+protector. These workflows reuse the server and database configured in
 [`../ch04-first-app/ch04.env`](../ch04-first-app/ch04.env.template).
 
 Use the canonical VS Code Chat invocations in [`prompts.md`](prompts.md).
@@ -25,12 +27,13 @@ one terminal and Ward General visibly in another terminal. No hidden console or
 background runtime owns either process.
 
 The chapter discusses Microsoft Entra-only authentication, database roles,
-customer-managed keys, Private Link, data classification, ledger, and Defender
-for SQL without packaging them as additional guided examples. The optional
-auditing investigation provisions a billable Log Analytics destination,
-captures application evidence, and has a guarded teardown. The manuscript shows
-representative audit output and explains the existing Chapter 5 ledger table
-conceptually. The application runs from a laptop, so
-Private Link is architecture discussion rather than a live exercise.
+Private Link, data classification, ledger, and Defender for SQL without
+packaging them as additional guided examples. The optional TDE workflow creates
+a Key Vault and changes the server-level encryption protector immediately; it
+is not preview-only. The optional auditing investigation provisions a billable
+Log Analytics destination, captures application evidence, and has a guarded
+teardown. The manuscript shows representative audit output and explains the
+existing Chapter 5 ledger table conceptually. The application runs from a
+laptop, so Private Link is architecture discussion rather than a live exercise.
 
 **All data is synthetic. There is no real patient data (PHI) here.**
