@@ -7,8 +7,8 @@ Companion code for the forthcoming Apress book **Azure SQL Hyperscale Unveiled**
 > **`aka.ms/sqlhyperscalebook`**. Follow that link to reach the repo, then clone
 > the URL shown by GitHub's **Code** button (or `gh repo clone`).
 
-> **Status: pre-release.** Chapters are published here as the book is written.
-> Folders appear as their chapters are finished.
+**Status: pre-release.** Chapters are published here as the book is written.
+Folders appear as their chapters are finished.
 
 ## The scenario
 
@@ -27,7 +27,7 @@ real-world healthcare decision-making.
 
 ## Layout
 
-```
+```text
 .github/skills/            Copilot skills — open this repo in VS Code and Copilot can
                            run them for you (e.g. "deploy my Hyperscale database")
 examples/ch02-getting-started/  Getting started: provision, connect, build the schema, seed
@@ -44,6 +44,8 @@ examples/ch07-observability/    Observability: performance, availability, engine
                            events, retained errors, and connection history
 examples/ch08-security/         Security: Row-Level Security in Ward General and
                            an optional bounded Azure SQL auditing investigation
+examples/ch09-availability/     Resiliency: observe application retry during a
+                           manual failover and create a verified PITR test copy
                            ... (more added as chapters are completed)
 figures/                   The book's architecture diagrams, as SVG, by chapter
 ```
@@ -60,22 +62,27 @@ and application, SQL, or MCP caller.
 
 Install these before running the guided deploy:
 
-**Editor + AI (to use the skill)**
+### Editor + AI
+
 - **VS Code** (current build).
 - **GitHub Copilot** + **GitHub Copilot Chat** extensions, with **agent mode**, and a Copilot subscription. Skills are an agent-mode feature and are auto-discovered from this repo's `.github/skills/` the moment you open the folder.
 
-**Shells / CLIs (what the scripts call)**
+### Shells and CLIs
+
 - **PowerShell 7+ (`pwsh`)** — required. The scripts use PowerShell 7 features, so Windows PowerShell 5.1 won't work. Set `pwsh` as your default integrated terminal.
 - **Azure CLI 2.60+** (`az`) — signed in with `az login`.
 
-**Database client (for connect-and-verify)**
+### Database client
+
 - **MSSQL extension for VS Code** (`ms-mssql.mssql`) — the book's primary client; used to connect (Microsoft Entra auth) and run `connect-and-verify.sql`.
 
-**Azure account**
+### Azure account
+
 - An **Azure subscription** with rights to create a logical server + database (Contributor or a SQL-specific role). See Chapter 2 for subscription options, including the free path. A Hyperscale database **bills from creation** — mind the meter.
 - A **Microsoft Entra** account — you become the server's Entra admin (no SQL password needed to connect).
 
-**Optional**
+### Optional
+
 - **Azure MCP Server** (`ms-azuretools.vscode-azure-mcp-server`, preview) — lets Copilot drive `az` as structured tools. Not required: the skill runs `az` through the built-in terminal tool.
 
 > **What "tools" does the skill use?** Mostly the **built-in terminal tool** that ships with Copilot agent mode — it runs `az` and the PowerShell script. Azure MCP is an optional add-on; the MSSQL extension is a client *you* drive, not an agent tool.
@@ -104,7 +111,7 @@ environment variables or prompt you.
 Run the five schema scripts **in order once**, then verify:
 
 | Step | Script | What it does |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `01-schemas.sql` | Creates the `clinical` and `ops` schemas. |
 | 2 | `02-tables.sql` | Creates all 16 tables (keys, FKs, constraints, `json` columns). |
 | 3 | `03-views.sql` | Creates the `vPatientChart` chart views. |
@@ -161,7 +168,7 @@ so they stay crisp at any zoom and you can open one and adapt it.
 ![The road to Azure SQL Hyperscale](figures/ch01-introduction/ch01-figure-01-timeline.svg)
 
 | Chapter | Figure | What it shows |
-|---|---|---|
+| --- | --- | --- |
 | 1 | [Timeline](figures/ch01-introduction/ch01-figure-01-timeline.svg) | How Hyperscale got here, from SQL Azure to GA. |
 | 3 | [Architecture](figures/ch03-architecture/ch03-figure-01-architecture.svg) | The master figure: all four tiers and the paths between them. |
 | 3 | [Primary compute](figures/ch03-architecture/ch03-figure-primary-compute.svg) | The primary replica and its local RBPEX cache. |
