@@ -30,13 +30,13 @@ remains online and is not overwritten.
 Capture and preserve the printed `RestorePointUtc`:
 
 ```powershell
-./examples/ch09-availability/pitr/prepare-pitr.ps1
+./examples/ch09-ha-resiliency/pitr/prepare-pitr.ps1
 ```
 
 Preview the billable restore using those exact values:
 
 ```powershell
-./examples/ch09-availability/pitr/pitr-restore.ps1 `
+./examples/ch09-ha-resiliency/pitr/pitr-restore.ps1 `
    -RestorePointUtc '<RestorePointUtc>' `
    -RestoredDatabase 'wardgeneral-pitr-demo'
 ```
@@ -58,7 +58,7 @@ target-resource choices rather than recovered database state.
 After submission, inspect its management-operation record:
 
 ```powershell
-./examples/ch09-availability/pitr/show-operation-status.ps1 `
+./examples/ch09-ha-resiliency/pitr/show-operation-status.ps1 `
    -RestoredDatabase 'wardgeneral-pitr-demo'
 ```
 
@@ -75,7 +75,7 @@ helper, or place it behind a terminal timeout shorter than 65 minutes.
 Verify both sides:
 
 ```powershell
-./examples/ch09-availability/pitr/verify-pitr.ps1 `
+./examples/ch09-ha-resiliency/pitr/verify-pitr.ps1 `
    -RestoredDatabase 'wardgeneral-pitr-demo'
 ```
 
@@ -87,7 +87,7 @@ recovery evidence. A conflicting non-null source ID still fails verification.
 Then preview cleanup:
 
 ```powershell
-./examples/ch09-availability/pitr/cleanup-pitr.ps1 `
+./examples/ch09-ha-resiliency/pitr/cleanup-pitr.ps1 `
    -RestoredDatabase 'wardgeneral-pitr-demo'
 ```
 

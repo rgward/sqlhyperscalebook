@@ -15,8 +15,8 @@ description: >-
 
 # Test Hyperscale failover — Chapter 9
 
-Read `examples/ch09-availability/README.md` and
-`examples/ch09-availability/failover/README.md` before running anything. They
+Read `examples/ch09-ha-resiliency/README.md` and
+`examples/ch09-ha-resiliency/failover/README.md` before running anything. They
 are the reader-facing source of truth and must remain capability-equivalent to
 this skill.
 
@@ -95,9 +95,9 @@ is not a contractual RTO.
 
 | File | Role |
 | --- | --- |
-| `examples/ch09-availability/failover/README.md` | Reader runbook and safety boundary |
-| `examples/ch09-availability/failover/check-failover-health.ps1` | Before/after Resource Health evidence for the exact database |
-| `examples/ch09-availability/failover/run-retry-probe.ps1` | Configuration loader and finite probe launcher |
-| `examples/ch09-availability/failover/trigger-failover.ps1` | Preview-first failover REST driver |
-| `examples/ch09-availability/failover/collect-failover-evidence.ps1` | Bounded Activity Log, replica, and Azure Monitor collector |
-| `examples/ch09-availability/failover/retry-probe/` | .NET probe referencing the application data project |
+| `examples/ch09-ha-resiliency/failover/README.md` | Reader runbook and safety boundary |
+| `examples/ch09-ha-resiliency/failover/check-failover-health.ps1` | Before/after Resource Health evidence for the exact database |
+| `examples/ch09-ha-resiliency/failover/run-retry-probe.ps1` | Configuration loader and finite probe launcher |
+| `examples/ch09-ha-resiliency/failover/trigger-failover.ps1` | Preview-first failover REST driver |
+| `examples/ch09-ha-resiliency/failover/collect-failover-evidence.ps1` | Bounded Activity Log, replica, and Azure Monitor collector |
+| `examples/ch09-ha-resiliency/failover/retry-probe/` | .NET probe referencing the application data project |

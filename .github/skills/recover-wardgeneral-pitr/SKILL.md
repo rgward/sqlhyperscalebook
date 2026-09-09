@@ -13,8 +13,8 @@ description: >-
 
 # Recover Ward General with PITR — Chapter 9
 
-Read `examples/ch09-availability/README.md` and
-`examples/ch09-availability/pitr/README.md` before running anything. They are
+Read `examples/ch09-ha-resiliency/README.md` and
+`examples/ch09-ha-resiliency/pitr/README.md` before running anything. They are
 the reader-facing source of truth and must remain capability-equivalent to this
 skill.
 
@@ -35,7 +35,7 @@ separate billable Hyperscale serverless test database. It never overwrites
 
 ### Prepare
 
-1. Run `examples/ch09-availability/pitr/prepare-pitr.ps1`.
+1. Run `examples/ch09-ha-resiliency/pitr/prepare-pitr.ps1`.
 2. Require exactly one `RestorePointUtc`. Preserve the raw output. Explain
    that this is a current-as-of-start test copy, not a continuously current
    clone.
@@ -95,11 +95,11 @@ Distinguish a locally validated script from a completed live Azure recovery.
 
 | File | Role |
 | --- | --- |
-| `examples/ch09-availability/pitr/README.md` | Reader runbook and command sequence |
-| `examples/ch09-availability/pitr/prepare-pitr.ps1` | Passwordless SQL preparation driver |
-| `examples/ch09-availability/pitr/prepare-recovery-point.sql` | Read-only source UTC restore-point capture |
-| `examples/ch09-availability/pitr/pitr-restore.ps1` | Preview-first Azure CLI restore |
-| `examples/ch09-availability/pitr/show-operation-status.ps1` | Passwordless `master` query driver for recent operation status |
-| `examples/ch09-availability/pitr/operation-status.sql` | `sys.dm_operation_status` restore evidence |
-| `examples/ch09-availability/pitr/verify-pitr.ps1` | Source/restored verification driver |
-| `examples/ch09-availability/pitr/cleanup-pitr.ps1` | Guarded restored-database cleanup |
+| `examples/ch09-ha-resiliency/pitr/README.md` | Reader runbook and command sequence |
+| `examples/ch09-ha-resiliency/pitr/prepare-pitr.ps1` | Passwordless SQL preparation driver |
+| `examples/ch09-ha-resiliency/pitr/prepare-recovery-point.sql` | Read-only source UTC restore-point capture |
+| `examples/ch09-ha-resiliency/pitr/pitr-restore.ps1` | Preview-first Azure CLI restore |
+| `examples/ch09-ha-resiliency/pitr/show-operation-status.ps1` | Passwordless `master` query driver for recent operation status |
+| `examples/ch09-ha-resiliency/pitr/operation-status.sql` | `sys.dm_operation_status` restore evidence |
+| `examples/ch09-ha-resiliency/pitr/verify-pitr.ps1` | Source/restored verification driver |
+| `examples/ch09-ha-resiliency/pitr/cleanup-pitr.ps1` | Guarded restored-database cleanup |

@@ -33,14 +33,14 @@ First, establish that the database is currently Available by using the default
 `Before` phase:
 
 ```powershell
-./examples/ch09-availability/failover/check-failover-health.ps1
+./examples/ch09-ha-resiliency/failover/check-failover-health.ps1
 ```
 
 The precheck saves `resource-health.json` and must report
 `FailoverHealthPrecheck=PASS`. Then preview the exact intrusive operation:
 
 ```powershell
-./examples/ch09-availability/failover/trigger-failover.ps1
+./examples/ch09-ha-resiliency/failover/trigger-failover.ps1
 ```
 
 Confirm the subscription, resource ID, database, service tier, and
@@ -52,7 +52,7 @@ request.
 After approval, start the probe in the first terminal:
 
 ```powershell
-./examples/ch09-availability/failover/run-retry-probe.ps1
+./examples/ch09-ha-resiliency/failover/run-retry-probe.ps1
 ```
 
 The two-minute observation window begins after the first successful request,
@@ -61,7 +61,7 @@ printed `MeasurementEndsUtc`. Wait for several `OK` rows, then immediately use
 the second terminal to submit the already-approved failover:
 
 ```powershell
-./examples/ch09-availability/failover/trigger-failover.ps1 -Execute
+./examples/ch09-ha-resiliency/failover/trigger-failover.ps1 -Execute
 ```
 
 Keep the first terminal visible. It prints `RETRY` before each retry,
@@ -75,7 +75,7 @@ After the probe completes, use its first UTC timestamp as `StartUtc` and its
 final UTC timestamp as `EndUtc`:
 
 ```powershell
-./examples/ch09-availability/failover/collect-failover-evidence.ps1 `
+./examples/ch09-ha-resiliency/failover/collect-failover-evidence.ps1 `
    -StartUtc '<first probe UTC timestamp>' `
    -EndUtc '<final probe UTC timestamp>'
 ```
@@ -90,7 +90,7 @@ Finally, capture Resource Health again without treating its coarse status as
 the client interruption measurement:
 
 ```powershell
-./examples/ch09-availability/failover/check-failover-health.ps1 -Phase After
+./examples/ch09-ha-resiliency/failover/check-failover-health.ps1 -Phase After
 ```
 
 The probe:
