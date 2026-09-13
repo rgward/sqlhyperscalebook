@@ -47,6 +47,9 @@ examples/ch08-security/         Security: Row-Level Security in Ward General and
 examples/ch09-ha-resiliency/    Resiliency: observe application retry during a
                            manual failover, create a verified PITR test copy,
                            and deploy a cross-region Hyperscale geo-secondary
+examples/ch10-performance/      Performance: scale compute under load, grow the
+                           existing database, then demonstrate JSON indexing
+                           and memory grant feedback
                            ... (more added as chapters are completed)
 figures/                   The book's architecture diagrams, as SVG, by chapter
 ```
