@@ -6,15 +6,18 @@ description: >-
   decision at a time on the create-time choices (region, globally-unique
   server name, compute size, zone redundancy + HA replica, backup-storage
   redundancy, collation, admin auth), then provisions the database with the
-  PowerShell + az CLI script, connects and proves it is SQL Server, builds the
-  through-line schema, and seeds synthetic data. USE WHEN the reader says any
+  PowerShell + az CLI script, separately obtains approval to add the Chapter 2
+  replica topology (a second HA replica and the wardgeneral-research named
+  replica), connects and proves it is SQL Server, builds the through-line
+  schema, and seeds synthetic data. USE WHEN the reader says any
   of: "deploy / create / provision / set up / spin up / stand up my (or a)
   Hyperscale database", "get started with Azure SQL Hyperscale", "build the
   Ward General database", "deploy the Chapter 2 database", or "walk me through
-  deploying Hyperscale". Scope is deploy + connect + schema + seed ONLY. Do NOT
-  use for scaling compute, adding HA / named / geo replicas, point-in-time
-  restore, security hardening (Entra-only, CMK, auditing), or teardown /
-  cleanup — those are owned by later chapters and their own skills.
+  deploying Hyperscale". Scope is the Chapter 2 deploy + prescribed replicas +
+  connect + schema + seed workflow ONLY. Do NOT use for scaling compute,
+  ad hoc replica changes outside that workflow, geo-replication, point-in-time
+  restore, security hardening (Entra-only, CMK, auditing), or teardown / cleanup
+  — those are owned by later chapters and their own skills.
 ---
 
 # Deploy a Hyperscale database (guided)
@@ -374,6 +377,38 @@ script falls back to its own defaults for anything not set.)
   `highAvailabilityReplicaCount = 1`, `zoneRedundant = <chosen>`, and
   `requestedBackupStorageRedundancy = <chosen>`.
 
+### Complete the Chapter 2 replica topology — separate approval required
+
+After the primary provision is verified, explain that Chapter 2 has one more
+deployment step. `examples/ch02-getting-started/add-replicas.ps1`:
+
+- increases the primary from one to **two HA replicas**;
+- creates the serverless `wardgeneral-research` named replica; and
+- prints the resulting replica topology.
+
+State the cost before asking: the second HA replica adds another full primary
+compute meter, and the named replica is a separate serverless compute meter that
+bills continuously at its minimum when idle because Hyperscale serverless does
+not auto-pause. These replicas are required by the book's cumulative path:
+Chapter 3 inspects `wardgeneral-research`, and Chapter 5 first uses it.
+
+Ask exactly one decision and **stop for the answer**:
+
+> Add the billable Chapter 2 replicas now — a second HA replica and the
+> `wardgeneral-research` named replica? [yes/no]
+
+- On **yes**, keep the same terminal and environment values from Steps 1–21,
+  then run:
+  ```powershell
+  ./examples/ch02-getting-started/add-replicas.ps1
+  ```
+  Require the script to finish successfully. Confirm that `wardgeneral` reports
+  two HA replicas and `wardgeneral-research` is `Online` with service objective
+  `HS_S_Gen5_8` before continuing.
+- On **no**, create nothing else. State that the base Hyperscale database is
+  usable, but Chapters 3 and 5 assume `wardgeneral-research` exists; stop the
+  cumulative Chapter 2 workflow until the reader returns and approves this step.
+
 **Control-plane proof (`examples/ch02-getting-started/verify-activity-log.ps1`).** For a
 third, independent check you *can* run for the reader (it's **read-only** — just an
 `az monitor activity-log` query), run this script. It summarizes the **Azure
@@ -443,10 +478,12 @@ SSMS / the client — the reader doesn't have to eyeball the numbers.
 
 ## Scope discipline
 
-This skill deploys and prepares the database — nothing more. It does **not**
-scale compute, add HA or named replicas, run a point-in-time restore, or tear
-anything down; those are covered by later chapters. If the reader asks "why?"
-on any step, answer in one sentence and keep moving.
+This skill deploys and prepares the database, including the separately approved
+Chapter 2 replica topology — nothing more. It does **not** scale compute, make
+ad hoc HA or named-replica changes outside that prescribed step, create a
+geo-replica, run a point-in-time restore, or tear anything down; those are
+covered by later chapters. If the reader asks "why?" on any step, answer in one
+sentence and keep moving.
 
 ## Files this skill runs
 
@@ -455,6 +492,7 @@ All under `examples/ch02-getting-started/`:
 | File | Role |
 |---|---|
 | `provision-hyperscale.ps1` | canonical CLI provision (Step 21) |
+| `add-replicas.ps1` | separately approved second HA replica + `wardgeneral-research` named replica |
 | `connect-and-verify.sql` | prove-it's-SQL-Server |
 | `01-schemas.sql` | §3 `CREATE SCHEMA clinical / ops` |
 | `02-tables.sql` | §3 16 tables + indexes + bedside invariant |

@@ -89,6 +89,12 @@ Write-Host "Validating $(Split-Path $Config -Leaf) ..." -ForegroundColor DarkGra
 $env:DAB_CONNECTION_STRING =
     "Server=tcp:$Server,1433;Database=$Database;Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;"
 
+# This local launcher requires az login. Avoid spending DAB's startup window on
+# unavailable managed-identity, IDE, PowerShell, and broker credentials first.
+if (-not $env:AZURE_TOKEN_CREDENTIALS) {
+    $env:AZURE_TOKEN_CREDENTIALS = 'AzureCliCredential'
+}
+
 dab validate -c $Config
 
 # `dab start` has no port switch - DAB is an ASP.NET Core host, so the port comes

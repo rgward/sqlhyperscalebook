@@ -26,7 +26,9 @@ Five moves, in order:
 
 You can drive all of this through Copilot (ask it to *"deploy my Hyperscale
 database"* and it runs the `deploy-hyperscale` skill), or run the scripts by hand
-as described below.
+as described below. After the primary deploy succeeds, the guided path explains
+the additional replica costs and asks for separate approval before it runs
+`add-replicas.ps1`; it never creates those billable replicas silently.
 
 > **Tip — a third way to verify.** After the deploy, run
 > `verify-activity-log.ps1` for a control-plane check: it summarizes the Azure
@@ -45,7 +47,7 @@ as described below.
 | `01-schemas.sql` | SQL | Creates the `clinical` and `ops` schemas. |
 | `02-tables.sql` | SQL | Creates all 16 tables — clustered keys, FKs, constraints, and the four native `json` columns. |
 | `03-views.sql` | SQL | Creates `clinical.vPatientChart` and its supporting chart views. |
-| `04-procedures.sql` | SQL | Creates the eleven read/write procedures (admit, discharge, record vitals, place order, file lab, add note/diagnosis/allergy, `SearchEncounters`, chart reads). They are the hospital's contract, not this book's app's: the Chapter 4 chart app is read-only and calls three of them, and the same procedures are what Data API Builder and the agent expose in Chapter 6. |
+| `04-procedures.sql` | SQL | Creates the eleven read/write procedures (admit, discharge, record vitals, place order, file lab, add note/diagnosis/allergy, `SearchEncounters`, chart reads). `SearchEncounters` supports optional ID, date, status, unit, department, and provider-name filters and returns readable encounter summaries. They are the hospital's contract, not this book's app's: the same procedures are what Data API Builder and the agent expose in Chapter 6. |
 | `05-seed.sql` | SQL | Seeds the database to roughly **12 GB** of fully synthetic data (Observation is the ~108M-row anchor). Runs ~5–15 min — log-rate gated. |
 | `verify-data.sql` | SQL | Read-only PASS/FAIL check with per-table volume checks. You want it to end with **`ALL CHECKS PASSED`**. |
 | `add-replicas.ps1` | PowerShell | Adds a second **HA replica**, then creates the **`wardgeneral-research`** named replica (serverless `HS_S_Gen5_8`) and prints the resulting topology. A named replica is read-only, looks like a separate database, and is **not** a failover target. Chapter 3 dissects it; Chapter 5 uses it. |
@@ -79,6 +81,31 @@ database to start over:**
 - **Rebuild after a schema change** → re-run `02`→`05` (`02` drops and recreates
   the tables, discarding data).
 - `01` is a guarded no-op; `03`/`04` are `CREATE OR ALTER` (safe anytime).
+
+### If you have already deployed the Chapter 5 scripts
+
+Only relevant on a **second** run of `05-seed.sql`, and only if you have been
+through Chapter 5. Two Chapter 5 tables take a foreign key into data this seed
+owns — `clinical.ClinicalNoteEmbeddings` on `ClinicalNote`, and
+`clinical.AIAssistanceLog` on `Encounter` — and a foreign key blocks `TRUNCATE`
+outright, whether or not the child holds a single row. So the seed **drops both**
+before it reloads. On a first run neither exists and both drops are no-ops.
+
+`clinical.AIAssistanceLog` has to be dropped rather than emptied. Chapter 5
+creates it as an **append-only ledger table** for the tamper-evident audit trail,
+and an append-only ledger table supports neither `DELETE` nor `TRUNCATE` — see
+[Ledger considerations and limitations](https://learn.microsoft.com/sql/relational-databases/security/ledger/ledger-limits),
+items 3 and 4. `DROP` is the only route that works.
+
+Dropping a ledger table is a **soft delete by design**. The object is renamed to
+`MSSQL_DroppedLedgerTable_*` and physically retained so the ledger digest stays
+verifiable ([DROP TABLE, Remarks](https://learn.microsoft.com/sql/t-sql/statements/drop-table-transact-sql#remarks)).
+Every reseed leaves one more of these behind, and **they are supposed to stay** —
+that is the cost of a tamper-evident trail, not a leak. Leave them alone.
+
+So after re-running `05-seed.sql`, redeploy Chapter 5: `06-ai-embeddings.sql`,
+`07-vector-index.sql`, `08-ai-assistance.sql`. The Chapter 4 app runs fine
+without them so long as the `AiAssistance` feature flag is off.
 
 Every `.sql` file opens with the seven-line `SET`-options preamble so the scripts
 behave identically in the MSSQL extension, SSMS, or `sqlcmd`. See the
