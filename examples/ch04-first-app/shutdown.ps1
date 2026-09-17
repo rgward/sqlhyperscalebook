@@ -22,8 +22,8 @@
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [int[]]$Ports = @(7170, 5170),
-    [string[]]$ProcessNames = @('WardGeneral.Web', 'dotnet')
+    [int[]]$Ports = @(7170, 5170, 5000),
+    [string[]]$ProcessNames = @('WardGeneral.Web', 'dotnet', 'dab')
 )
 
 # Returns the process IDs listening on a port, or nothing.
@@ -44,6 +44,7 @@ function Get-PortOwnerId([int]$Port) {
 
 $stopped = 0
 $skipped = 0
+$planned = 0
 
 foreach ($port in $Ports) {
     # IPv4 and IPv6 listeners report the same owner, so collapse duplicates.
@@ -64,6 +65,9 @@ foreach ($port in $Ports) {
             Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
             $stopped++
         }
+        elseif ($WhatIfPreference) {
+            $planned++
+        }
     }
 }
 
@@ -73,6 +77,9 @@ Get-Job -Name 'wardgeneral-open-browser' -ErrorAction SilentlyContinue |
 
 if ($stopped -gt 0) {
     Write-Host "Shutdown complete ($stopped process(es) stopped)." -ForegroundColor Green
+}
+elseif ($planned -gt 0) {
+    Write-Host "Dry run complete ($planned process(es) would be stopped)." -ForegroundColor Yellow
 }
 elseif ($skipped -gt 0) {
     Write-Host "Nothing stopped. $skipped port(s) are in use by something else." -ForegroundColor Yellow

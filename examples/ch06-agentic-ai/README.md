@@ -684,6 +684,17 @@ Stop the app first — Windows holds the running app's assemblies open:
 
 ### 7. Run
 
+For a durable local demo, use the Chapter 4 launcher. It starts and probes DAB
+when `AiAgent` is enabled, then starts the app; both processes survive terminal
+and VS Code closure and write logs under `%LOCALAPPDATA%\WardGeneral\logs`:
+
+```powershell
+./examples/ch04-first-app/start-demo.ps1 -Enable AiAgent
+./examples/ch04-first-app/start-demo.ps1 -Enable AiAssistance,AiAgent
+```
+
+Use the separate foreground commands below when debugging DAB startup:
+
 ```powershell
 ./examples/ch06-agentic-ai/run-dab.ps1        # terminal 1, port 5000
 ./examples/ch06-agentic-ai/probe-mcp.ps1      # terminal 2

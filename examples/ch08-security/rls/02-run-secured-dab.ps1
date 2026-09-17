@@ -57,6 +57,9 @@ $config | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $generatedConfig 
 $env:DAB_CONNECTION_STRING =
     "Server=tcp:$Server,1433;Database=$Database;Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;"
 $env:ASPNETCORE_URLS = "http://localhost:$Port"
+if (-not $env:AZURE_TOKEN_CREDENTIALS) {
+    $env:AZURE_TOKEN_CREDENTIALS = 'AzureCliCredential'
+}
 
 Write-Host 'Validating the generated Chapter 8 DAB configuration ...' -ForegroundColor DarkGray
 dab validate -c $generatedConfig

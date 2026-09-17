@@ -6,7 +6,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents(options =>
+    {
+        options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromHours(2);
+    });
 
 // Data-access layer — Entra auth, no secrets.
 // The connection factory reads WardGeneral:Server / WardGeneral:Database from config.
@@ -51,6 +54,7 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+app.MapGet("/healthz", () => Results.Ok(new { status = "healthy" }));
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

@@ -296,6 +296,25 @@ Use the server you created in Chapter 2. The app listens on
 `https://localhost:7170` (and `http://localhost:5170`) and opens your default
 browser.
 
+`run.ps1` owns the foreground by design: closing its terminal stops the app.
+For a local presentation, start it independently so closing or reusing the
+VS Code terminal does not take down the website:
+
+```powershell
+./start-demo.ps1
+./start-demo.ps1 -Enable AiAssistance,AiAgent  # optional later-chapter panels
+```
+
+The launcher performs the same interactive preflight before detaching, verifies
+the app's `/healthz` endpoint, pre-warms the real presentation page, opens Microsoft Edge,
+and records stdout and stderr under `%LOCALAPPDATA%\WardGeneral\logs`. With
+`AiAgent` enabled, it also starts the required local DAB/MCP endpoint, waits for
+its tool probe to pass, and records separate `dab-*.log` files. It survives
+terminal and VS Code closure, but not a Windows restart or an application crash.
+A presentation tab that Edge sleeps can rejoin its server-side session for up
+to two hours; if that session cannot be recovered, the reconnect handler reloads
+the page automatically.
+
 > Do **not** use the VS Code Simple Browser — it rejects the dev certificate and
 > drops the Blazor circuit. `run.ps1` launches your real browser.
 
@@ -304,6 +323,8 @@ To stop:
 ```powershell
 ./shutdown.ps1
 ```
+
+This stops both the detached app and DAB on port 5000.
 
 ### Rebuilding from scratch
 
