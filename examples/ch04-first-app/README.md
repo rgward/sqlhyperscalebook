@@ -121,6 +121,7 @@ Chapter 5 proc is missing.
 | File | What it does |
 |---|---|
 | `WardGeneral.slnx` | The solution. Three projects, all under `src/`. |
+| `CES-imaging-order-application.md` | A design-and-build guide for extending the Ward General app so approved imaging orders flow from `clinical.ImagingOrder` through Azure SQL change event streaming, Event Hubs, and an Azure Function adapter. |
 | `build.ps1` | Restore + build. `-Clean` for a from-scratch build (stop the app first — see [Rebuilding from scratch](#rebuilding-from-scratch)), `-Configuration Release` to switch config. Runs `preflight-build.ps1` first. |
 | `run.ps1` | Start the app and open your real browser. `-Server` / `-Database` override configuration for this run. |
 | `restart.ps1` | Stop, then start. **This is how you flip a feature flag** — `-Enable` takes the complete list of flags to force on. |
