@@ -74,41 +74,71 @@ END;
 GO
 
 /* ---- Read: search encounters with optional filters --------------------- */
-/* The DAB / MCP "search" surface: every filter is optional. The              */
-/* (col = @p OR @p IS NULL) shape is exactly what SQL Server 2025's Optional   */
-/* Parameter Plan Optimization (OPPO) targets — on by default at database       */
-/* compatibility level 170 (the Hyperscale default). OPPO picks a seek when a  */
-/* filter is supplied and a scan when it is NULL, per execution, instead of    */
-/* one compromise plan for all. Demonstrated in Ch 10 §13 (IQP). Returns        */
-/* encounter summary rows; the caller opens a full chart via GetPatientChart.  */
+/* The DAB / MCP "search" surface: every filter is optional. Callers that know */
+/* internal keys can filter by ID; human- and agent-facing callers can use      */
+/* unit, department and provider names. The (col = @p OR @p IS NULL) shape is   */
+/* exactly what SQL Server 2025's Optional Parameter Plan Optimization (OPPO)   */
+/* targets — on by default at database compatibility level 170 (the Hyperscale  */
+/* default). OPPO picks a seek when a filter is supplied and a scan when it is  */
+/* NULL, per execution, instead of one compromise plan for all. Demonstrated in */
+/* Ch 10 §13 (IQP). Returns readable encounter summaries; the caller opens a    */
+/* full chart via GetPatientChart.                                               */
 CREATE OR ALTER PROCEDURE clinical.SearchEncounters
     @PatientId           INT          = NULL,
     @DepartmentId        INT          = NULL,
     @AttendingProviderId INT          = NULL,
     @Status              NVARCHAR(20) = NULL,
     @FromAdmit           DATETIME2(3) = NULL,
-    @ToAdmit             DATETIME2(3) = NULL
+        @ToAdmit             DATETIME2(3) = NULL,
+        @UnitName            NVARCHAR(100) = NULL,
+        @DepartmentName      NVARCHAR(100) = NULL,
+        @ProviderName        NVARCHAR(200) = NULL,
+        @Top                 INT           = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT
+        SET @Status         = NULLIF(LTRIM(RTRIM(@Status)), N'');
+        SET @UnitName       = NULLIF(LTRIM(RTRIM(@UnitName)), N'');
+        SET @DepartmentName = NULLIF(LTRIM(RTRIM(@DepartmentName)), N'');
+        SET @ProviderName   = NULLIF(LTRIM(RTRIM(@ProviderName)), N'');
+        IF @Top IS NOT NULL AND @Top < 1 SET @Top = 200;
+
+        SELECT TOP (CASE WHEN @Top IS NULL THEN 2147483647 ELSE @Top END)
         e.EncounterId,
         e.PatientId,
+        p.FullName AS PatientName,
         e.DepartmentId,
+        d.Name AS DepartmentName,
         e.AttendingProviderId,
+        pr.FullName AS AttendingProviderName,
         e.BedId,
+        u.Name AS UnitName,
+        b.BedNumber,
         e.EncounterType,
         e.AdmitTime,
         e.DischargeTime,
         e.Status
     FROM clinical.Encounter AS e
+        JOIN clinical.Patient AS p
+            ON p.PatientId = e.PatientId
+        JOIN ops.Department AS d
+            ON d.DepartmentId = e.DepartmentId
+        JOIN ops.Provider AS pr
+            ON pr.ProviderId = e.AttendingProviderId
+        LEFT JOIN ops.Bed AS b
+            ON b.BedId = e.BedId
+        LEFT JOIN ops.Unit AS u
+            ON u.UnitId = b.UnitId
     WHERE (@PatientId           IS NULL OR e.PatientId           = @PatientId)
       AND (@DepartmentId        IS NULL OR e.DepartmentId        = @DepartmentId)
       AND (@AttendingProviderId IS NULL OR e.AttendingProviderId = @AttendingProviderId)
       AND (@Status              IS NULL OR e.Status              = @Status)
       AND (@FromAdmit           IS NULL OR e.AdmitTime          >= @FromAdmit)
       AND (@ToAdmit             IS NULL OR e.AdmitTime          <= @ToAdmit)
+        AND (@UnitName            IS NULL OR u.Name                 = @UnitName)
+        AND (@DepartmentName      IS NULL OR d.Name                 = @DepartmentName)
+        AND (@ProviderName        IS NULL OR pr.FullName LIKE N'%' + @ProviderName + N'%')
     ORDER BY e.AdmitTime DESC;
 END;
 GO
