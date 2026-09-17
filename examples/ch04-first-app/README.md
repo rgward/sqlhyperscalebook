@@ -11,7 +11,9 @@ Microsoft Entra connection.
 > **Where it runs.** The app itself runs **locally** in Kestrel at
 > `https://localhost:7170` and connects over the network to the `wardgeneral`
 > **Azure SQL Hyperscale database in Azure**. Only the web process is local;
-> this example does not deploy the app to Azure App Service or Container Apps.
+> the main walkthrough does not deploy it to Azure App Service or Container
+> Apps. To move the three application projects to one Azure App Service web
+> app, follow [Deploy the Ward General application to Azure App Service](APP-SERVICE.md).
 
 > **New here?** Read the [repository README](../../README.md) first — it covers
 > the scenario and prerequisites. This chapter assumes `wardgeneral` already
@@ -122,6 +124,7 @@ Chapter 5 proc is missing.
 |---|---|
 | `WardGeneral.slnx` | The solution. Three projects, all under `src/`. |
 | `CES-imaging-order-application.md` | A design-and-build guide for extending the Ward General app so approved imaging orders flow from `clinical.ImagingOrder` through Azure SQL change event streaming, Event Hubs, and an Azure Function adapter. |
+| `APP-SERVICE.md` | Moves `WardGeneral.Web`, `WardGeneral.Data`, and `WardGeneral.Agent` to one Azure App Service web app, using managed identity and either the public SQL endpoint or Private Link. |
 | `build.ps1` | Restore + build. `-Clean` for a from-scratch build (stop the app first — see [Rebuilding from scratch](#rebuilding-from-scratch)), `-Configuration Release` to switch config. Runs `preflight-build.ps1` first. |
 | `run.ps1` | Start the app and open your real browser. `-Server` / `-Database` override configuration for this run. |
 | `restart.ps1` | Stop, then start. **This is how you flip a feature flag** — `-Enable` takes the complete list of flags to force on. |
@@ -314,7 +317,8 @@ its tool probe to pass, and records separate `dab-*.log` files. It survives
 terminal and VS Code closure, but not a Windows restart or an application crash.
 A presentation tab that Edge sleeps can rejoin its server-side session for up
 to two hours; if that session cannot be recovered, the reconnect handler reloads
-the page automatically.
+the page automatically. For continuous hosting with platform health checks,
+follow [the App Service path](APP-SERVICE.md).
 
 > Do **not** use the VS Code Simple Browser — it rejects the dev certificate and
 > drops the Blazor circuit. `run.ps1` launches your real browser.
