@@ -1,14 +1,15 @@
 # Azure SQL Hyperscale Unveiled — Book Examples
 
-Companion code for the forthcoming Apress book **Azure SQL Hyperscale Unveiled** by
+Companion code for the Apress book **Azure SQL Hyperscale Unveiled** by
 **Bob Ward**. Every hands-on example in the book lives here, organized by chapter.
 
 > **Short link:** this repo is referenced throughout the book as
 > **`aka.ms/sqlhyperscalebook`**. Follow that link to reach the repo, then clone
 > the URL shown by GitHub's **Code** button (or `gh repo clone`).
 
-**Status: pre-release.** Chapters are published here as the book is written.
-Folders appear as their chapters are finished.
+**The e-book is now available.** This repository contains the companion examples
+for Chapters 2 through 10 and architecture figures. Follow each chapter's README
+for its prerequisites, exact run order, re-run rules, and cleanup instructions.
 
 ## The scenario
 
@@ -50,9 +51,22 @@ examples/ch09-ha-resiliency/    Resiliency: observe application retry during a
 examples/ch10-performance/      Performance: scale compute under load, grow the
                            existing database, then demonstrate JSON indexing
                            and memory grant feedback
-                           ... (more added as chapters are completed)
 figures/                   The book's architecture diagrams, as SVG, by chapter
 ```
+
+## Chapter guide
+
+| Chapter | Examples |
+| --- | --- |
+| 2 | [Getting started](examples/ch02-getting-started/README.md) |
+| 3 | [Hyperscale architecture](examples/ch03-architecture/README.md) |
+| 4 | [Your first application](examples/ch04-first-app/README.md) |
+| 5 | [AI-ready SQL](examples/ch05-ai-ready-sql/README.md) |
+| 6 | [Agentic AI](examples/ch06-agentic-ai/README.md) |
+| 7 | [Observability](examples/ch07-observability/README.md) |
+| 8 | [Security](examples/ch08-security/README.md) |
+| 9 | [High availability and resiliency](examples/ch09-ha-resiliency/README.md) |
+| 10 | [Scale and tune](examples/ch10-performance/README.md) |
 
 Each chapter's scripts live under `examples/`; the Copilot **skills** that
 orchestrate them live under `.github/skills/` so VS Code discovers them the
@@ -109,6 +123,22 @@ run `01-schemas.sql` … `05-seed.sql` via the MSSQL extension or `sqlcmd`.
 
 Either way, **scripts never hard-code secrets** — they read them from
 environment variables or prompt you.
+
+### Cost, safety, and local configuration
+
+- **Dev/test only.** These are educational examples, not a production deployment
+  template. Never point a load generator at a production database.
+- **There is no free Hyperscale tier.** The database bills from creation;
+  replicas, AI services, and other resources can add charges. Review the
+  chapter's cost notes before creating resources and its cleanup instructions
+  when you finish. Stopping the local application does not stop Azure billing.
+- Keep your resource names in the chapter's local environment file, copied
+  from its template. Environment files, development settings, build output,
+  and generated Chapter 10 evidence are git-ignored. Never commit passwords,
+  access tokens, connection strings, or your own deployment details.
+- Some examples use preview features. Check the chapter's feature notes and
+  current Microsoft documentation before running them; availability and
+  behavior can change independently of the book.
 
 ### Running the SQL scripts (and re-running them)
 
@@ -192,3 +222,11 @@ side by side and the layout does not move — only what has been added to it.
 ## License
 
 The examples are licensed under the [MIT License](LICENSE).
+
+## Questions, errata, and contributions
+
+For example-code problems or book errata, [open an issue](https://github.com/rgward/sqlhyperscalebook/issues)
+with the chapter, script, expected behavior, and sanitized error output.
+Do not include credentials, subscription details, or local environment files.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for validation commands and contribution
+guidelines, and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
