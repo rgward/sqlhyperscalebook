@@ -18,10 +18,11 @@ growth:
 Observation tuning remains deferred. It will use measured plans, duration,
 I/O, and storage rather than accepting an index recommendation blindly.
 
-The `CREATE JSON INDEX` reference still labels the feature preview and lists
-SQL Server 2025. The syntax has been live-validated on this project's Azure SQL
-Hyperscale database, but its documented Azure SQL status must be rechecked
-before manuscript freeze.
+When checked on September 11, 2026, the `CREATE JSON INDEX` reference labeled
+the feature preview and listed SQL Server 2025. The syntax has been
+live-validated on this project's Azure SQL Hyperscale database. Check the
+current Azure SQL Database documentation and feature availability before
+running this example.
 
 ## JSON-index sequence
 

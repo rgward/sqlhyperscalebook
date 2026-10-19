@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Synthetic imaging-order request ID in the CES design example, not an API key"
+regexTarget = "secret"
+regexes = ['''^2db49fa0-bab8-40c5-a45e-6e840d502754$''']

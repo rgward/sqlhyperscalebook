@@ -1,0 +1,40 @@
+name: Repository checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate repository files
+        run: .\tools\validate-repository.ps1
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build application and probes
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $projects = @(
+            '.\examples\ch04-first-app\WardGeneral.slnx',
+            '.\examples\ch08-security\auditing\session-context-probe\SessionContextProbe.csproj',
+            '.\examples\ch09-ha-resiliency\failover\retry-probe\RetryProbe.csproj'
+          )
+          foreach ($project in $projects) {
+            dotnet build $project --configuration Release --nologo -warnaserror:NU1901,NU1902,NU1903,NU1904
+            if ($LASTEXITCODE -ne 0) {
+              throw "Build failed: $project"
+            }
+          }

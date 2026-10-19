@@ -66,4 +66,4 @@ billable resource.
 
 - [Microsoft Learn — Hyperscale secondary replicas](https://learn.microsoft.com/azure/azure-sql/database/service-tier-hyperscale-replicas), accessed 2026-09-11.
 - [Microsoft Learn — Intelligent Query Processing](https://learn.microsoft.com/sql/relational-databases/performance/intelligent-query-processing), accessed 2026-09-11.
-- [Microsoft Learn — `CREATE JSON INDEX`](https://learn.microsoft.com/sql/t-sql/statements/create-json-index-transact-sql), accessed 2026-09-11. The reference still labels this feature preview and lists SQL Server 2025; re-verify Azure SQL Database documentation before manuscript freeze.
+- [Microsoft Learn — `CREATE JSON INDEX`](https://learn.microsoft.com/sql/t-sql/statements/create-json-index-transact-sql), accessed 2026-09-11. At that time, the reference labeled this feature preview and listed SQL Server 2025. Check the current Azure SQL Database documentation and feature availability before running the JSON-index example.
