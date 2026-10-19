@@ -87,3 +87,6 @@ TestResults/
 
 # Author-only review material must not return to the reader repository.
 /remove_before_publish/
+
+# Local maintainer follow-ups, not part of the public examples.
+/backlog.md
