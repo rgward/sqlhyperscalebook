@@ -191,11 +191,22 @@ ask mode will not load one.
    cloned, reload the window — a newly added skill folder is not picked up until
    you do.
 3. **Open Copilot Chat and switch to agent mode.**
-4. **Ask for the build:**
+4. **Ask for the build** — this is the book's prompt; put in your own server:
 
-   > Build the Ward General app.
+   > Build and run the Ward General Hospital app against my Hyperscale
+   > database. My logical server is `<your-server>`.database.windows.net,
+   > database wardgeneral.
 
-   Copilot loads the `wardgeneral-app` skill and runs the build for you.
+   Copilot loads the `wardgeneral-app` skill, writes your server into `ch04.env`
+   (see [Configuring the connection](#configuring-the-connection)), and runs
+   `build.ps1`. To start the app, the book's second prompt is:
+
+   > Run the Ward General Hospital app. My logical server is
+   > `<your-server>`.database.windows.net, database wardgeneral.
+
+   If your IP isn't yet allowed through the server firewall, Copilot asks in
+   chat before adding a rule. *"Build the Ward General app"* on its own just
+   builds.
 
 Or skip steps 3 and 4 and run it yourself:
 
