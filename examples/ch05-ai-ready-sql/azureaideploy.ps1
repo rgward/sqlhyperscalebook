@@ -112,6 +112,12 @@ param(
     [string] $PublisherEmail    = ($env:PUBLISHER_EMAIL ?? ''),
     [int]    $ChatCapacity      = 100,
     [int]    $EmbeddingCapacity = 100,
+    # Model versions. Empty = use the region's current default version for that
+    # model, looked up at deploy time. Versions are model-specific (gpt-5 uses a
+    # dated version such as 2025-08-07; text-embedding-3-large uses 1), so there
+    # is no single value that works for both. Pin one only to reproduce a run.
+    [string] $ChatModelVersion      = ($env:CHAT_MODEL_VERSION ?? ''),
+    [string] $EmbeddingModelVersion = ($env:EMBEDDING_MODEL_VERSION ?? ''),
     # Opt-OUT, not opt-in: the governed path is the one the chapter teaches, so a
     # bare run gives you the gateway. Skipping it is the deliberate act.
     [switch] $NoGateway,
@@ -142,19 +148,38 @@ if ($Gateway -and -not $PublisherEmail) {
     throw "The gateway needs -PublisherEmail (or `$env:PUBLISHER_EMAIL). APIM requires a publisher contact for service notifications. Pass -NoGateway to skip the gateway instead."
 }
 
+$script:modelCatalog = $null
+function Resolve-ModelVersion {
+    param([string]$ModelName, [string]$Requested)
+    if ($Requested) { return $Requested }
+    if (-not $script:modelCatalog) {
+        $script:modelCatalog = @(az cognitiveservices model list --location $AiLocation --output json | ConvertFrom-Json)
+    }
+    $versions = @($script:modelCatalog | Where-Object {
+        $_.model.format -eq 'OpenAI' -and $_.model.name -eq $ModelName -and
+        ($_.model.skus | Where-Object name -eq 'GlobalStandard')
+    })
+    $pick = @($versions | Where-Object { $_.model.isDefaultVersion }) + $versions | Select-Object -First 1
+    if (-not $pick) {
+        throw "Model '$ModelName' is not offered with GlobalStandard in '$AiLocation'. Choose another AI_LOCATION, or check 'az cognitiveservices model list --location $AiLocation'."
+    }
+    return [string]$pick.model.version
+}
+
 function Set-ModelDeployment {
-    param([string]$Name, [string]$ModelName, [int]$Capacity)
+    param([string]$Name, [string]$ModelName, [int]$Capacity, [string]$ModelVersion)
     $have = az cognitiveservices account deployment list -n $AiResourceName -g $ResourceGroup --query "[?name=='$Name'].name" -o tsv 2>$null
     if ($have) {
         Write-Host "  Deployment '$Name' exists." -ForegroundColor Green
         return
     }
-    Write-Host "  Creating deployment '$Name' ($ModelName, GlobalStandard capacity $Capacity)..." -ForegroundColor Gray
+    $version = Resolve-ModelVersion -ModelName $ModelName -Requested $ModelVersion
+    Write-Host "  Creating deployment '$Name' ($ModelName version $version, GlobalStandard capacity $Capacity)..." -ForegroundColor Gray
     az cognitiveservices account deployment create -n $AiResourceName -g $ResourceGroup `
         --deployment-name $Name --model-name $ModelName `
-        --model-version 1 --model-format OpenAI `
+        --model-version $version --model-format OpenAI `
         --sku-name GlobalStandard --sku-capacity $Capacity --output none
-    if ($LASTEXITCODE -ne 0) { throw "Failed to create deployment '$Name'." }
+    if ($LASTEXITCODE -ne 0) { throw "Failed to create deployment '$Name' ($ModelName version $version)." }
     Write-Host "  Deployment '$Name' created." -ForegroundColor Green
 }
 
@@ -194,8 +219,8 @@ if ($SkipModels) {
     } else {
         Write-Host "  Foundry account '$AiResourceName' exists." -ForegroundColor Green
     }
-    Set-ModelDeployment -Name 'gpt-5'                 -ModelName 'gpt-5'                 -Capacity $ChatCapacity
-    Set-ModelDeployment -Name 'text-embedding-3-large' -ModelName 'text-embedding-3-large' -Capacity $EmbeddingCapacity
+    Set-ModelDeployment -Name 'gpt-5'                 -ModelName 'gpt-5'                 -Capacity $ChatCapacity      -ModelVersion $ChatModelVersion
+    Set-ModelDeployment -Name 'text-embedding-3-large' -ModelName 'text-embedding-3-large' -Capacity $EmbeddingCapacity -ModelVersion $EmbeddingModelVersion
 }
 Write-Host ''
 
