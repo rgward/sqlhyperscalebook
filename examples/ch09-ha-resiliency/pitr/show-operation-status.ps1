@@ -11,8 +11,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)]
-    [string] $RestoredDatabase,
+    [string] $RestoredDatabase = 'wardgeneral-pitr-demo',
     [string] $Server,
     [string] $SqlCmd,
     [ValidateRange(1, 1440)]

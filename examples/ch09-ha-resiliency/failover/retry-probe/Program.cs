@@ -13,12 +13,17 @@ var database = args[1];
 var interval = TimeSpan.FromMilliseconds(args.Length >= 3 ? ParsePositive(args[2], "interval-ms") : 1000);
 var duration = TimeSpan.FromSeconds(args.Length == 4 ? ParsePositive(args[3], "duration-seconds") : 120);
 var deadline = DateTimeOffset.UtcNow + duration;
+// A success without retries that takes this long is reported as DELAYED (the book's "delayed success").
+const double DelayedThresholdMs = 1000;
 var measurementStarted = false;
 var requestCount = 0;
 var successCount = 0;
 var recoveredCount = 0;
+var delayedCount = 0;
 var failureCount = 0;
 var retryCount = 0;
+var normalLatencies = new List<double>();
+var maxLatencyMs = 0.0;
 
 var builder = new SqlConnectionStringBuilder
 {
@@ -74,10 +79,14 @@ while (!cancellation.IsCancellationRequested && DateTimeOffset.UtcNow < deadline
         stopwatch.Stop();
         successCount++;
 
-        var state = operationRetries > 0 ? "RECOVERED" : "OK";
-        if (operationRetries > 0) recoveredCount++;
+        var elapsedMs = stopwatch.Elapsed.TotalMilliseconds;
+        maxLatencyMs = Math.Max(maxLatencyMs, elapsedMs);
+        string state;
+        if (operationRetries > 0) { state = "RECOVERED"; recoveredCount++; }
+        else if (elapsedMs >= DelayedThresholdMs) { state = "DELAYED"; delayedCount++; }
+        else { state = "OK"; normalLatencies.Add(elapsedMs); }
         Console.WriteLine(
-            $"{DateTimeOffset.UtcNow:O} {state,-9} {stopwatch.Elapsed.TotalMilliseconds,8:N0} ms " +
+            $"{DateTimeOffset.UtcNow:O} {state,-9} {elapsedMs,8:N0} ms " +
             $"retries={operationRetries} session={sessionId} serverUtc={serverUtc:O}");
 
         if (!measurementStarted)
@@ -127,10 +136,28 @@ Console.WriteLine();
 Console.WriteLine("--- Probe summary ---");
 Console.WriteLine($"Requests={requestCount}");
 Console.WriteLine($"Succeeded={successCount}");
+Console.WriteLine($"DelayedSuccess={delayedCount}");
 Console.WriteLine($"RecoveredAfterRetry={recoveredCount}");
 Console.WriteLine($"FailedAfterRetries={failureCount}");
 Console.WriteLine($"RetryEvents={retryCount}");
+Console.WriteLine($"DelayedThresholdMs={DelayedThresholdMs:0}");
+if (normalLatencies.Count > 0)
+{
+    normalLatencies.Sort();
+    Console.WriteLine($"NormalLatencyMedianMs={Percentile(normalLatencies, 50):0.0}");
+    Console.WriteLine($"NormalLatencyAverageMs={normalLatencies.Average():0.0}");
+    Console.WriteLine($"NormalLatencyP95Ms={Percentile(normalLatencies, 95):0.0}");
+}
+if (successCount > 0)
+    Console.WriteLine($"MaxSuccessLatencyMs={maxLatencyMs:0}");
 return failureCount == 0 ? 0 : 1;
+
+// Nearest-rank percentile over an already sorted list.
+static double Percentile(List<double> sorted, int percentile)
+{
+    var rank = (int)Math.Ceiling(percentile / 100.0 * sorted.Count);
+    return sorted[Math.Clamp(rank - 1, 0, sorted.Count - 1)];
+}
 
 static int ParsePositive(string value, string name)
 {

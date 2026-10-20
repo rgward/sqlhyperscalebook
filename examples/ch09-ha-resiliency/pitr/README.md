@@ -40,9 +40,14 @@ Preview the billable restore using those exact values:
 
 ```powershell
 ./examples/ch09-ha-resiliency/pitr/pitr-restore.ps1 `
-   -RestorePointUtc '<RestorePointUtc>' `
-   -RestoredDatabase 'wardgeneral-pitr-demo'
+   -RestorePointUtc '<RestorePointUtc>'
 ```
+
+The restored database is named `wardgeneral-pitr-demo` by default, the name
+the book shows. To use another name, pass `-RestoredDatabase` with a name that
+starts with `wardgeneral-pitr-` and pass the same name to the later scripts.
+If `wardgeneral-pitr-demo` already exists from an earlier run, the preview
+stops; clean that copy up first or choose another name.
 
 After approval, rerun the same command with `-Execute`. It submits the restore
 with `--no-wait` so the management operation can be observed while it runs.
@@ -61,8 +66,7 @@ target-resource choices rather than recovered database state.
 After submission, inspect its management-operation record:
 
 ```powershell
-./examples/ch09-ha-resiliency/pitr/show-operation-status.ps1 `
-   -RestoredDatabase 'wardgeneral-pitr-demo'
+./examples/ch09-ha-resiliency/pitr/show-operation-status.ps1
 ```
 
 Run this immediately after submitting the restore. The DMV is available only
@@ -78,8 +82,7 @@ helper, or place it behind a terminal timeout shorter than 65 minutes.
 Verify both sides:
 
 ```powershell
-./examples/ch09-ha-resiliency/pitr/verify-pitr.ps1 `
-   -RestoredDatabase 'wardgeneral-pitr-demo'
+./examples/ch09-ha-resiliency/pitr/verify-pitr.ps1
 ```
 
 The command passes only when Azure reports an online Hyperscale serverless
@@ -87,14 +90,19 @@ database and the existing Chapter 2 schema, volume, and coherence checks pass
 against it. Azure can return a null `sourceDatabaseId` after PITR completes;
 in that case the completed restore-operation row and the data checks are the
 recovery evidence. A conflicting non-null source ID still fails verification.
-Then preview cleanup:
+
+The restored database is now yours to test. Connect to `wardgeneral-pitr-demo`
+on the same logical server with SSMS or VS Code. It is billable while it
+exists; Hyperscale serverless does not auto-pause. When you are done, preview
+cleanup:
 
 ```powershell
-./examples/ch09-ha-resiliency/pitr/cleanup-pitr.ps1 `
-   -RestoredDatabase 'wardgeneral-pitr-demo'
+./examples/ch09-ha-resiliency/pitr/cleanup-pitr.ps1
 ```
 
-After approval, rerun cleanup with `-Execute`.
+After approval, rerun cleanup with `-Execute`. In VS Code Chat, ask the skill
+to **clean up the Chapter 9 restored database**; it does not clean up as part
+of the restore.
 
 ## Boundaries
 

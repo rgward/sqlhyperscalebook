@@ -71,12 +71,17 @@ the second terminal to submit the already-approved failover:
 ./examples/ch09-ha-resiliency/failover/trigger-failover.ps1 -Execute
 ```
 
-Keep the first terminal visible. It prints `RETRY` before each retry,
-`RECOVERED` when an operation succeeds after retrying, and `FAILED` only when
-the provider exhausts its policy. The final summary reports request, recovery,
-failure, and retry-event counts. The launcher first prints `ProbeEvidence`
-with the full path to `probe-output.txt`; every terminal line is also written
-there as it occurs.
+Keep the first terminal visible. It prints `OK` for a normal success,
+`DELAYED` for a success that needed no retry but took at least 1,000 ms (the
+book's "delayed success"), `RETRY` before each retry, `RECOVERED` when an
+operation succeeds after retrying, and `FAILED` only when the provider exhausts
+its policy. The final summary reports request, delayed, recovery, failure, and
+retry-event counts, plus the median, average, and 95th-percentile latency of
+the normal `OK` requests and the maximum latency of any successful request.
+Those latency figures correspond to the book's "Median: 43 ms, Average:
+51.7 ms, 95th percentile: 80 ms" and its one 11-second delayed connection. The
+launcher first prints `ProbeEvidence` with the full path to `probe-output.txt`;
+every terminal line is also written there as it occurs.
 
 After the probe completes, use its first UTC timestamp as `StartUtc` and its
 final UTC timestamp as `EndUtc`:
@@ -100,6 +105,24 @@ the client interruption measurement:
 ./examples/ch09-ha-resiliency/failover/check-failover-health.ps1 -Phase After
 ```
 
+## Evidence files
+
+The book lists five evidence files. Each script writes its own files to a new
+timestamped folder under your temp directory and prints the full path when it
+finishes:
+
+| File | Written by | Default folder |
+| --- | --- | --- |
+| `resource-health.json` | `check-failover-health.ps1` (before and after) | `wardgeneral-ch09-health-before-<utc>` / `wardgeneral-ch09-health-after-<utc>` |
+| `probe-output.txt` | `run-retry-probe.ps1` | `wardgeneral-ch09-probe-<utc>` |
+| `activity-log.json`, `replica-snapshot.txt`, `azure-monitor.json` | `collect-failover-evidence.ps1` | `wardgeneral-ch09-failover-<utc>` |
+
+To keep a run's evidence together, pass the same `-OutputDirectory` to all
+three scripts. Use a separate `-OutputDirectory` for the `Before` and `After`
+health checks, because both write `resource-health.json`.
+
+## How the probe works
+
 The probe:
 
 1. Open a connection and execute one idempotent read on a fixed cadence.
@@ -110,9 +133,10 @@ The probe:
    errors.
 3. Subscribe to the provider's `Retrying` event and print the UTC timestamp,
    retry number, SQL error, and next delay.
-4. Print successful request latency before, during, and after failover.
-5. Summarize successful requests, recovered requests, and operations that
-   exhausted the retry policy.
+4. Print each successful request's latency before, during, and after failover,
+   marking slow successes without retries as `DELAYED`.
+5. Summarize successful, delayed, recovered, and exhausted operations, and the
+   normal-request latency median, average, and 95th percentile.
 
 The control-plane script triggers one manual database failover separately
 from the probe. The measured interruption is an observation from that run, not

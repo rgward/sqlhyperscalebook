@@ -35,7 +35,7 @@ param(
   [string] $ResourceGroup,
   [string] $Server,
   [string] $Database,
-  [string] $RestoredDatabase,
+  [string] $RestoredDatabase = 'wardgeneral-pitr-demo',
   [string] $TargetServiceObjective = 'HS_S_Gen5_8',
   [double] $TargetMinVCore = 1,
   [switch] $Execute
@@ -56,9 +56,6 @@ if ([string]::IsNullOrWhiteSpace($Server) -or $Server -match '<[^>]*>') {
 }
 
 $logicalServer = $Server -replace '\.database\.windows\.net$', ''
-if (-not $RestoredDatabase) {
-  $RestoredDatabase = "$Database-pitr-$([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss'))"
-}
 if ($RestoredDatabase -notmatch '^wardgeneral-pitr-') {
   throw "Restore target '$RestoredDatabase' is outside this demo. Chapter 9 restored database names must start with 'wardgeneral-pitr-'."
 }
@@ -92,7 +89,7 @@ $existingTarget = az sql db list `
   --query "[?name=='$RestoredDatabase'].name | [0]" `
   --output tsv
 if ($existingTarget) {
-  throw "Target database '$RestoredDatabase' already exists. Choose another -RestoredDatabase value."
+  throw "Target database '$RestoredDatabase' already exists, for example a test copy kept from an earlier run. Remove it with cleanup-pitr.ps1, or pass a different -RestoredDatabase that starts with 'wardgeneral-pitr-'."
 }
 
 if (-not $Execute) {
@@ -128,8 +125,9 @@ bounded timeout. Continue to verification only after it reports COMPLETED.
 To connect:
   Server=tcp:$logicalServer.database.windows.net,1433;Database=$RestoredDatabase;Authentication=Active Directory Default;Encrypt=true;
 
-To clean up the restored copy when you are done:
-  ./cleanup-pitr.ps1 -RestoredDatabase '$RestoredDatabase' -Execute
+To clean up the restored copy when you are done testing (previews first; add
+-Execute after reviewing):
+  ./cleanup-pitr.ps1 -RestoredDatabase '$RestoredDatabase'
 
 Notes (Ch 9):
   * PITR cannot overwrite the source — it always lands in a new database.

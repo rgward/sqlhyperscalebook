@@ -5,8 +5,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)]
-    [string] $RestoredDatabase,
+    [string] $RestoredDatabase = 'wardgeneral-pitr-demo',
     [string] $ResourceGroup,
     [string] $Server,
     [string] $Database,
