@@ -3,7 +3,8 @@ name: deploy-wardgeneral-geo-replica
 description: >-
   Create, verify, and clean up the Chapter 9 Ward General Hyperscale
   geo-replica: read the source from ch04.env, preview and explicitly approve
-   creation of a reader-named Entra-only logical server in East US 2 with the
+   creation of a reader-named Entra-only logical server in the source region's
+   Azure paired region (or a reader-chosen other region) with the
    signed-in user as Entra admin, create the wardgeneral
   geo-secondary, verify both replication links, and perform guarded cleanup.
   USE WHEN the reader says "create the Ward General geo-replica", "deploy geo
@@ -26,12 +27,17 @@ This workflow creates a billable logical server and Hyperscale geo-secondary.
 It uses standalone active geo-replication and does not perform failover.
 
 - Use `examples/ch04-first-app/ch04.env` for the source server and database.
-- Use the active Azure CLI subscription and `rg-collierhealth`.
+- Use the active Azure CLI subscription and the resource group from `RG`
+  (`ch04.env` or shell), defaulting to `rg-collierhealth`.
 - The signed-in Azure CLI user is the target server's Microsoft Entra admin.
 - Never pass `-Execute` before showing the preview and obtaining explicit
   approval for the exact subscription, source, and target.
 - Require one globally unique target server name and use it unchanged through
-   deployment, verification, and cleanup. The target region remains East US 2.
+   deployment, verification, and cleanup.
+- The target region defaults to the Azure paired region of the source's region
+  (Central US ↔ East US 2). Pass `-TargetLocation` only if the reader names a
+  region. Never place the target in the source's own region — the script
+  refuses, because a same-region geo-secondary gives no regional protection.
 - Never modify or delete the source server or source `wardgeneral` database.
 - Detect the source server-level TDE protector. Do not enable CMK when the
    source uses the default service-managed protector, and never replace, rotate,
@@ -47,7 +53,8 @@ It uses standalone active geo-replication and does not perform failover.
    `examples/ch09-ha-resiliency/geo/deploy-geo-replica.ps1 -TargetServer
    <name>` without `-Execute`.
 2. Report the subscription, resource group, source database and region, target
-   server and region, signed-in Entra administrator, service objective, HA
+   server and region (and whether it is the default paired region or
+   reader-specified), signed-in Entra administrator, service objective, HA
    replica counts, zone-redundancy settings, backup redundancy, and source TDE
    protector. Explain that the target deliberately uses zero HA replicas and
    no zone redundancy: cross-region DR remains, but local target recovery can

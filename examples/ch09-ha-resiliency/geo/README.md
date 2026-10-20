@@ -1,7 +1,8 @@
 # Chapter 9 — Create a Hyperscale Geo-Replica
 
-This demonstration creates a reader-named Entra-only logical server in East
-US 2, then creates a Hyperscale geo-secondary of the existing `wardgeneral`
+This demonstration creates a reader-named Entra-only logical server in another
+Azure region — by default the **Azure paired region** of your source database's
+region — then creates a Hyperscale geo-secondary of the existing `wardgeneral`
 database on it. The source database remains online and writable while
 transaction log is replicated asynchronously.
 
@@ -27,7 +28,8 @@ creates the geo-secondary. It never changes the source protector.
   `WardGeneral__Server` and `WardGeneral__Database` as its source of truth.
 - Sign in with `az login` as the Microsoft Entra user who should administer
   the new logical server.
-- Select the subscription containing `rg-collierhealth`.
+- Select the subscription containing your resource group (`rg-collierhealth`
+  by default, or `RG=` in `ch04.env`).
 - Ensure the signed-in identity can create SQL servers and databases and set
   the Microsoft Entra administrator.
 - If the source uses a CMK, ensure the signed-in identity can grant the target
@@ -46,7 +48,8 @@ but changes nothing:
   -TargetServer '<unique-server-name>'
 ```
 
-Confirm the subscription, source, target, signed-in Entra administrator,
+Confirm the subscription, source and its region, target and its region,
+signed-in Entra administrator,
 service objective, target HA replica count of zero, disabled target zone
 redundancy, and backup redundancy. Also confirm the detected source TDE
 protector. A service-managed protector reports that no CMK prerequisite is
@@ -55,6 +58,22 @@ its Key Vault uses access policies or Azure RBAC. The script creates the target
 server with a system-assigned identity at server creation time; the portal
 geo-replica experience does not offer that prerequisite and otherwise fails
 with “The server identity is not correctly configured.”
+
+### Target region
+
+Geo-replication protects you only if the secondary is in a **different region**
+from the source. The script reads the source database's region and, unless you
+pass `-TargetLocation`, uses its [Azure paired region](https://aka.ms/azurepairedregions):
+
+| Source region (Chapter 2) | Default target |
+| --- | --- |
+| `centralus` (the author's choice) | `eastus2` |
+| `eastus2` (the Chapter 2 script default) | `centralus` |
+
+To pick a different region, add `-TargetLocation <region>` to the deploy
+command. The script refuses a target in the source's own region and checks
+that the source's Hyperscale service objective is available in the target
+region before it creates anything.
 
 After explicit approval, run the same deployment with `-Execute`:
 
@@ -66,8 +85,7 @@ After explicit approval, run the same deployment with `-Execute`:
 
 The script creates:
 
-- The reader-named logical server in `eastus2`, the paired region for the
-  Central US source used by this example.
+- The reader-named logical server in the target region.
 - A system-assigned identity on that server.
 - Microsoft Entra-only authentication, with the signed-in Azure CLI user as
   the server administrator.
@@ -80,9 +98,9 @@ The script creates:
   objective and backup redundancy but has no HA replicas and is not zone
   redundant.
 
-The lower-cost target still protects against loss of the Central US region
-because its page servers and compute are in East US 2. It does not have a hot
-local HA standby or availability-zone distribution in East US 2. If its
+The lower-cost target still protects against loss of the source region
+because its page servers and compute are in the target region. It does not
+have a hot local HA standby or availability-zone distribution there. If its
 compute fails, Azure must create replacement compute before the geo-secondary
 is available again, so local recovery can take longer.
 
@@ -127,7 +145,8 @@ deletes or modifies the source logical server or source `wardgeneral` database.
 - Deployment and cleanup preview by default and require explicit approval
   before `-Execute`.
 - The target server and geo-secondary are billable resources.
-- The workflow is fixed to East US 2. Existing targets must carry the Ward
+- The target region defaults to the source region's Azure pair and must differ
+  from the source region. Existing targets must carry the Ward
   General sandbox ownership tags; cleanup also refuses a server containing an
   unexpected database.
 - The source server and database come from `ch04.env`; no server name, password,

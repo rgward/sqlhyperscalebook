@@ -50,8 +50,8 @@ $secondary = az sql db show `
 if ($source.status -ne 'Online' -or $source.edition -ne 'Hyperscale') {
     throw "Source is not an online Hyperscale database: status='$($source.status)', edition='$($source.edition)'."
 }
-if ($targetServerResource.location -ne 'eastus2') {
-    throw "Target server is in '$($targetServerResource.location)', not 'eastus2'."
+if ($targetServerResource.location -eq $source.location) {
+    throw "Target server is in '$($targetServerResource.location)', the same region as the source. A geo-replica must be in another region."
 }
 $targetTags = @{}
 if ($targetServerResource.tags) {
