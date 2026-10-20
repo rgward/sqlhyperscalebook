@@ -36,3 +36,17 @@ it as a third runnable sequence.
 - Preview every billable Azure change and obtain explicit approval.
 - Consume Chapter 7 observability and Chapter 9 resiliency evidence without
   re-teaching those chapters.
+
+## Finish — offer the scale-back
+
+After the last stage (or whenever the reader stops the progression), check the
+current service objective. If `wardgeneral` is above `HS_Gen5_8`, say it is
+still billing at that size for the primary and its HA replica, then offer the
+return to the Chapter 2 size:
+
+1. Run `examples/ch10-performance/01-scale-compute/scale-compute.ps1
+   -TargetServiceObjective HS_Gen5_8` (preview only) and show the output.
+2. Only on explicit approval, rerun with `-Approve`.
+
+If the reader declines, leave it and point to the "Cost and cleanup" section of
+`examples/ch10-performance/README.md`. Never scale down without approval.

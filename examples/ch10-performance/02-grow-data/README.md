@@ -73,6 +73,10 @@ The workload is append-only. Repeating the command adds another five-minute
 growth interval; the runner never deletes generated clinical history or
 shrinks files.
 
+> **Cost.** Demo 2 runs at `HS_Gen5_40` from Demo 1, and every interval adds
+> roughly 12 GB of billed storage. When you finish Chapter 10, scale back to
+> `HS_Gen5_8` — see [Cost and cleanup](../README.md#cost-and-cleanup--scale-back-when-you-finish).
+
 ## Calibration result
 
 The workload was calibrated on a disposable PITR copy at `HS_Gen5_40` with 64

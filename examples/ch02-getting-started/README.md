@@ -113,6 +113,32 @@ behave identically in the MSSQL extension, SSMS, or `sqlcmd`. See the
 [repository README](../../README.md) for the full re-run and `SET`-options
 explanation.
 
+## Cost and cleanup
+
+A Hyperscale database **bills from the moment it's created**, for compute (the
+primary and its HA replica) and storage, whether or not anything is connected.
+Stopping the app or closing VS Code does not stop the charges.
+
+To delete what you deployed and come back to it later, use the Azure portal
+(or `az`):
+
+- **Delete the resource group** (`rg-collierhealth` by default) — if it holds
+  only this book's resources. Open it first and check what's in it: if you've
+  gone on to later chapters it may also hold the Chapter 5 AI resources, a
+  Chapter 7 or 8 Log Analytics workspace, or a Chapter 8 Key Vault.
+- **Or delete the logical server** if you can't delete the group (for example,
+  on the least-privilege path where an administrator owns it). Deleting the
+  server deletes every database on it, including the `wardgeneral-research`
+  named replica — but not the separate Chapter 9 geo-secondary server, which
+  you delete on its own (or with that chapter's `cleanup-geo-replica.ps1`).
+
+Deleting the group removes everything in it, including that geo-secondary
+server. The Chapter 5 AI resources are soft-deleted when removed, so use that
+chapter's `reset-ai-azure.ps1` if you plan to recreate them with the same names.
+Each chapter's README describes its own cleanup.
+
+To redeploy afterwards, run this chapter again from the top.
+
 ## A note on the data
 
 **All data is synthetic. There is no real patient data (PHI) here — ever.** The

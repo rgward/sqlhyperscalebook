@@ -76,12 +76,19 @@ infer cleanup approval from scaling approval.
 - Do not add `-querystats` to the sustained workload. Use Query Store and the
    separate server snapshots for database-side timing and resource evidence.
 
-## Reset compute for a repeat
+## Reset compute for a repeat — or to stop the cost
 
 `scale-compute.ps1` supports scale-up and scale-down. To repeat Demo 1 after it
-ends at 40 vCores, run it first without `-Approve` targeting `HS_Gen5_8`, show
-the reader the current and requested SLO, and obtain explicit approval. Then
-rerun with `-Approve`. Never hide the reset inside `run-demo.ps1`.
+ends at 40 vCores, or when the reader is done with Chapter 10 and is not going
+on to Demo 2, run it first without `-Approve` targeting `HS_Gen5_8`, show the
+reader the current and requested SLO, and obtain explicit approval. Then rerun
+with `-Approve`. Never hide the reset inside `run-demo.ps1`.
+
+When reporting the Demo 1 result, always state that the database is now at
+`HS_Gen5_40` and bills at that size (primary and HA replica) until scaled back,
+and point to "Cost and cleanup" in `examples/ch10-performance/README.md`.
+
+## Connection cap
 - Do not raise the reader-laptop 40-vCore phase to 800 direct connections. The
    live calibration stalled during client connection establishment before any
    workload executed; that was not an Azure SQL capacity result.

@@ -242,6 +242,12 @@ Memory grant feedback is an Azure SQL Database IQP feature, not a
 Hyperscale-exclusive feature. This example runs on the Ward General Hyperscale
 database so the chapter tunes the same system throughout.
 
+## When you finish Chapter 10
+
+This is the last demo. If `wardgeneral` is still at `HS_Gen5_40` from Demo 1,
+it is billing at that size (primary and HA replica) until you scale it back —
+see [Cost and cleanup](../README.md#cost-and-cleanup--scale-back-when-you-finish).
+
 ## Sources
 
 - [microsoft/bobsql — SQL Server 2025 JSON demo](https://github.com/microsoft/bobsql/tree/master/demos/sqlserver2025/json), accessed 2026-09-12.

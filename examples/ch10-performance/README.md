@@ -24,15 +24,16 @@ The sequence changes one governing constraint at a time:
 2. Grow **data** and use the evidence to identify the governing constraint.
 3. **Tune** access paths after the data has grown.
 
-The manuscript separately revisits the Chapter 5 Research page to explain how
+The book separately revisits the Chapter 5 Research page to explain how
 `wardgeneral-research` isolates vector-search compute and how additional named
 replicas can provide more aggregate read capacity. That review is conceptual,
 not a fourth runnable example.
 
 ## What the reader already has
 
-- The `wardgeneral` Hyperscale database, schema, seed data, procedures, HA
-  configuration, and `wardgeneral-research` named replica from Chapter 2.
+- The `wardgeneral` Hyperscale database, schema, seed data, procedures, and HA
+  configuration from Chapter 2 — plus the `wardgeneral-research` named replica
+  if you ran the optional `add-replicas.ps1` step (no Chapter 10 demo needs it).
 - The page-server, log-service, RBPEX, and replica model from Chapter 3.
 - The Ward General application, passwordless connection factory, connection
   pooling, and retry policy from Chapter 4.
@@ -54,7 +55,42 @@ Every Azure compute change is preview-first. A script must print the current
 and requested configuration and require explicit approval before changing a
 billable resource.
 
-## Current build status
+## Cost and cleanup — scale back when you finish
+
+Demo 1 ends with `wardgeneral` at **`HS_Gen5_40`**, and the book leaves it there
+for Demo 2. That is five times the Chapter 2 compute, and the HA replica is
+billed at the same size as the primary, so the higher rate runs **every hour
+until you scale back** — whether or not anything is using the database. No
+script in this chapter scales down automatically.
+
+When you finish Chapter 10 — or stop partway and won't continue soon — preview
+the return to the Chapter 2 size, then approve it:
+
+```powershell
+cd examples/ch10-performance/01-scale-compute
+./scale-compute.ps1 -TargetServiceObjective HS_Gen5_8            # preview, changes nothing
+./scale-compute.ps1 -TargetServiceObjective HS_Gen5_8 -Approve   # scale back
+```
+
+It reads the server and database from `examples/ch04-first-app/ch04.env`, the
+same as the demos. Scaling is online; expect a brief connection reset at the
+cutover (Chapter 9).
+
+Other things that keep billing after this chapter:
+
+- **Storage from Demo 2.** Each five-minute interval adds roughly 12 GB of
+  clinical history, and allocated storage grows in 10 GB steps. Hyperscale bills
+  allocated storage; the runner never deletes generated data or shrinks files.
+  Only repeat the interval when you want more data.
+- **A Chapter 9 geo-secondary, if you kept it.** It bills separately and is not
+  scaled with the primary. Remove it with Chapter 9's `cleanup-geo-replica.ps1`
+  if you no longer need it.
+- **The optional `wardgeneral-research` named replica** bills at its serverless
+  minimum while idle.
+
+To stop all charges, delete the resources as described in the Chapter 2 README.
+
+## Author validation results
 
 | Stage | Status |
 | --- | --- |
