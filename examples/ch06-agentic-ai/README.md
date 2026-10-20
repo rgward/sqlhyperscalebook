@@ -713,7 +713,14 @@ Use the separate foreground commands below when debugging DAB startup:
 
 **Coming back on a later day?** The shift window will have aged out, and the
 first turn will correctly report that nobody needs a handoff. Use the wrapper
-instead of the bare restart — it re-anchors the window, then starts the app:
+instead of the bare restart — it re-anchors the window, then starts the app.
+One command, with DAB and the app in the background:
+
+```powershell
+./examples/ch06-agentic-ai/refresh-and-run.ps1 -Detached
+```
+
+Or in two terminals, with the app in the foreground:
 
 ```powershell
 ./examples/ch06-agentic-ai/run-dab.ps1              # terminal 1, still required
@@ -721,11 +728,12 @@ instead of the bare restart — it re-anchors the window, then starts the app:
 ```
 
 `refresh-and-run.ps1` runs [`13-refresh-shift-window.sql`](13-refresh-shift-window.sql)
-and then hands off to `restart.ps1`. It defaults to `-Enable AiAssistance,AiAgent`,
+and then hands off to `restart.ps1` (or, with `-Detached`, to `start-demo.ps1`,
+which also starts DAB if it isn't running). It defaults to `-Enable AiAssistance,AiAgent`,
 the whole application; pass `-Enable AiAgent` for the agent alone. `-SkipRefresh`
-restarts without touching data when the window was already refreshed today. It
-deliberately does **not** start DAB — the pre-flight below already catches that
-and names the script to run.
+restarts without touching data when the window was already refreshed today.
+Without `-Detached` it deliberately does **not** start DAB — the pre-flight below
+already catches that and names the script to run.
 
 **It can stop and wait for you.** `restart.ps1` checks the server firewall rule
 for this client's IP and **prompts for approval** before adding or updating it.
@@ -870,4 +878,6 @@ than treating the chat icon as proof.
 ./examples/ch04-first-app/shutdown.ps1
 ```
 
-Then Ctrl+C the DAB terminal.
+It stops the app and DAB, including the background processes `start-demo.ps1`
+and `refresh-and-run.ps1 -Detached` start. If you ran DAB in its own terminal,
+you can also Ctrl+C it there.

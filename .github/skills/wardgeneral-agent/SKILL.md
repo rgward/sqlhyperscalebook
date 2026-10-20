@@ -192,10 +192,10 @@ modify the code.
 | *Maintainer:* change the app or runtime skill | Implement only the requested slice (Phase 2) | Focused build for that slice |
 | Deploy or explain the SQL and DAB objects | Phase 3 — `setup-dab.ps1`, or explain the contracts | Config validation and direct tool probes |
 | Build only | Run the shared solution build | Report build result; do not start services |
-| Run Chapter 6 end to end | Complete all gates, start DAB, restart with `-Enable AiAssistance,AiAgent` (the book turns on both) | Browser running and smoke evidence captured |
+| Run Chapter 6 end to end | Complete all gates, then Phase 6's default path (`start-demo.ps1 -Enable AiAssistance,AiAgent`; the book turns on both) | Browser running and smoke evidence captured |
 | Run the agent only | As above, restart with `-Enable AiAgent` — only when the reader asks to leave Chapter 5's surface off | Dock present, AI card/Research off |
 | Return to Chapter 4 or 5 | Restart without `AiAgent`; leave SQL in place | Confirm the flag-off surface |
-| Stop | Stop the app and the DAB process | All owned ports free |
+| Stop | `./examples/ch04-first-app/shutdown.ps1` (stops the app and DAB) | All owned ports free |
 
 ## Phase 0 — Configuration (two git-ignored files)
 
@@ -461,7 +461,8 @@ the chapter and the runtime skill regardless of DAB's naming convention. The
 configuration declares only the seven procedures the agent may call. Never
 expose free-form SQL or a generic execute-procedure tool.
 
-Start it (async mode, one terminal — and kill it when the lab ends):
+Start it (for the reader's normal run, `start-demo.ps1` in Phase 6 does this in
+the background; run it directly only when debugging DAB):
 
 ```powershell
 ./examples/ch06-agentic-ai/run-dab.ps1
@@ -568,7 +569,45 @@ assemblies while the app is running:
 ./examples/ch04-first-app/build.ps1 -Clean
 ```
 
-Start DAB using the Chapter 6 script. It is a long-running process; keep its
+### Start DAB and the app — the default path
+
+DAB must keep running while the reader uses the app, and an agent-attached
+process can die with the chat session. Use the Chapter 4 launcher, which starts
+both as background processes that outlive the terminal and the chat, waits for
+each to answer, and **returns**:
+
+1. Firewall first, in chat. `start-demo.ps1`'s pre-flight asks about a missing
+   firewall rule with a terminal prompt the reader may never see. Check it
+   yourself — this changes nothing:
+   ```powershell
+   ./examples/ch02-getting-started/preflight-firewall.ps1 -Server <short-server-name> -Yes -WhatIf
+   ```
+   If it reports **NOT allowed**, show the proposed change and ask the reader.
+   Only on an explicit yes, rerun it with `-Yes` (no `-WhatIf`).
+2. Start everything:
+   ```powershell
+   ./examples/ch04-first-app/start-demo.ps1 -Enable AiAssistance,AiAgent -SkipFirewall
+   ```
+   It starts DAB on 5000 if nothing answers there, probes the MCP endpoint, runs
+   the app pre-flight, starts the app, health-checks it, and opens the browser.
+   DAB's first bind can take a couple of minutes (Entra token plus schema
+   metadata for every entity); the script waits up to 180 seconds.
+3. Report the URL and the log folder, `%LOCALAPPDATA%\WardGeneral\logs`.
+
+**Stop** is `./examples/ch04-first-app/shutdown.ps1` — it stops the app and DAB.
+
+**Returning on a later day:** the shift window will have aged out. After the
+same firewall check, run the one command that refreshes the window and then
+starts both in the background:
+
+```powershell
+./examples/ch06-agentic-ai/refresh-and-run.ps1 -Detached -SkipFirewall
+```
+
+### Foreground path — debugging DAB startup
+
+Use this only when the reader is debugging DAB. Start DAB using the Chapter 6
+script in its own terminal. It is a long-running process; keep its
 terminal/process identifier so it can be stopped later. Give it time to bind:
 it acquires an Entra token and reads schema metadata for every entity at startup,
 so on a slow link the first bind can take a couple of minutes. Wait for the
