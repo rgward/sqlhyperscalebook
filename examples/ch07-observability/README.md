@@ -67,6 +67,22 @@ Per example:
 
 **All data is synthetic. There is no real patient data (PHI) here.**
 
+## You'll use these again in Chapter 10
+
+Chapter 10's performance demos reuse the surfaces this chapter introduces and
+add a few more. Each row links to the Chapter 10 script that queries it.
+
+| DMV or view | In Chapter 7 | Chapter 10 scripts |
+| --- | --- | --- |
+| `sys.dm_db_resource_stats` | [perf/performance-drilldown.sql](perf/performance-drilldown.sql) | [measure.sql](../ch10-performance/01-scale-compute/measure.sql), [capture-growth-io.sql](../ch10-performance/02-grow-data/capture-growth-io.sql), [sample-growth-io.sql](../ch10-performance/02-grow-data/sample-growth-io.sql) |
+| `sys.dm_io_virtual_file_stats` | [perf/run-performance-demo.ps1](perf/run-performance-demo.ps1) | [capture-growth-io.sql](../ch10-performance/02-grow-data/capture-growth-io.sql), [sample-growth-io.sql](../ch10-performance/02-grow-data/sample-growth-io.sql) |
+| Query Store (`sys.query_store_query`, `_plan`, `_runtime_stats`) | [perf/performance-drilldown.sql](perf/performance-drilldown.sql) | [measure.sql](../ch10-performance/01-scale-compute/measure.sql), [memory-grant-feedback/02-run.sql](../ch10-performance/03-tune-grown-data/memory-grant-feedback/02-run.sql) |
+| `sys.dm_db_wait_stats` (RBIO and `WRITELOG` waits) | — | [measure.sql](../ch10-performance/01-scale-compute/measure.sql), [capture-growth-io.sql](../ch10-performance/02-grow-data/capture-growth-io.sql), [sample-growth-io.sql](../ch10-performance/02-grow-data/sample-growth-io.sql) |
+| `sys.dm_os_performance_counters` (RBPEX hit ratio) | — | [measure.sql](../ch10-performance/01-scale-compute/measure.sql) |
+| `sys.dm_db_partition_stats` (table growth) | — | [capture-growth-io.sql](../ch10-performance/02-grow-data/capture-growth-io.sql), [sample-growth-io.sql](../ch10-performance/02-grow-data/sample-growth-io.sql) |
+| `sys.dm_exec_query_stats` (memory grants and spills) | — | [memory-grant-feedback/02-run.sql](../ch10-performance/03-tune-grown-data/memory-grant-feedback/02-run.sql) |
+| `sys.query_store_plan_feedback` (memory grant feedback) | — | [memory-grant-feedback/02-run.sql](../ch10-performance/03-tune-grown-data/memory-grant-feedback/02-run.sql) |
+
 ## Links from the book
 
 Every web link printed in Chapter 7, in the order it appears, so you can click
