@@ -686,11 +686,12 @@ Stop the app first — Windows holds the running app's assemblies open:
 
 For a durable local demo, use the Chapter 4 launcher. It starts and probes DAB
 when `AiAgent` is enabled, then starts the app; both processes survive terminal
-and VS Code closure and write logs under `%LOCALAPPDATA%\WardGeneral\logs`:
+and VS Code closure and write logs under `%LOCALAPPDATA%\WardGeneral\logs`. The
+book runs Chapter 6 with both Chapter 5's `AiAssistance` and `AiAgent`:
 
 ```powershell
-./examples/ch04-first-app/start-demo.ps1 -Enable AiAgent
 ./examples/ch04-first-app/start-demo.ps1 -Enable AiAssistance,AiAgent
+./examples/ch04-first-app/start-demo.ps1 -Enable AiAgent     # agent only
 ```
 
 Use the separate foreground commands below when debugging DAB startup:
@@ -698,7 +699,7 @@ Use the separate foreground commands below when debugging DAB startup:
 ```powershell
 ./examples/ch06-agentic-ai/run-dab.ps1        # terminal 1, port 5000
 ./examples/ch06-agentic-ai/probe-mcp.ps1      # terminal 2
-./examples/ch04-first-app/restart.ps1 -Enable AiAgent
+./examples/ch04-first-app/restart.ps1 -Enable AiAssistance,AiAgent
 ```
 
 **Coming back on a later day?** The shift window will have aged out, and the
@@ -711,8 +712,8 @@ instead of the bare restart — it re-anchors the window, then starts the app:
 ```
 
 `refresh-and-run.ps1` runs [`13-refresh-shift-window.sql`](13-refresh-shift-window.sql)
-and then hands off to `restart.ps1`. It takes the same `-Enable` list, so
-`-Enable AiAssistance,AiAgent` gives the whole application; `-SkipRefresh`
+and then hands off to `restart.ps1`. It defaults to `-Enable AiAssistance,AiAgent`,
+the whole application; pass `-Enable AiAgent` for the agent alone. `-SkipRefresh`
 restarts without touching data when the window was already refreshed today. It
 deliberately does **not** start DAB — the pre-flight below already catches that
 and names the script to run.

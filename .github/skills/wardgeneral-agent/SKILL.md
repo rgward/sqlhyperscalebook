@@ -187,8 +187,8 @@ composes inside the gate.
 | Evolve the app | Implement only the missing app/runtime-skill slice | Focused build for that slice |
 | Add SQL and DAB objects | Implement or explain the SQL and DAB contracts | Config validation and direct tool probes |
 | Build only | Run the shared solution build | Report build result; do not start services |
-| Run Chapter 6 end to end | Complete all gates, start DAB, restart with `AiAgent` | Browser running and smoke evidence captured |
-| Run the whole app (Ch 5 + Ch 6) | As above, restart with `-Enable AiAssistance,AiAgent` | Both surfaces present |
+| Run Chapter 6 end to end | Complete all gates, start DAB, restart with `-Enable AiAssistance,AiAgent` (the book turns on both) | Browser running and smoke evidence captured |
+| Run the agent only | As above, restart with `-Enable AiAgent` — only when the reader asks to leave Chapter 5's surface off | Dock present, AI card/Research off |
 | Return to Chapter 4 or 5 | Restart without `AiAgent`; leave SQL in place | Confirm the flag-off surface |
 | Stop | Stop the app and the DAB process | All owned ports free |
 
@@ -563,10 +563,13 @@ it acquires an Entra token and reads schema metadata for every entity at startup
 so on a slow link the first bind can take a couple of minutes. Wait for the
 listening line rather than concluding it failed.
 
-Only after the MCP probe passes, restart the shared app with the feature flag:
+Only after the MCP probe passes, restart the shared app with the feature flags.
+The book runs Chapter 6 with **both** Chapter 5's `AiAssistance` and the new
+`AiAgent` — `-Enable` is the complete list, so naming only `AiAgent` would switch
+the Chapter 5 AI card and Research page off:
 
 ```powershell
-./examples/ch04-first-app/restart.ps1 -Enable AiAgent
+./examples/ch04-first-app/restart.ps1 -Enable AiAssistance,AiAgent
 ```
 
 When the reader is returning to Chapter 6 on a later day — which is most of the
@@ -577,9 +580,9 @@ them with an aged-out window and a first turn that correctly finds nobody:
 ./examples/ch06-agentic-ai/refresh-and-run.ps1
 ```
 
-It runs `13-refresh-shift-window.sql`, then hands off to `restart.ps1`. Same
-`-Enable` list, so `-Enable AiAssistance,AiAgent` still means the whole
-application; `-SkipRefresh` restarts without touching data. It resolves
+It runs `13-refresh-shift-window.sql`, then hands off to `restart.ps1`. It
+defaults to `-Enable AiAssistance,AiAgent`; pass `-Enable AiAgent` only if the
+reader wants the agent alone. `-SkipRefresh` restarts without touching data. It resolves
 go-sqlcmd the same way `setup-dab.ps1` does and fails with the same guidance. It
 does **not** start DAB — the pre-flight below already catches that and names
 `run-dab.ps1`, and duplicating the check would put two different messages on the

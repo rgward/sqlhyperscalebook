@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Re-anchor the Chapter 6 shift window to now, then restart Ward General with
-    the AiAgent flag.
+    the Chapter 5 and Chapter 6 flags (AiAssistance, AiAgent).
 
 .DESCRIPTION
     The two commands a reader needs whenever they come back to Chapter 6 on a
@@ -19,11 +19,12 @@
 
 .EXAMPLE
     ./refresh-and-run.ps1
-    Refresh the window, then start the app with AiAgent.
+    Refresh the window, then start the app with AiAssistance and AiAgent - the
+    Chapter 6 application as the book runs it.
 
 .EXAMPLE
-    ./refresh-and-run.ps1 -Enable AiAssistance,AiAgent
-    The whole application: Chapter 5's surface alongside Chapter 6's dock.
+    ./refresh-and-run.ps1 -Enable AiAgent
+    The agent dock only, without Chapter 5's AI card and Research page.
 
 .EXAMPLE
     ./refresh-and-run.ps1 -SkipRefresh
@@ -41,7 +42,7 @@ param(
     [string]$Database,
     [string]$SqlCmd,
     [ValidateSet('AiAssistance', 'AiAgent', 'RowLevelSecurity')]
-    [string[]]$Enable = @('AiAgent'),
+    [string[]]$Enable = @('AiAssistance', 'AiAgent'),
     [switch]$SkipRefresh,
     [switch]$NoBrowser,
     [switch]$SkipFirewall,

@@ -287,10 +287,10 @@ deployed by that chapter. A locked panel is **greyed out, not hidden** — the
 reader can see what the app becomes and which chapter unlocks it. Turn one on
 and restart:
 ```powershell
-./examples/ch04-first-app/restart.ps1 -Enable AiAssistance              # Ch 5 · AI assistance card + Research page
-./examples/ch04-first-app/restart.ps1 -Enable AiAgent                   # Ch 6 · assistant chat icon (needs DAB)
-./examples/ch04-first-app/restart.ps1 -Enable RowLevelSecurity          # Ch 8 · "Viewing as" + RLS filtering
-./examples/ch04-first-app/restart.ps1 -Enable AiAssistance,AiAgent      # more than one
+./examples/ch04-first-app/restart.ps1 -Enable AiAssistance                           # Ch 5 · AI assistance card + Research page
+./examples/ch04-first-app/restart.ps1 -Enable AiAssistance,AiAgent                   # Ch 6 as the book runs it (needs DAB)
+./examples/ch04-first-app/restart.ps1 -Enable AiAssistance,AiAgent,RowLevelSecurity  # Ch 8 as the book runs it
+./examples/ch04-first-app/restart.ps1 -Enable AiAgent                                # a single flag on its own also works
 ./examples/ch04-first-app/restart.ps1                                   # back to defaults
 ```
 The backing SQL: `AiAssistance` needs `06-ai-embeddings.sql` +

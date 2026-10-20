@@ -379,12 +379,14 @@ Chapter 5 AI objects and the Chapter 2 schema have their own reset paths.
 ## Flipping a feature flag (later chapters)
 
 ```powershell
-./restart.ps1 -Enable AiAssistance              # Ch 5 · AI card + Research
-./restart.ps1 -Enable AiAgent                   # Ch 6 · chat icon (needs DAB)
-./restart.ps1 -Enable RowLevelSecurity          # Ch 8 · the selector starts filtering
-./restart.ps1 -Enable AiAssistance,AiAgent      # more than one
-./restart.ps1                                   # back to the shipped defaults
+./restart.ps1 -Enable AiAssistance                           # Ch 5 · AI card + Research
+./restart.ps1 -Enable AiAssistance,AiAgent                   # Ch 6 as the book runs it · + chat icon (needs DAB)
+./restart.ps1 -Enable AiAssistance,AiAgent,RowLevelSecurity  # Ch 8 as the book runs it · + "Viewing as" filtering
+./restart.ps1 -Enable AiAgent                                # any single flag on its own also works
+./restart.ps1                                                # back to the shipped defaults
 ```
+
+Each chapter keeps the earlier chapters' features on, so name them all.
 
 Three things worth knowing:
 
