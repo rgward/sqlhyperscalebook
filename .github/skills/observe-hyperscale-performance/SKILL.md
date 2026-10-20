@@ -7,7 +7,8 @@ description: >-
   and page-server read split, and correlate the UTC interval with
   sys.dm_db_resource_stats, sys.dm_io_virtual_file_stats, Query Store, and the
   ValueNumeric missing-index recommendation stored in the plan.
-  USE WHEN the reader says any of: "run the Chapter 7
+  USE WHEN the reader says any of: "Run the Chapter 7 performance demo for
+  wardgeneral" (the book's prompt), "run the Chapter 7
   performance demo", "show the Azure Monitor CPU spike", "run concurrent scans",
   "observe page server reads", "test a cold Hyperscale cache", "why did CPU
   spike", "drill into Hyperscale performance", "find the expensive Ward General

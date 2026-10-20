@@ -8,7 +8,8 @@ description: >-
   Hyperscale topology and synchronization state, identify the current
   connection, and optionally compare the evidence with Microsoft Copilot in
   Azure. USE WHEN the
-  reader says "run the Chapter 7 availability example", "observe Hyperscale
+  reader says "Run the Chapter 7 availability investigation for wardgeneral"
+  (the book's prompt), "run the Chapter 7 availability example", "observe Hyperscale
   availability", "check wardgeneral replica health", "show replica
   synchronization", "inspect Hyperscale HA", or "ask Copilot about database
   availability". Do NOT fail over, change replicas, or treat Copilot as the

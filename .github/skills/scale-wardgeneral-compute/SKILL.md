@@ -1,6 +1,6 @@
 ---
 name: scale-wardgeneral-compute
-description: 'Run and analyze Chapter 10 Demo 1, the Ward General compute-scaling workload at 8, 16, and 40 vCores. USE WHEN the reader says "run the Chapter 10 Stage 1 baseline", "run the 8-vCore baseline", "run Demo 1", "scale Ward General compute", "run the 8 to 16 to 40 demo", "test Ward General with sqlsim", or "measure compute scaling under load". Owns preflight, SQLSIM path prompting, the read/write workload, laptop-network controls, server and Query Store evidence, and preview-first approved scaling. Do not grow the database, move to Premium-series, tune indexes, or scale named replicas.'
+description: 'Run and analyze Chapter 10 Demo 1, the Ward General compute-scaling workload at 8, 16, and 40 vCores. USE WHEN the reader says "Run Chapter 10 Demo 1 and preview the 8 → 16 → 40 vCore progression" (the book''s prompt), "run the Chapter 10 Stage 1 baseline", "run the 8-vCore baseline", "run Demo 1", "scale Ward General compute", "run the 8 to 16 to 40 demo", "test Ward General with sqlsim", or "measure compute scaling under load". Owns preflight, SQLSIM path prompting, the read/write workload, laptop-network controls, server and Query Store evidence, and preview-first approved scaling. Do not grow the database, move to Premium-series, tune indexes, or scale named replicas.'
 ---
 
 # Scale Ward General compute

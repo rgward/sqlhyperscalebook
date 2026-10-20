@@ -10,7 +10,8 @@ description: >-
   wardgeneral-research named replica, connects and proves it is SQL Server,
   builds the through-line
   schema, and seeds synthetic data. USE WHEN the reader says any
-  of: "deploy / create / provision / set up / spin up / stand up my (or a)
+  of: "I'd like to deploy an Azure SQL Hyperscale database" (the book's
+  prompt), "deploy / create / provision / set up / spin up / stand up my (or a)
   Hyperscale database", "get started with Azure SQL Hyperscale", "build the
   Ward General database", "deploy the Chapter 2 database", or "walk me through
   deploying Hyperscale". Scope is the Chapter 2 deploy + optional named replica +

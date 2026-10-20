@@ -12,7 +12,8 @@ description: >-
   Chapter 5 end-to-end path from *Azure SQL Hyperscale Unveiled*. USE WHEN the
   reader says any of: "prepare the application for AI", "prepare the app for
   AI", "make the app AI-ready", "get the Chapter 5 app running", "run the app
-  with AI", "I want the AI features working", "turn on AI assistance end to
+  with AI", "Tear down and rebuild all the Chapter 5 Azure AI resources but
+  leave the logical server and wardgeneral database alone", "I want the AI features working", "turn on AI assistance end to
   end", "deploy and
   run Chapter 5", "pre-flight the Chapter 5 AI resources", "which SQL scripts do
   I run for Chapter 5", "what do I replace in the Chapter 5 scripts", "verify my
@@ -770,3 +771,28 @@ is not billed at rest, and keeping it means the 60,000 embeddings stay usable.
 The script never touches the resource group, the logical server or the
 `wardgeneral` database — the database is shared across every chapter. Leave the
 Foundry account alone unless they are finished with Chapter 6, which reuses it.
+
+### The book's prompt: "Tear down and rebuild all the Chapter 5 Azure AI resources but leave the logical server and wardgeneral database alone"
+
+This is the **Azure side only**. Do **not** run `reset-ai-objects.sql` for it —
+that discards every embedding (3–4 hours to regenerate) and the prompt says to
+leave the database alone. Run, in order, in `examples/ch05-ai-ready-sql/`:
+
+1. `./reset-ai-azure.ps1 -WhatIf` — show the reader exactly what will be deleted
+   and purged. Say plainly that Chapter 6 reuses the Foundry account.
+2. Stop and get explicit approval.
+3. `./reset-ai-azure.ps1 -Confirm:$false` — the script is
+   `ConfirmImpact='High'`, so without `-Confirm:$false` it waits on a terminal
+   prompt the agent can't see. Only after the approval in step 2.
+4. `./check-ai-env.ps1`, then `./deploy-ai.ps1` (Step 1 of this skill) with the
+   same `ch05.env`, so the resources come back under the **same names**.
+
+With the same Foundry name and the same `text-embedding-3-large` deployment, the
+SQL objects keep working: the external model and credentials point at the
+endpoint by name, the server identity's role is re-granted by the deploy, and
+the existing vectors stay valid. **Keep the same `AI_RESOURCE` name** for this
+prompt: `06` and `08` create their credentials and external model only if absent
+and leave existing ones alone, so a renamed Foundry account would leave the SQL
+objects pointing at the old endpoint. Changing the name is the full reset path
+(`reset-ai-objects.sql`, then `06`–`09`) — say so, and get approval, before
+taking it.

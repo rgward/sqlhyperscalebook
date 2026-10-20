@@ -5,6 +5,9 @@ server-generated UTC time and restores that point into a lower-compute
 Hyperscale serverless database for isolated testing. The source database
 remains online and is not overwritten.
 
+Book prompt (VS Code Copilot Chat, `recover-wardgeneral-pitr` skill):
+**Create a current Ward General test database using PITR.**
+
 ## Files
 
 | File | Purpose |

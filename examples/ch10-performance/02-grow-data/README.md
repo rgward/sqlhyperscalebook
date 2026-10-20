@@ -2,8 +2,8 @@
 
 **Owning skill:** `grow-wardgeneral-database`
 
-Prompt: **Run Chapter 10 Demo 2: drive Ward General writes for five minutes and
-identify the constraint from the measured evidence.**
+Book prompt: **Run Chapter 10 Demo 2: drive Ward General writes for five minutes
+and identify whether any constraints were observed in the measured evidence.**
 
 Continue with the database scaled in stage 1. Add realistic numeric, JSON, and
 free-text clinical history while measuring database growth, generated log,

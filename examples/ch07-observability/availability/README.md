@@ -7,6 +7,9 @@ queries the previous 24 hours of Azure Monitor availability and connection
 metrics, and then optionally asks Microsoft Copilot in Azure to summarize the
 same evidence.
 
+Book prompt (VS Code Copilot Chat, `observe-hyperscale-availability` skill):
+**Run the Chapter 7 availability investigation for wardgeneral.**
+
 The deterministic portal and SQL results are the source of record. Copilot is
 an optional assistant whose response must be checked against those results.
 

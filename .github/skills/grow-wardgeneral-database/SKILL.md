@@ -1,6 +1,6 @@
 ---
 name: grow-wardgeneral-database
-description: 'Guide and run Chapter 10 Demo 2, driving the existing Ward General Hyperscale database with a five-minute 64-writer workload and identifying the actual write constraint from measured evidence. USE WHEN the reader says "run Chapter 10 Demo 2", "grow Ward General", "run the growth workload", "run another growth interval", "measure the Ward General write path", or "show automatic storage growth". Owns the numeric, JSON, and free-text growth path plus generated-log and resource evidence. Do not run compute Demo 1, change hardware families, tune indexes, or scale vector replicas.'
+description: 'Guide and run Chapter 10 Demo 2, driving the existing Ward General Hyperscale database with a five-minute 64-writer workload and identifying the actual write constraint from measured evidence. USE WHEN the reader says "Run Chapter 10 Demo 2: drive Ward General writes for five minutes and identify whether any constraints were observed in the measured evidence" (the book''s prompt), "run Chapter 10 Demo 2", "grow Ward General", "run the growth workload", "run another growth interval", "measure the Ward General write path", or "show automatic storage growth". Owns the numeric, JSON, and free-text growth path plus generated-log and resource evidence. Do not run compute Demo 1, change hardware families, tune indexes, or scale vector replicas.'
 ---
 
 # Grow Ward General and find the constraint

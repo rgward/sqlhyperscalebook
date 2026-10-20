@@ -2,8 +2,13 @@
 
 **Owning skill:** `tune-wardgeneral-data`
 
-Prompt: **Run Chapter 10 Demo 3: demonstrate JSON indexing and memory grant
-feedback on Ward General.**
+Book prompts — each runs one sequence:
+
+- **Run the Chapter 10 JSON index demo**
+- **Run the Chapter 10 memory grant feedback demo.**
+
+To run both: **Run Chapter 10 Demo 3: demonstrate JSON indexing and memory
+grant feedback on Ward General.**
 
 Demo 3 contains two self-contained examples that do not depend on Demo 2 data
 growth:

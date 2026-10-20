@@ -44,9 +44,18 @@ That is every SQL file you run. If you deployed with `-NoGateway` and later
 change your mind, you re-run `08` rather than running anything new; see
 [Adding the gateway later](#adding-the-gateway-later).
 
-You can drive this through Copilot — ask it to *"get the Chapter 5 app running"*
-and it runs the `ai-ready-app` skill — or work through it by hand as described
-below. Either way **you run the SQL yourself.** That is deliberate: in Chapter 2
+You can drive this through Copilot with the book's prompts, which run the
+`ai-ready-app` skill:
+
+- *"prepare the application for AI"* — checks `ch05.env`, deploys the Azure AI
+  resources, and tells you which SQL scripts to run.
+- *"run the app with AI"* — once the SQL is in, builds and starts the app with
+  the `AiAssistance` flag.
+- *"Tear down and rebuild all the Chapter 5 Azure AI resources but leave the
+  logical server and wardgeneral database alone"* — optional, later; see
+  `reset-ai-azure.ps1` below.
+
+Or work through it by hand as described below. Either way **you run the SQL yourself.** That is deliberate: in Chapter 2
 the schema DDL is the lesson, and here the T-SQL *is* the chapter. Automating it
 away would automate away the subject.
 

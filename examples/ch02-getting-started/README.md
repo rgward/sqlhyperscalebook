@@ -25,8 +25,9 @@ Five moves, in order:
 4. **Build the schema** — run `01`→`04` in order.
 5. **Seed & verify** — run `05-seed.sql`, then `verify-data.sql`.
 
-You can drive all of this through Copilot (ask it to *"deploy my Hyperscale
-database"* and it runs the `deploy-hyperscale` skill), or run the scripts by hand
+You can drive all of this through Copilot — the book's prompt is *"I'd like to
+deploy an Azure SQL Hyperscale database"*, and *"deploy my Hyperscale database"*
+works too; either runs the `deploy-hyperscale` skill — or run the scripts by hand
 as described below. After the primary deploy succeeds, the guided path explains
 the named replica's cost and asks for separate approval before it runs
 `add-replicas.ps1`; it never creates that billable replica silently.
@@ -34,6 +35,8 @@ the named replica's cost and asks for separate approval before it runs
 > **Tip — a third way to verify.** After the deploy, run
 > `verify-activity-log.ps1` for a control-plane check: it summarizes the Azure
 > Activity Log (every operation that built the database) and flags any failures.
+> Or ask Copilot, as the book does: *"Verify my deployment by summarizing the
+> Azure Activity Log."*
 > That's the deploy proof; `connect-and-verify.sql` is the tier proof and
 > `verify-data.sql` is the data proof — same database, three angles.
 

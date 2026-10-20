@@ -1,6 +1,6 @@
 ---
 name: tune-wardgeneral-data
-description: 'Run the implemented parts of Chapter 10 Demo 3: JSON indexing and memory grant feedback on Ward General. USE WHEN the reader says "run Chapter 10 Demo 3", "demo JSON indexing", "run the JSON index demo", "show memory grant feedback", or "run the MGF demo". Owns the self-contained LabResultArchive JSON-index sequence and the self-contained row-mode memory grant feedback scenario; Observation tuning is deferred. The JSON index build is offline and requires explicit acknowledgment. Do not scale compute, grow the database, or add named replicas.'
+description: 'Run the implemented parts of Chapter 10 Demo 3: JSON indexing and memory grant feedback on Ward General. USE WHEN the reader says "Run the Chapter 10 JSON index demo", "Run the Chapter 10 memory grant feedback demo" (the book''s prompts; run only the named sequence), "run Chapter 10 Demo 3", "demo JSON indexing", "run the JSON index demo", "show memory grant feedback", or "run the MGF demo". Owns the self-contained LabResultArchive JSON-index sequence and the self-contained row-mode memory grant feedback scenario; Observation tuning is deferred. The JSON index build is offline and requires explicit acknowledgment. Do not scale compute, grow the database, or add named replicas.'
 ---
 
 # Tune Ward General

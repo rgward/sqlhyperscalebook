@@ -1,12 +1,13 @@
 ---
 name: audit-wardgeneral
 description: >-
-   Capture and investigate Chapter 8 Ward General application activity with
-   Azure SQL Database auditing and Log Analytics. USE WHEN the reader says
-   "start the Ward General audit", "audit Ward General", "start SQL auditing",
-   "audit my app activity", "find my Ward General audit events", "show who
-   opened a patient chart", "query the SQL audit", "what did the app access",
-   or "tear down the Chapter 8 audit".
+  Capture and investigate Chapter 8 Ward General application activity with
+  Azure SQL Database auditing and Log Analytics. USE WHEN the reader says
+  "start the Ward General audit", "I opened a patient chart. Find my audit
+  activity." (both are the book's prompts), "audit Ward General", "start SQL auditing",
+  "audit my app activity", "find my Ward General audit events", "show who
+  opened a patient chart", "query the SQL audit", "what did the app access",
+  or "tear down the Chapter 8 audit".
   Runs a two-turn workflow: enable the guarded audit destination and record a
   UTC start time, let the reader use the app, then query and interpret that
   fixed interval. Do not use for Azure Activity Log, Extended Events,

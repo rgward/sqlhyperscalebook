@@ -6,6 +6,9 @@ region — then creates a Hyperscale geo-secondary of the existing `wardgeneral`
 database on it. The source database remains online and writable while
 transaction log is replicated asynchronously.
 
+Book prompt (VS Code Copilot Chat, `deploy-wardgeneral-geo-replica` skill):
+**Create the Ward General geo-replica**
+
 The same workflow supports either TDE configuration a reader can bring from
 the preceding chapters. If the source uses the default service-managed
 protector, no Key Vault work is performed. If Chapter 8 switched the source to

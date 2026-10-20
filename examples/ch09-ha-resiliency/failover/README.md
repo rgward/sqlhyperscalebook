@@ -8,6 +8,9 @@ references the Chapter 4 `WardGeneral.Data` project and calls its existing
 redefine the retry policy, and the Ward General application will not be
 changed.
 
+Book prompt (VS Code Copilot Chat, `test-hyperscale-failover` skill):
+**Run the Chapter 9 failover demo**
+
 ## Files
 
 | File | Purpose |

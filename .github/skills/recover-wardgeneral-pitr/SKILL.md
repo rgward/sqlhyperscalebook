@@ -5,7 +5,8 @@ description: >-
    source database's current server UTC time, preview and explicitly approve a
    lower-compute Hyperscale serverless point-in-time restore, validate the
    restored Ward General database without using the app, and perform guarded
-   cleanup. USE WHEN the reader says "run the Chapter 9 PITR demo", "create a
+   cleanup. USE WHEN the reader says "Create a current Ward General test
+   database using PITR" (the book's prompt), "run the Chapter 9 PITR demo", "create a
    PITR test copy", "create a current Ward General test database", "test Ward
    General restore", or "clean up the Chapter 9 restored database". Do not
    alter source data or overwrite the source database.
