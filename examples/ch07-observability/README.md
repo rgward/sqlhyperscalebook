@@ -18,6 +18,46 @@ inline in the chapter. Chapter 8 owns SQL auditing and Defender for SQL.
 
 Use the canonical VS Code Chat invocations in [`prompts.md`](prompts.md).
 
+### Which example answers which question
+
+The book's *What to Use When* section has the full tables. This repository
+supplement (not a book figure) follows the same questions to the tool and to
+the example in this folder that shows it.
+
+```mermaid
+flowchart LR
+    Q{What do you<br/>need to know?}
+    Q --> P[Is the database or<br/>Azure having a problem?]
+    Q --> C[Why is it slow, or<br/>what used the CPU?]
+    Q --> R[Are replicas healthy,<br/>and are connections failing?]
+    Q --> E[Which errors or engine<br/>events are occurring?]
+
+    P --> P1[Resource Health and<br/>Service Health]
+    P --> P2[Azure Monitor metrics]
+    P1 --> AV([availability/])
+    P2 --> AV
+
+    C --> C1[Azure Monitor metrics and<br/>sys.dm_db_resource_stats]
+    C1 --> C2[Query Store:<br/>which query, which plan]
+    C2 --> C3[sys.dm_io_virtual_file_stats:<br/>RBPEX or page servers]
+    C3 --> PF([perf/])
+
+    R --> R1[sys.dm_hs_database_replicas and<br/>sys.dm_database_replica_states]
+    R --> R2[sys.event_log and<br/>sys.database_connection_stats]
+    R1 --> AV
+    R2 --> CN([engineevents/connections/])
+
+    E --> E1[Extended Events:<br/>now, in detail]
+    E --> E2[AzureSQLErrors in Log Analytics:<br/>retained, queryable with KQL]
+    E1 --> XE([engineevents/xevent/])
+    E2 --> AE([engineevents/azuresqlerrors/])
+```
+
+Start from the question, not the tool. Metrics and Resource Health tell you
+*whether* something is wrong. DMVs and Query Store tell you *what* and *which
+query*. Extended Events and AzureSQLErrors tell you *which errors*, now or over
+time.
+
 Start with the README inside the folder for the investigation being performed.
 The examples diagnose and preserve evidence. They do not tune queries, scale
 compute, create replicas, trigger failovers, configure auditing, or change
