@@ -248,8 +248,8 @@ Complete Chapters 2 through 5 first. In particular, the reader needs:
 - the Chapter 4 application configured through its existing environment file;
 - the Chapter 5 AI resources and database objects, including the note embeddings
   and the vector index;
-- a **chat** model deployment on that same Foundry resource for the agent to
-  reason with — Chapter 5 only needed the embeddings deployment;
+- the `gpt-5` chat deployment Chapter 5 already created on that Foundry
+  resource — the agent reuses it; there is nothing new to deploy;
 - .NET 10 and the DAB CLI, **version 2.0.0 or later**.
 - **go-sqlcmd** (`sqlcmd` v1.x) if you want `setup-dab.ps1` to deploy the SQL for
   you. Running the scripts yourself in the MSSQL extension or SSMS is equally
