@@ -229,11 +229,17 @@ That single command does everything Step 0 needs:
 1. `load-env.ps1` reads `ch05.env`. **If it does not exist, it is created from
    `ch05.env.template` and the run stops.** Tell the reader to open it and fill
    it in. That is the one thing you need from them, and it is a file to edit,
-   not five questions to answer.
+   not five questions to answer. Two values aren't obvious from Chapter 2, so
+   say what they are when you ask: `AI_RESOURCE` is a **new**, globally unique
+   name for the Foundry account (suggest their SQL server's short name plus
+   `-ai` and a few characters), and `PUBLISHER_EMAIL` is **their own email**,
+   which API Management requires as its publisher contact.
 2. Any value still empty or still carrying `<angle brackets>` is reported by
    name, and the run stops. A partly-filled file never reaches Azure.
 3. Every named resource is probed read-only and reported as **exists** or
    **WILL BE CREATED**, with a closing line saying how many would be created.
+   A Foundry name that's already taken anywhere in Azure is reported as
+   **NAME NOT AVAILABLE** and the check stops; have the reader pick another.
 
 **Read the WILL BE CREATED lines back to the reader before running the deploy.**
 That list is the whole point of the check. A resource they expected to already

@@ -131,7 +131,31 @@ if ($srvOk -and -not $replicaOk) {
 
 # -- The AI resources.
 $aiOk = [bool] (Get-AzValue @('cognitiveservices', 'account', 'show', '-n', $ai, '-g', $rg, '--query', 'name', '-o', 'tsv'))
-Add-Row 'Foundry account' $ai $aiOk 'WILL BE CREATED'
+$aiNameTaken = $false
+if (-not $aiOk) {
+    # The account becomes <name>.openai.azure.com, so the name must be free across
+    # all of Azure. Ask before the deploy finds out the hard way. The body goes
+    # through a file because az.cmd on Windows mangles inline JSON quotes.
+    $bodyFile = New-TemporaryFile
+    try {
+        @{ subdomainName = $ai; type = 'Microsoft.CognitiveServices/accounts' } | ConvertTo-Json |
+            Set-Content -LiteralPath $bodyFile -Encoding utf8NoBOM
+        $check = (& az rest --method post `
+            --url 'https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.CognitiveServices/checkDomainAvailability' `
+            --url-parameters api-version=2024-10-01 `
+            --body "@$bodyFile" -o json 2>$null | Out-String)
+        if ($LASTEXITCODE -eq 0 -and $check.Trim()) {
+            $availability = $check | ConvertFrom-Json
+            if ($availability.PSObject.Properties['isSubdomainAvailable'] -and -not $availability.isSubdomainAvailable) {
+                $aiNameTaken = $true
+                $reason = if ($availability.PSObject.Properties['reason'] -and $availability.reason) { " ($($availability.reason))" } else { '' }
+                $notes.Add("AI_RESOURCE '$ai' can't be used$reason. Foundry names are global across Azure, so choose another in ch05.env - for example '$srv-ai' plus a few letters or digits - and run this check again. If the account is yours in another resource group, set RG to that group instead.")
+            }
+        }
+    }
+    finally { Remove-Item -LiteralPath $bodyFile -ErrorAction SilentlyContinue }
+}
+Add-Row 'Foundry account' $ai $aiOk $(if ($aiNameTaken) { 'NAME NOT AVAILABLE' } else { 'WILL BE CREATED' })
 
 if ($aiOk) {
     $deps = Get-AzValue @('cognitiveservices', 'account', 'deployment', 'list', '-n', $ai, '-g', $rg, '--query', '[].name', '-o', 'tsv')
@@ -179,6 +203,12 @@ if (-not $rgOk -or -not $srvOk -or -not $dbOk) {
     Write-Host 'are shared by every chapter. This chapter never creates them. If one is' -ForegroundColor Red
     Write-Host 'missing, check RG, SRV, and WardGeneral__Database for a typo before' -ForegroundColor Red
     Write-Host 'assuming it is gone -- SRV is the SHORT name, not the FQDN.' -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+
+if ($aiNameTaken) {
+    Write-Host "Choose a different AI_RESOURCE in ch05.env before running deploy-ai.ps1 (see the note above)." -ForegroundColor Red
     Write-Host ''
     exit 1
 }
