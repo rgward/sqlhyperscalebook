@@ -297,7 +297,7 @@ action, or provide idempotency. Those controls belong in application code, MAF
 middleware, and SQL constraints.
 
 Keep every Chapter 6 addition **inert when `AiAgent` is off**. `WardGeneralAgent`
-is a lazy singleton resolved only by `AssistantDock`, which renders under
+is a lazily resolved scoped service (one per Blazor circuit), created only by `AssistantDock`, which renders under
 `@if (Features.Value.AiAgent)`, so with the flag off no agent, MCP connection, or
 runtime skill is ever constructed. Preserve that: add no eager hosted service,
 startup MCP connection, or `IOptions` resolution at startup. This is what lets a
@@ -328,8 +328,8 @@ tell the reader what will run, then run `setup-dab.ps1` on their OK. If the
 reader wants to run the T-SQL themselves, use `setup-dab.ps1 -SkipSql` (it still
 installs the DAB CLI and validates the config) and give them the order below.
 
-Run the scripts in numeric order so the deployed contracts match the DAB
-configuration:
+Run the scripts in the order below (`11`, `12`, `14`, `13`) so the deployed
+contracts match the DAB configuration:
 
 | script | adds |
 |---|---|

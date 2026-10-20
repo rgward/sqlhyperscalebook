@@ -189,10 +189,10 @@
         yield return "Find similar cases: elderly chest pain with elevated troponin";
         if (Page.EncounterId is int e)
             yield return $"Prepare a shift handoff for encounter {e}";
-        else
-            // Not "my patients" -- until Chapter 8 there is no acting clinician, so the
-            // roster tool runs as Admin and returns every active patient.
-            yield return "Which patients need a shift handoff?";
+        // Not "my patients" -- until Chapter 8 there is no acting clinician, so the
+        // roster tool runs as Admin and returns every active patient. Offered on
+        // every page, including a chart, because the book starts the workflow here.
+        yield return "Which patients need a shift handoff?";
     }
 
     private async Task OnKey(KeyboardEventArgs e)
@@ -242,7 +242,7 @@
 
         _cts = new CancellationTokenSource();
         await Consume(Agent.RespondToApprovalAsync(_convo, approved,
-            approved ? null : "The clinician declined this order.", _cts.Token));
+            approved ? null : "The clinician declined this handoff.", _cts.Token));
     }
 
     private async Task Consume(IAsyncEnumerable<AssistantUpdate> stream)

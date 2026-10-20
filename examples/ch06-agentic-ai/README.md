@@ -148,15 +148,15 @@ Chapter 4's web and data projects are almost untouched:
 
 **In `src/WardGeneral.Web/`** — three small hooks and one new component:
 
-- `Program.cs` binds `AgentOptions` and registers `WardGeneralAgent` as a
-  singleton;
+- `Program.cs` binds `AgentOptions` and registers `WardGeneralAgent` as
+  scoped — one per user's Blazor session;
 - `Options/FeatureFlags.cs` gains `AiAgent`;
 - `appsettings.json` gains the `Agent` section, shipped with an empty endpoint;
 - `Components/Layout/AssistantDock.razor` is the dock itself — transcript,
   approval card, and trace panel.
 
-Nothing is eagerly constructed. `WardGeneralAgent` is a lazy singleton resolved
-only by the dock, and the dock renders only under `@if (Features.Value.AiAgent)`.
+Nothing is eagerly constructed. `WardGeneralAgent` is a lazily resolved scoped
+service, created only by the dock, and the dock renders only under `@if (Features.Value.AiAgent)`.
 With the flag off, no agent is built, no MCP connection is opened, and no skill
 is loaded — which is what lets you drop back to Chapter 4 without deleting code.
 
@@ -222,6 +222,11 @@ never sees a control that filters nothing.
 
 Turning on Chapter 8's `RowLevelSecurity` flag is outside this workflow. Chapter
 6 neither requires nor simulates a clinician selection.
+
+That is also why the approval card reads **"Attributed to nobody — signed in as
+Admin"** (as in the book's Figure 6-9): there is no acting clinician yet. It is
+not an error. When you approve, `clinical.SaveShiftHandoff` records the handoff
+under the **Ward General Assistant (system)** provider.
 
 ## One cumulative application
 
