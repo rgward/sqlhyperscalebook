@@ -57,7 +57,7 @@ Per example:
 | Example | Also needs |
 | --- | --- |
 | `perf/` | Nothing more. Intentionally resource-intensive (three concurrent scans). |
-| `availability/` | Microsoft Copilot in Azure only for the optional comparison step. The Copilot skill reads Resource Health and Service Health through the optional Azure MCP Server; without it, use the portal as the README describes. |
+| `availability/` | Microsoft Copilot in Azure only for the optional comparison step. Resource Health and Service Health come from the launcher (`az rest`, read-only). |
 | `engineevents/xevent/` | Permission to create a database-scoped Extended Events session. |
 | `engineevents/connections/` | Access to the logical server's `master` database. |
 | `engineevents/azuresqlerrors/` | Rights to create a Log Analytics workspace and diagnostic setting in your resource group (Contributor). **Billable** until you run its teardown. |

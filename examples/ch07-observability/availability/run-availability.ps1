@@ -257,3 +257,101 @@ $metricSummary = foreach ($metric in $metricEvidence.Metrics) {
 $metricSummary | Format-Table Metric, Samples, Minimum, Maximum, Total -AutoSize
 Write-Host "Metric window (UTC): $($metricEvidence.WindowStartUtc) through $($metricEvidence.WindowEndUtc)" -ForegroundColor Green
 Write-Host "Metric evidence    : $metricsOutput" -ForegroundColor Gray
+
+# --- Platform health: Resource Health and exact-region Service Health ---------
+# Read-only GETs through az rest. Query parameters go through --url-parameters:
+# a literal '&' in the URL is split by az.cmd on Windows. A failure here is
+# reported as unavailable, not fatal - the SQL and metric evidence still stand.
+Write-Host ''
+Write-Host '=== 5. Platform health — Resource Health and Service Health ===' -ForegroundColor Cyan
+$healthApi = 'api-version=2022-10-01'
+$resourceHealthOutput = Join-Path $OutputDirectory 'resource-health.json'
+$serviceHealthOutput  = Join-Path $OutputDirectory 'service-health.json'
+
+function Invoke-ArmGet {
+    param([string] $Url, [string[]] $UrlParameters)
+    $previous = $PSNativeCommandUseErrorActionPreference
+    $previousEncoding = $env:PYTHONIOENCODING
+    $PSNativeCommandUseErrorActionPreference = $false
+    # Event text can contain characters the console code page can't encode;
+    # UTF-8 keeps az from dropping them and warning on stderr.
+    $env:PYTHONIOENCODING = 'utf-8'
+    try {
+        $all = @(az rest --method get --url $Url --url-parameters @UrlParameters -o json 2>&1)
+        $ok = $LASTEXITCODE -eq 0
+    }
+    finally {
+        $PSNativeCommandUseErrorActionPreference = $previous
+        $env:PYTHONIOENCODING = $previousEncoding
+    }
+    $stdout = @($all | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+    $stderr = @($all | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+    if ($ok) { return [pscustomobject]@{ Ok = $true; Body = ($stdout | Out-String | ConvertFrom-Json); Error = $null } }
+    return [pscustomobject]@{ Ok = $false; Body = $null; Error = ((@($stderr) + @($stdout)) | Out-String).Trim() }
+}
+
+function Get-Prop {
+    param([object] $Object, [string] $Name)
+    if ($null -eq $Object) { return $null }
+    $property = $Object.PSObject.Properties[$Name]
+    if ($property) { $property.Value }
+}
+
+$statusCall = Invoke-ArmGet -Url "https://management.azure.com$($databaseResource.id)/providers/Microsoft.ResourceHealth/availabilityStatuses/current" -UrlParameters @($healthApi)
+if ($statusCall.Ok) {
+    $p = Get-Prop $statusCall.Body 'properties'
+    $resourceHealth = [pscustomobject][ordered]@{
+        ResourceId        = $databaseResource.id
+        AvailabilityState = Get-Prop $p 'availabilityState'
+        Summary           = Get-Prop $p 'summary'
+        OccurredTime      = Get-Prop $p 'occuredTime'
+        ReportedTime      = Get-Prop $p 'reportedTime'
+    }
+    Write-Host "Resource Health : $($resourceHealth.AvailabilityState) — $($resourceHealth.Summary)" -ForegroundColor Green
+    Write-Host "                  occurred $($resourceHealth.OccurredTime); reported $($resourceHealth.ReportedTime)" -ForegroundColor Gray
+}
+else {
+    $resourceHealth = [pscustomobject]@{ ResourceId = $databaseResource.id; Unavailable = $statusCall.Error }
+    Write-Host "Resource Health : unavailable — $($statusCall.Error)" -ForegroundColor Yellow
+}
+$resourceHealth | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $resourceHealthOutput -Encoding utf8NoBOM
+
+$serviceWindowStart = $endTimeUtc.AddDays(-30)
+$eventsCall = Invoke-ArmGet -Url "https://management.azure.com/subscriptions/$($subscription.id)/providers/Microsoft.ResourceHealth/events" `
+    -UrlParameters @($healthApi, "queryStartTime=$($serviceWindowStart.ToString('yyyy-MM-ddTHH:mm:ssZ'))")
+if ($eventsCall.Ok) {
+    # Match the skill's rule exactly: the service is Azure SQL Database AND the
+    # database's own region is impacted. Similar names and other regions don't count.
+    $allEvents = @(Get-Prop $eventsCall.Body 'value')
+    $matching = @(foreach ($svcEvent in $allEvents) {
+        $props = Get-Prop $svcEvent 'properties'
+        $sqlImpact = @(Get-Prop $props 'impact') | Where-Object { (Get-Prop $_ 'impactedService') -eq 'Azure SQL Database' }
+        $regions = @($sqlImpact | ForEach-Object { Get-Prop $_ 'impactedRegions' } | ForEach-Object { Get-Prop $_ 'impactedRegion' })
+        if ($regions | Where-Object { $_ -ieq $regionDisplayName }) {
+            [pscustomobject][ordered]@{
+                TrackingId     = Get-Prop $svcEvent 'name'
+                EventType      = Get-Prop $props 'eventType'
+                Status         = Get-Prop $props 'status'
+                Title          = Get-Prop $props 'title'
+                LastUpdateTime = Get-Prop $props 'lastUpdateTime'
+            }
+        }
+    })
+    $serviceHealth = [pscustomobject][ordered]@{
+        WindowStartUtc   = $serviceWindowStart.ToString('o')
+        WindowEndUtc     = $endTimeUtc.ToString('o')
+        Service          = 'Azure SQL Database'
+        Region           = $regionDisplayName
+        EventsReturned   = $allEvents.Count
+        MatchingEvents   = $matching
+    }
+    Write-Host "Service Health  : $($matching.Count) Azure SQL Database event(s) in $regionDisplayName over the last 30 days ($($serviceHealth.EventsReturned) subscription event(s) checked)" -ForegroundColor Green
+    if ($matching.Count) { $matching | Format-Table EventType, Status, LastUpdateTime, Title -AutoSize }
+}
+else {
+    $serviceHealth = [pscustomobject]@{ Region = $regionDisplayName; Unavailable = $eventsCall.Error }
+    Write-Host "Service Health  : unavailable — $($eventsCall.Error)" -ForegroundColor Yellow
+}
+$serviceHealth | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $serviceHealthOutput -Encoding utf8NoBOM
+Write-Host "Health evidence : $resourceHealthOutput" -ForegroundColor Gray
+Write-Host "                  $serviceHealthOutput" -ForegroundColor Gray

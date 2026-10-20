@@ -20,7 +20,7 @@ an optional assistant whose response must be checked against those results.
 
 | File | Purpose |
 | --- | --- |
-| `run-availability.ps1` | Loads Ward General configuration, resolves the database resource ID and region, verifies the new `sqlcmd`, runs the read-only SQL, and writes the previous 24 hours of Azure Monitor availability metrics to a temporary evidence directory. |
+| `run-availability.ps1` | Loads Ward General configuration, resolves the database resource ID and region, verifies the new `sqlcmd`, runs the read-only SQL, writes the previous 24 hours of Azure Monitor availability metrics, and records Resource Health and exact-region Service Health — all to a temporary evidence directory (`azure-monitor-availability.json`, `resource-health.json`, `service-health.json`). |
 | `availability.sql` | Reports Hyperscale replica topology, synchronization evidence visible from the current connection, and current connection state. |
 
 ## Prerequisites
@@ -44,15 +44,17 @@ an optional assistant whose response must be checked against those results.
 
 ### 1. Establish Azure's resource assessment
 
-The skill resolves the database with `az sql db show`; it does not assume a
+The launcher resolves the database with `az sql db show`; it does not assume a
 region. It maps the returned region code, such as `centralus`, to Azure's
 display name, such as `Central US`.
 
-The skill then queries **Resource Health** for the exact database resource ID
-and records its status and reported timestamp. It queries **Service Health**
-for the current subscription and filters the results to both **Azure SQL
-Database** and the derived region display name. A similarly named region does
-not count. Do not infer replica synchronization from the absence of a platform
+It then queries **Resource Health** for the exact database resource ID and
+records its status and reported timestamp (`resource-health.json`). It queries
+**Service Health** for the current subscription over the last 30 days and keeps
+only events for both **Azure SQL Database** and the derived region display name
+(`service-health.json`). A similarly named region does not count. Both are
+read-only Azure Resource Manager calls (`az rest`); no Azure MCP Server is
+needed. Do not infer replica synchronization from the absence of a platform
 incident.
 
 ### 2. Run the SQL evidence

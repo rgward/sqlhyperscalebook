@@ -58,15 +58,14 @@ is always `sqlcmd`. Never request a password or place one on a command line.
   ./examples/ch07-observability/availability/run-availability.ps1
    ```
 
-3. Use the Azure Resource Health tool to query the exact database resource ID
-  printed by the launcher. Record availability state, summary, occurred time,
-  and reported time.
-4. Use the Azure Resource Health service-events tool to list events for the
-  current subscription over the last 30 days. Filter returned events locally
-  and require both of these exact matches:
-  - `affectedServices` contains `Azure SQL Database`.
-  - `affectedRegions` contains the Azure region display name derived by the
-    launcher, compared case-insensitively.
+3. Read `resource-health.json` from the launcher's printed evidence directory.
+  Record availability state, summary, occurred time, and reported time. If it
+  says unavailable, report that with the error; do not substitute a guess.
+4. Read `service-health.json` from the same directory. The launcher already
+  filtered the subscription's last-30-day events to those whose impacted
+  service is `Azure SQL Database` **and** whose impacted regions include the
+  database's own region display name. If the Azure MCP Server is available you
+  may cross-check with its Resource Health tools, but the files are the source.
 5. Report the derived region and the number of matching Service Health events.
   Do not include events for similarly named or unrelated regions.
 6. Report the Hyperscale replica roles, server/database endpoints, locality,
