@@ -191,9 +191,26 @@ else {
             if ($LASTEXITCODE -ne 0) { throw "sqlcmd exited with code $LASTEXITCODE" }
             $row = [string] ($result | Where-Object { $_ -match '\|' } | Select-Object -Last 1)
             $values = $row.Split('|')
-            if ($values.Count -ne 2) { throw "unexpected database preflight output: $result" }
+            if ($values.Count -ne 3) { throw "unexpected database preflight output: $result" }
             $hasSchema = [int] $values[0].Trim() -eq 1
             $patients = [int] $values[1].Trim()
+            $hasRlsPolicy = [int] $values[2].Trim() -eq 1
+
+            # Chapter 8: the same flag chain the app reads (environment, then the JSON files).
+            $rlsFlagOn = $false
+            if ($env:RowLevelSecurity__Enabled) {
+                $rlsFlagOn = $env:RowLevelSecurity__Enabled -eq 'true'
+            }
+            else {
+                foreach ($f in 'appsettings.Development.json', 'appsettings.json') {
+                    $p = Join-Path $webDir $f
+                    if (Test-Path $p) {
+                        $settings = Get-Content $p -Raw | ConvertFrom-Json
+                        $rls = $settings.PSObject.Properties['RowLevelSecurity']
+                        if ($rls -and $null -ne $rls.Value.Enabled) { $rlsFlagOn = [bool]$rls.Value.Enabled; break }
+                    }
+                }
+            }
 
             if (-not $hasSchema) {
                 Write-Check fail 'Database' 'connected, but the Chapter 2 schema is missing - run the Chapter 2 schema scripts'
@@ -203,8 +220,14 @@ else {
                 Write-Check fail 'Database' 'schema is there but no patients - run the Chapter 2 seed script'
                 $failures++
             }
+            elseif ($rlsFlagOn -and -not $hasRlsPolicy) {
+                # Without the policy the app shows "RLS applied" but filters nothing.
+                Write-Check fail 'Database' 'RowLevelSecurity is on but security.EncounterAccessPolicy is missing or disabled - run examples/ch08-security/rls/01-setup-rls.ps1'
+                $failures++
+            }
             else {
-                Write-Check pass 'Database' "$Database on $Server - schema present, $patients patients"
+                $rlsNote = if ($rlsFlagOn) { ', RLS policy enabled' } else { '' }
+                Write-Check pass 'Database' "$Database on $Server - schema present, $patients patients$rlsNote"
             }
         }
         catch {

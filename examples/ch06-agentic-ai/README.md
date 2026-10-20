@@ -195,9 +195,11 @@ would forge authorship, and a nullable column would let the record claim nothing
 at all.
 
 The row is seeded by the Chapter 6 script rather than Chapter 2's, so Chapter 2's
-seed and its published row counts are unchanged. It holds no patients and carries
-no `EntraObjectId`, so Chapter 8's predicate matches nothing for it, and the
-"Viewing as" list — which loads attendings with active patients — never shows it.
+seed and its published row counts are unchanged. It is never the attending
+provider on an encounter, so Chapter 8's predicate — which compares
+`clinical.Encounter.AttendingProviderId` with the `ProviderId` in
+`SESSION_CONTEXT` — has no rows to grant it, and the "Viewing as" list — which
+loads attendings with active patients — never shows it.
 
 ### The Chapter 8 boundary
 
@@ -206,10 +208,12 @@ through the model. It runs DAB under one application identity and allows every
 synthetic patient to be read. Approval controls whether a proposed clinical
 write executes; it does not authenticate a clinician or authorize a row.
 
-Chapter 8 owns the replacement architecture: Entra authentication, trusted
-identity-to-provider mapping, DAB's session-context integration, and Row-Level
-Security. That is more than changing one argument, and Chapter 6 does not claim
-otherwise.
+Chapter 8 owns the replacement architecture. Its example builds DAB's
+session-context integration and Row-Level Security, and simulates the
+authenticated provider with the "Viewing as" selector. Entra authentication and
+a trusted identity-to-provider mapping are discussed in the chapter as the
+production design, not built in the example. That is more than changing one
+argument, and Chapter 6 does not claim otherwise.
 
 ### What this means when you run it
 
