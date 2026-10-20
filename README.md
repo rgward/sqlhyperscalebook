@@ -420,22 +420,24 @@ are hard to read at book size; open the file here to zoom in.
 
 The architecture diagrams are also published as **SVG** — the source several of
 the printed figures were drawn from. They stay crisp at any zoom, and you can open
-one and adapt it.
+one and adapt it. Source file names use working numbers; the **Book figure**
+column gives the number printed in the book.
 
-| Chapter | Figure | What it shows |
-| --- | --- | --- |
-| 1 | [Timeline](figures/ch01-introduction/ch01-figure-01-timeline.svg) | How Hyperscale got here, from SQL Azure to GA. |
-| 3 | [Architecture](figures/ch03-architecture/ch03-figure-01-architecture.svg) | The master figure: all four tiers and the paths between them. |
-| 3 | [Primary compute](figures/ch03-architecture/ch03-figure-primary-compute.svg) | The primary replica and its local RBPEX cache. |
-| 3 | [Log service](figures/ch03-architecture/ch03-figure-02-log-service.svg) | XLOG — the landing zone, the log broker, and who consumes the log. |
-| 3 | [Page servers](figures/ch03-architecture/ch03-figure-page-server.svg) | The 128 GB slices and the `GetPage@LSN` path. |
-| 3 | [File and storage](figures/ch03-architecture/ch03-figure-file-storage.svg) | The durable tier, and why you pay on actual allocation. |
-| 3 | [Replicas](figures/ch03-architecture/ch03-figure-replicas.svg) | HA replicas, named replicas, and what attaches to what. |
-| 3 | [Transaction flow](figures/ch03-architecture/ch03-figure-transaction-flow.svg) | One commit, followed across every tier. |
-| 4 | [Application architecture](figures/ch04-first-app/ch04-figure-01-application-architecture-wide.svg) | The Ward General app, and the one connection it makes. |
-| 5 | [Application architecture](figures/ch05-ai-ready-sql/ch05-figure-01-application-architecture.svg) | The same app once the engine itself calls out to models. |
-| 6 | [Application architecture](figures/ch06-agentic-ai/ch06-figure-01-application-architecture.svg) | The same app once an agent, DAB and the SQL MCP server join it. |
-| 8 | [Security architecture](figures/ch08-security/ch08-figure-01-application-architecture.svg) | The same app with provider context, Row-Level Security, and the production Private Link path. |
+| Chapter | Figure | Book figure | What it shows |
+| --- | --- | --- | --- |
+| 1 | [Timeline](figures/ch01-introduction/ch01-figure-01-timeline.svg) | 1-1 | How Hyperscale got here, from SQL Azure to GA. |
+| 3 | [Architecture](figures/ch03-architecture/ch03-figure-01-architecture.svg) | 3-2 | The master figure: all four tiers and the paths between them. |
+| 3 | [Primary compute](figures/ch03-architecture/ch03-figure-primary-compute.svg) | 3-4 | The primary replica and its local RBPEX cache. |
+| 3 | [Log service](figures/ch03-architecture/ch03-figure-02-log-service.svg) | 3-7 | XLOG — the landing zone, the log broker, and who consumes the log. |
+| 3 | [Page servers](figures/ch03-architecture/ch03-figure-page-server.svg) | 3-8 | The 128 GB slices and the `GetPage@LSN` path. |
+| 3 | [File and storage](figures/ch03-architecture/ch03-figure-file-storage.svg) | 3-9 | The durable tier, and why you pay on actual allocation. |
+| 3 | [Replicas](figures/ch03-architecture/ch03-figure-replicas.svg) | 3-10 | HA replicas, named replicas, and what attaches to what. |
+| 3 | [Transaction flow](figures/ch03-architecture/ch03-figure-transaction-flow.svg) | 3-12 | One commit, followed across every tier. |
+| 4 | [Application architecture](figures/ch04-first-app/ch04-figure-01-application-architecture-wide.svg) | 4-4 | The Ward General app, and the one connection it makes. |
+| 5 | [Application architecture](figures/ch05-ai-ready-sql/ch05-figure-01-application-architecture.svg) | 5-3 | The same app once the engine itself calls out to models. |
+| 6 | [Application architecture](figures/ch06-agentic-ai/ch06-figure-01-application-architecture.svg) | 6-5 | The same app once an agent, DAB and the SQL MCP server join it. |
+| 6 | [Agent prompt flows](figures/ch06-agentic-ai/ch06-figure-02-agent-prompt-flows.svg) | 6-11 | How a shift handoff moves through the agent, the model, DAB, and SQL. |
+| 8 | [Security architecture](figures/ch08-security/ch08-figure-01-application-architecture.svg) | 8-1 | The same app with provider context, Row-Level Security, and the production Private Link path. |
 
 Chapters 4, 5, 6 and 8 are drawn on **one shared grid** on purpose. Put them
 side by side and the layout does not move — only what has been added to it.
