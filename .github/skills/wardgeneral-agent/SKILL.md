@@ -183,7 +183,7 @@ modify the code.
 
 | Reader request | Work | Stop after |
 |---|---|---|
-| **"build the Chapter 6 agent"** (the book's prompt) | Phase 0 (ask only for values missing from `ch04.env` / `appsettings.Development.json`). Then tell the reader what `setup-dab.ps1` will do — install or update the DAB CLI, deploy `11`, `12`, `14`, `13` with go-sqlcmd, validate the DAB config — and run it on their OK. Then `build.ps1`, then Phase 6 with `-Enable AiAssistance,AiAgent`. Do **not** edit app source. | Browser running with the dock |
+| **"build the Chapter 6 agent"** (the book's prompt) | Phase 0 (ask only for values missing from `ch04.env` / `appsettings.Development.json`, then `grant-model-access.ps1` — preview, and `-Apply` only on the reader's yes). Then tell the reader what `setup-dab.ps1` will do — install or update the DAB CLI, deploy `11`, `12`, `14`, `13` with go-sqlcmd, validate the DAB config — and run it on their OK. Then `build.ps1`, then Phase 6 with `-Enable AiAssistance,AiAgent`. Do **not** edit app source. | Browser running with the dock |
 | Review what Chapter 6 still needs | Read the completion gates and inspect files | Report present/missing evidence |
 | Find the WardGeneral.Agent source or ask why it is under Chapter 4 | Point to the shared source tree and explain the ownership split | Reader has the exact path and rationale |
 | Explain the agent payload or message/tool exchange | Read `payload.md` and the current agent configuration | Explain the normalized sequence; do not claim it is a raw HTTP capture |
@@ -223,8 +223,21 @@ rather than writing it silently.
 
 There is no key in either file — SQL and the model endpoint are both reached with
 `DefaultAzureCredential`, so the reader's identity needs a Foundry data-plane
-role on that resource. An endpoint that resolves but returns 401 is a missing
-role assignment, not a wrong URL.
+role on that resource. Owner and Contributor don't include one, and Chapter 5
+granted the role only to managed identities. An endpoint that resolves but
+returns 401 is this missing role, not a wrong URL.
+
+**Check it before starting the app** (read-only):
+
+```powershell
+./examples/ch06-agentic-ai/grant-model-access.ps1
+```
+
+If it reports **MISSING**, show the proposed assignment and ask the reader. Only
+on an explicit yes, run it with `-Apply`. It assigns **Cognitive Services OpenAI
+User** to the signed-in user on that one Foundry account; it needs Owner, User
+Access Administrator, or RBAC Administrator (the same rights Chapter 5 needed),
+and can take a few minutes to take effect.
 
 ## Phase 1 — Establish the baseline
 

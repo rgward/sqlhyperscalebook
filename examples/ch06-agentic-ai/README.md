@@ -250,6 +250,10 @@ Complete Chapters 2 through 5 first. In particular, the reader needs:
   and the vector index;
 - the `gpt-5` chat deployment Chapter 5 already created on that Foundry
   resource — the agent reuses it; there is nothing new to deploy;
+- **Cognitive Services OpenAI User** for *your* identity on that Foundry
+  resource, because the agent calls the model as you —
+  `grant-model-access.ps1` checks and assigns it (see
+  [Configure](#configure--two-files-and-neither-one-travels));
 - .NET 10 and the DAB CLI, **version 2.0.0 or later**.
 - **go-sqlcmd** (`sqlcmd` v1.x) if you want `setup-dab.ps1` to deploy the SQL for
   you. Running the scripts yourself in the MSSQL extension or SSMS is equally
@@ -407,8 +411,20 @@ each other, which is not a completion task. `McpUrl` already points at 5000 in
 There is no key in either file. The application authenticates to both SQL and
 the model endpoint as *you*, through `DefaultAzureCredential`, so your identity
 needs a Foundry data-plane role such as **Cognitive Services OpenAI User** on
-that resource. An endpoint that resolves but returns 401 is nearly always a
-missing role assignment rather than a wrong URL.
+that resource. Owner and Contributor don't include one, and Chapter 5 granted it
+only to the SQL server's and gateway's managed identities — so most readers need
+to add it. Check, then grant:
+
+```powershell
+./examples/ch06-agentic-ai/grant-model-access.ps1          # read-only report
+./examples/ch06-agentic-ai/grant-model-access.ps1 -Apply   # assign it to you
+```
+
+`-Apply` assigns the role to the signed-in user on that one Foundry account. It
+needs Owner, User Access Administrator, or Role Based Access Control
+Administrator — the same rights Chapter 5's deploy needed — and can take a few
+minutes to take effect. An endpoint that resolves but returns 401 is nearly
+always this missing role rather than a wrong URL.
 
 If you would rather not create the Development file, `Agent__Endpoint` as an
 environment variable works too — environment variables outrank both JSON files.
