@@ -173,7 +173,7 @@ Every script in this folder reads these values, so you set them once:
 | Value | Goes to |
 |---|---|
 | `RG`, `SRV`, `AI_RESOURCE`, `PUBLISHER_EMAIL`, `SUBSCRIPTION_ID`, `CS_RESOURCE` | `deploy-ai.ps1` |
-| `AI_RESOURCE` | the `<your-foundry>` placeholder you paste into `06`, `08`, `10` |
+| `AI_RESOURCE` | the `<your-foundry>` placeholder you paste into `06`, `08` |
 | `APIM_NAME` | the `<your-apim>` placeholder, and `reset-ai-azure.ps1` |
 | `WardGeneral__Server`, `WardGeneral__Database` | the app itself, so `run-ai-app.ps1` needs no `-Server` or `-Database` |
 
@@ -227,13 +227,14 @@ can work for you. Find and replace, throughout each file:
 
 | Placeholder | Replace with | Appears in |
 |---|---|---|
-| `<your-foundry>` | Your Microsoft Foundry (Azure OpenAI) resource name | `06`, `08`, `10` |
-| `<your-apim>` | Your API Management service name | `08`, `10` |
+| `<your-foundry>` | Your Microsoft Foundry (Azure OpenAI) resource name | `06`, `08` |
+| `<your-apim>` | Your API Management service name | `08` |
 
 Use the **same** `<your-foundry>` value in every file. If you named the
 embedding deployment something other than `text-embedding-3-large`, replace that
 name in `06` too. Every affected file opens with a **BEFORE YOU RUN** block
-naming exactly which placeholders it carries.
+naming exactly which placeholders it carries. `reset-ai-objects.sql` (optional,
+destructive) carries both placeholders too — replace them only if you run it.
 
 > **Why a literal placeholder and not a `@variable`?** The database-scoped
 > credential's **name must exactly equal the endpoint URL** — SQL matches an

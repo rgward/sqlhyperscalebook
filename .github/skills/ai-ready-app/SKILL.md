@@ -226,7 +226,7 @@ The file also feeds the rest of the chapter, so nothing is asked for twice:
 | From `ch05.env` | Used by |
 |---|---|
 | `RG`, `SRV`, `AI_RESOURCE`, `PUBLISHER_EMAIL`, `SUBSCRIPTION_ID`, `CS_RESOURCE` | `deploy-ai.ps1` — it already reads these as its parameter defaults |
-| `AI_RESOURCE` | the `<your-foundry>` placeholder the reader edits into `06`, `08`, `10` (Step 2) |
+| `AI_RESOURCE` | the `<your-foundry>` placeholder the reader edits into `06`, `08` (Step 2) |
 | `APIM_NAME` | the `<your-apim>` placeholder, and `reset-ai-azure.ps1` |
 | `WardGeneral__Server`, `WardGeneral__Database` | the app itself, at the highest precedence it honours — so `run-ai-app.ps1` needs no `-Server` or `-Database` (Step 5) |
 
@@ -420,13 +420,14 @@ resources, so the scripts cannot ship with working defaults.
 
 | Placeholder | Replace with | In |
 |---|---|---|
-| `<your-foundry>` | The Foundry resource name from Step 1 | `06`, `08`, `10` |
-| `<your-apim>` | The APIM service name from Step 1 | `08`, `10` |
+| `<your-foundry>` | The Foundry resource name from Step 1 | `06`, `08` |
+| `<your-apim>` | The APIM service name from Step 1 | `08` |
 
 Same `<your-foundry>` value in every file. Each file opens with a **BEFORE
 YOU RUN** block naming which placeholders it carries. If the reader named the
 embedding deployment something other than `text-embedding-3-large`, that goes in
-`06` too.
+`06` too. `10` and `11` have no placeholders. `reset-ai-objects.sql` (optional,
+destructive) carries both placeholders too — mention it only if they run it.
 
 **If they took `-NoGateway`:** `08` carries a clearly marked note telling them to
 change `@UseGateway`'s default from `1` to `0`. Point it out — without that edit
