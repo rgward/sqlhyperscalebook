@@ -322,6 +322,14 @@ Reconnect and run the `INSERT` in step 4 of `06` again. `WHERE NOT EXISTS` means
 it only embeds notes that have none yet, so each pass starts where the last one
 stopped. Repeat until `verify-embeddings.sql` reports `MISSING=0`.
 
+When a connection drops, the server can keep running the earlier batch for a
+short while. `06` takes a session lock before it starts embedding, so a rerun in
+that window stops with message **51060** ("Another embedding run is still
+active") instead of embedding the same notes twice and failing on
+`PK_ClinicalNoteEmbeddings`. Wait a minute and run it again. If you started the
+first run in SSMS or the MSSQL extension, closing that query tab also releases
+the lock.
+
 If you only want to see the mechanics rather than build the whole corpus, add a
 `TOP (n)` to that `SELECT`. A few hundred notes is enough for the DiskANN index
 to build and for both procedures to return real results.
