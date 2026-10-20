@@ -44,7 +44,7 @@ next section names what each one wants when you get to it.
 |---|---|
 | **.NET 10 SDK** or later | All three projects target `net10.0`. An older SDK fails with `NETSDK1045`, which reads like a project error rather than a missing install. Check with `dotnet --list-sdks`. |
 | **PowerShell 7** | Every script here opens with `#requires -Version 7.0`. Windows PowerShell 5.1 will not run them. |
-| A trusted **HTTPS developer certificate** | `dotnet dev-certs https --trust`. Without it the browser rejects the certificate and drops the Blazor circuit, which looks like an app bug. |
+| A trusted **HTTPS developer certificate** | `dotnet dev-certs https --trust`. Without it the browser rejects the certificate and drops the Blazor circuit, which looks like an app bug. When you're finished with the book, `dotnet dev-certs https --clean` removes the HTTPS development certificates from your certificate store. Other local .NET projects use the same certificate, so run `--trust` again if you need it later. |
 
 Nothing in the build touches Azure. You can compile the solution on a machine
 with no sign-in and no database.
@@ -144,8 +144,14 @@ surfaces it. Only the Chapter 5 proc is missing.
 | Project | What it is |
 |---|---|
 | `src/WardGeneral.Web` | The Blazor Web App (Interactive Server). Pages, layout, feature flags. |
-| `src/WardGeneral.Data` | Class library. Raw ADO.NET over `Microsoft.Data.SqlClient`, one method per stored procedure. No ORM. |
+| `src/WardGeneral.Data` | Class library. Raw ADO.NET over `Microsoft.Data.SqlClient`, one method per stored procedure. No ORM (object-relational mapper, such as Entity Framework). |
 | `src/WardGeneral.Agent` | The read-only assistant shell Chapter 6 evolves into the approval-gated agentic workflow. Project-referenced by `Web`; its UI stays locked until the `AiAgent` flag is on. |
+
+> **Book note:** Figure 4-5 shows `WardGeneral.Data` and `WardGeneral.Web` as
+> they were when the screenshot was taken. The folder now also has
+> `src/WardGeneral.Agent` and more root-level files, such as `load-env.ps1`,
+> `ch04.env.template`, and `start-demo.ps1`, that later chapters rely on. The
+> table above is the current list.
 
 `WardGeneral.Web` is the presentation layer and nothing more. It is an ASP.NET
 Core Blazor application in **Interactive Server** render mode, so every component
@@ -203,15 +209,25 @@ ask mode will not load one.
    > database wardgeneral.
 
    Copilot loads the `wardgeneral-app` skill, writes your server into `ch04.env`
-   (see [Configuring the connection](#configuring-the-connection)), and runs
-   `build.ps1`. To start the app, the book's second prompt is:
+   (see [Configuring the connection](#configuring-the-connection)), runs
+   `build.ps1`, and then starts the app, because the prompt asks for both.
+   If your IP isn't yet allowed through the server firewall, Copilot asks in
+   chat before adding a rule. *"Build the Ward General app"* on its own just
+   builds.
+
+   The book follows the build with a second prompt:
 
    > Run the Ward General Hospital app. My logical server is
    > `<your-server>`.database.windows.net, database wardgeneral.
 
-   If your IP isn't yet allowed through the server firewall, Copilot asks in
-   chat before adding a rule. *"Build the Ward General app"* on its own just
-   builds.
+   Use it whenever you want to start the app again later. If the app is
+   already running from the first prompt, `run.ps1` says so and just opens
+   the browser; it doesn't start a second copy.
+
+   **Where the output appears.** Copilot shows the build output in the chat.
+   The running app lives in a terminal Copilot opens; look for it in the
+   **Terminal** panel. If you run the scripts yourself, everything appears in
+   your own terminal.
 
 Or skip steps 3 and 4 and run it yourself:
 
