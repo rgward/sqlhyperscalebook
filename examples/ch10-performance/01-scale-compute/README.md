@@ -49,17 +49,21 @@ same database without changing that hardware configuration.
 ## Install sqlsim
 
 Download the Windows release from `https://aka.ms/sqlsimtools`, extract it to a
-local folder, and set `SQLSIM` to the full executable path. The repo is private
-while the book is being written; the release location will be public before the
-book ships.
+local folder, and set `SQLSIM` to the full executable path.
 
 ```powershell
 $env:SQLSIM = 'C:\tools\sqlsim\x64\sqlsim.exe'
 ```
 
-The setting is process-scoped in that example. Add it to the user environment
-if it should survive new PowerShell sessions. If `SQLSIM` is missing or invalid,
-`preflight.ps1` prompts for the full path and sets it for the current process.
+The setting is process-scoped in that example. Demo 2 runs in a new process and
+also needs it, so set it for your user once and open a new terminal:
+
+```powershell
+[Environment]::SetEnvironmentVariable('SQLSIM', 'C:\tools\sqlsim\x64\sqlsim.exe', 'User')
+```
+
+If `SQLSIM` is missing or invalid, `preflight.ps1` prompts for the full path and
+sets it for the current process.
 
 sqlsim also requires ODBC Driver 18 for SQL Server. Stage 1 uses an Azure SQL
 access token from the reader's existing `az login`; no database password is

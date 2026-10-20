@@ -23,9 +23,13 @@ changed.
 - Complete the Chapter 2 `wardgeneral` deployment with its HA replica.
 - Configure `WardGeneral__Server` and `WardGeneral__Database` through
    `examples/ch04-first-app/ch04.env` or process environment variables.
-- Sign in with `az login` and select the subscription containing
-   `rg-collierhealth`.
+- Sign in with `az login` and select the subscription containing your resource
+   group (`rg-collierhealth` by default, or `RG=` in `ch04.env`).
 - Install .NET 10.
+- Install the new Go-based `sqlcmd` (`sqlcmd --version`; install with
+   `winget install --id Microsoft.Sqlcmd`). `collect-failover-evidence.ps1`
+   needs it after the failover, so check it first — you can fail over only
+   once every 15 minutes.
 
 ## Run the demonstration
 

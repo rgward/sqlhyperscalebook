@@ -45,6 +45,36 @@ not a fourth runnable example.
 - The Chapter 9 evidence that a compute cutover can reset a connection and that
   the application must tolerate it.
 
+## Prerequisites
+
+Every demo in this chapter needs:
+
+- **Chapter 2 complete** — `wardgeneral` at `HS_Gen5_8` with its HA replica,
+  schema, procedures, and seed loaded. Demo 1 checks the starting size.
+- **PowerShell 7+** (`pwsh`), on Windows for the sqlsim demos.
+- **Azure CLI** signed in with `az login`, with the subscription that holds the
+  database selected. Your identity needs rights to scale the database
+  (Contributor or SQL Server Contributor on the resource group).
+- **The new Go-based `sqlcmd`** (not the legacy ODBC one). Check with
+  `sqlcmd --version`; install with `winget install --id Microsoft.Sqlcmd`.
+- **`examples/ch04-first-app/ch04.env`** filled in with `WardGeneral__Server`
+  (full `.database.windows.net` name) and `WardGeneral__Database`. Add `RG=`
+  only if your resource group isn't `rg-collierhealth`.
+- **A Microsoft Entra identity** that can run the Chapter 2 procedures, read
+  Query Store and DMVs, and create and drop tables and indexes — the Chapter 2
+  Entra admin works. Query Store must be `READ_WRITE` (the default).
+- **Budget for the larger size.** Demo 1 scales to `HS_Gen5_16` and then
+  `HS_Gen5_40`, and the HA replica bills at the same size. See
+  [Cost and cleanup](#cost-and-cleanup--scale-back-when-you-finish).
+
+Per demo:
+
+| Demo | Also needs |
+| --- | --- |
+| [1. Scale compute](01-scale-compute/) | **sqlsim** from [aka.ms/sqlsimtools](https://aka.ms/sqlsimtools), with `SQLSIM` set to `sqlsim.exe` ([how](01-scale-compute/README.md#install-sqlsim)), and **ODBC Driver 18 for SQL Server**. A steady network path — the run measures latency from your machine. |
+| [2. Grow data](02-grow-data/) | The `HS_Gen5_40` state Demo 1 leaves, plus sqlsim and ODBC 18 as above, with `SQLSIM` set where this new process can see it. Adds roughly 12 GB of billed storage per interval. |
+| [3. Tune](03-tune-grown-data/) | Database compatibility level 160 or higher (Chapter 2 deploys 170) for memory grant feedback. `CREATE JSON INDEX` availability in Azure SQL Database — check the current documentation; the JSON index build is offline for its demo table. |
+
 ## Reader-run exercises
 
 All three stages are reader-run exercises. Each Stage 2 execution runs one

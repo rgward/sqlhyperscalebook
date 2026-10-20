@@ -34,4 +34,32 @@ access is unavailable or its output cannot be independently verified.
 > assume the Chapter 2 `wardgeneral` deployment and synthetic dataset already
 > exist.
 
+## Prerequisites
+
+Every example in this chapter needs:
+
+- **Chapter 2 complete** — `wardgeneral` deployed, `01`–`05` run, and
+  `verify-data.sql` ending in `ALL CHECKS PASSED`. No application has to run.
+- **PowerShell 7+** (`pwsh`).
+- **Azure CLI** signed in with `az login`, with the subscription that holds the
+  database selected (`az account show`).
+- **The new Go-based `sqlcmd`** (not the legacy ODBC one). Check with
+  `sqlcmd --version`; install with `winget install --id Microsoft.Sqlcmd`.
+  The scripts connect passwordless with `sqlcmd -G`.
+- **`examples/ch04-first-app/ch04.env`** filled in with `WardGeneral__Server`
+  (full `.database.windows.net` name) and `WardGeneral__Database`. Add `RG=`
+  only if your resource group isn't `rg-collierhealth`.
+- **A Microsoft Entra identity that can read database state** — the Chapter 2
+  Entra admin works. It reads Query Store and DMVs in `wardgeneral`.
+
+Per example:
+
+| Example | Also needs |
+| --- | --- |
+| `perf/` | Nothing more. Intentionally resource-intensive (three concurrent scans). |
+| `availability/` | Microsoft Copilot in Azure only for the optional comparison step. The Copilot skill reads Resource Health and Service Health through the optional Azure MCP Server; without it, use the portal as the README describes. |
+| `engineevents/xevent/` | Permission to create a database-scoped Extended Events session. |
+| `engineevents/connections/` | Access to the logical server's `master` database. |
+| `engineevents/azuresqlerrors/` | Rights to create a Log Analytics workspace and diagnostic setting in your resource group (Contributor). **Billable** until you run its teardown. |
+
 **All data is synthetic. There is no real patient data (PHI) here.**
