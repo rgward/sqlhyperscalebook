@@ -189,6 +189,12 @@ represent real medical, clinical, laboratory, or billing data. It is for
 educational and illustrative purposes only and must not be used for clinical,
 diagnostic, or any real-world healthcare decision-making.
 
+Like a real hospital's records, the synthetic clinical notes include sensitive
+topics, such as a psychiatric admission for severe depression with suicidal
+ideation and alcohol withdrawal. Every patient and note is fictional. Queries,
+Copilot answers, and the app can surface these records, so keep that in mind
+when you share your screen or capture screenshots.
+
 ## Links from the book
 
 Every web link printed in Chapter 2, in the order it appears, so you can click
