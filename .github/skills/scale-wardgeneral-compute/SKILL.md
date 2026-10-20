@@ -27,6 +27,10 @@ reader-facing source of truth.
    exact counts. Run again with `-ApproveCleanup` only after explicit approval.
    Cleanup deletes all marked Demo 1 rows across prior runs, never unmarked rows.
 - This demo ends at `HS_Gen5_40`. It never scales down or moves to Premium.
+- If the preflight prints a geo-secondary WARNING (a leftover Chapter 9
+  geo-replica), repeat it in your report — partner, region, size, separate
+  billing, possible `RBIO_RG_GEOREPLICA` throttling in Demo 2 — and point to
+  Chapter 9's `cleanup-geo-replica.ps1`. Don't remove it yourself.
 
 ## Baseline-only prompt
 

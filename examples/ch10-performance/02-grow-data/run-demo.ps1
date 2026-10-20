@@ -108,6 +108,7 @@ Write-Host ("  Sample interval   {0} seconds" -f $SampleSeconds)
 if ($serviceObjective -ne 'HS_Gen5_40') {
     throw "Demo 2 requires HS_Gen5_40; the database reports $serviceObjective."
 }
+& (Join-Path $PSScriptRoot '..\check-geo-links.ps1') -Server $Server -Database $Database
 if (-not $Execute) {
     Write-Host ''
     Write-Host 'Preview only. This exercise runs one write-intensive interval and permanently appends its generated data.' -ForegroundColor Yellow

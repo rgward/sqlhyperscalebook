@@ -66,6 +66,10 @@ Every demo in this chapter needs:
 - **Budget for the larger size.** Demo 1 scales to `HS_Gen5_16` and then
   `HS_Gen5_40`, and the HA replica bills at the same size. See
   [Cost and cleanup](#cost-and-cleanup--scale-back-when-you-finish).
+- **No leftover Chapter 9 geo-secondary, ideally.** If you kept it, Demo 1 and
+  Demo 2 warn (they don't stop): it stays at its original size, bills
+  separately, and can throttle Demo 2's writes. Remove it with Chapter 9's
+  `cleanup-geo-replica.ps1` if you no longer need it.
 
 Per demo:
 

@@ -103,6 +103,8 @@ if ($resource.serviceObjective -ne 'HS_Gen5_8') {
     throw "Stage 1 must begin at HS_Gen5_8; Azure reports '$($resource.serviceObjective)'."
 }
 
+& (Join-Path $PSScriptRoot '..\check-geo-links.ps1') -Server $serverName -Database $database -ResourceGroup $ResourceGroup
+
 $token = az account get-access-token `
     --resource https://database.windows.net/ `
     --query accessToken `

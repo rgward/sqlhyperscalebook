@@ -16,6 +16,10 @@ That README is the reader-facing source of truth.
 - Run exactly one 300-second sqlsim interval per execution. Readers may repeat
   the same interval when they want more data.
 - Keep the database at `HS_Gen5_40`; this demo does not change hardware.
+- If `run-demo.ps1` prints a geo-secondary WARNING, repeat it in the report. If
+  the run shows sustained `RBIO_RG_GEOREPLICA` waits, attribute the constraint
+  to the undersized geo-secondary, not to Hyperscale log governance, and point
+  to Chapter 9's `cleanup-geo-replica.ps1`. Don't remove it yourself.
 - Do not claim log governance unless `RBIO_RG_*` and the measured log-rate
   evidence support it.
 
