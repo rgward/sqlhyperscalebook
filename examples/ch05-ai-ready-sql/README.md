@@ -313,6 +313,11 @@ decoration: `sqlcmd` does **not** default `QUOTED_IDENTIFIER`, `ANSI_NULLS` or
 
 ### Expect `06` to be interrupted, and expect that to be fine
 
+> **Keep reading while it runs.** `06` takes hours, and you don't need to watch
+> it. Carry on with the chapter from *Using Vector Search for Patient Research*
+> through *Updating Embeddings*, which explain what `06` is building, then come
+> back for `07` once `verify-embeddings.sql` reports `MISSING=0`.
+
 Embedding the full ~60,000-note corpus is roughly **3–3.5 hours** of round-trips
 to the model — longer than a Microsoft Entra access token lives. Your connection
 **will** be dropped part-way through. That is not a failure: the rows already
