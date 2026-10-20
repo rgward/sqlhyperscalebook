@@ -466,6 +466,44 @@ The runtime Agent Skill tells the model how to perform the handoff workflow. It
 does not enforce authorization, approval, or idempotency — those live in the
 application, the framework, and the database.
 
+## Supplement: why Ward General has both a data layer and DAB
+
+This section is a repository supplement, not text from the book. Data API
+builder facts come from
+[What is Data API builder?](https://learn.microsoft.com/azure/data-api-builder/overview)
+(accessed 2026-10-20).
+
+Ward General reaches the same database through two paths:
+
+| Path | Code | What it calls |
+| --- | --- | --- |
+| Blazor UI | Chapter 4's [`WardGeneral.Data`](../ch04-first-app/src/WardGeneral.Data/) (ADO.NET, `Microsoft.Data.SqlClient`) | Stored procedures such as `clinical.GetPatientChart`, `clinical.SearchEncounters`, and `clinical.GenerateClinicalAssistance`, plus read-only queries over views such as `ops.vBedCensus` |
+| Chapter 6 agent | DAB, through [`dab-config.primary.json`](dab-config.primary.json) | Seven stored procedures published as custom MCP tools. `dml-tools` is off, so the model gets no generic table read/write tools. |
+
+Five of the agent's seven tools call procedures the UI also calls, so those
+business rules live once, in SQL.
+
+**Why not use DAB for everything?** You could. DAB is a configuration-based
+engine that, per Learn, "replaces most custom data APIs that perform generic
+CRUD" operations. From one JSON file it serves REST and GraphQL (and MCP from
+version 1.7) over tables, views, and stored procedures, with paging,
+filtering, and sorting. It supports Microsoft Entra ID, JWT, and App Service
+authentication, and it passes claims to the SQL session context, which is
+exactly how Chapter 8's secured DAB path feeds Row-Level Security.
+
+A hand-built data layer still makes sense when the application talks to SQL
+directly rather than through an HTTP API, and you want that connection code in
+your own process. Ward General keeps `WardGeneral.Data` for that reason, and
+later chapters build on it:
+
+- Chapter 8 sets `SESSION_CONTEXT` on each connection the UI opens.
+- Chapter 9's failover probe reuses its `Microsoft.Data.SqlClient` retry
+  policy.
+
+A reasonable rule of thumb: use DAB when the consumer is another service, an
+agent, or a front end that wants REST, GraphQL, or MCP. Keep your own data
+access when the app needs direct control over its SQL connections.
+
 ## The ordering plumbing — what exposing it would take
 
 This section is a thought experiment. Nothing in it is built, and none of it is
