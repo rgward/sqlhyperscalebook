@@ -15,7 +15,8 @@
 #     asynchronously so sys.dm_operation_status can show its progress.
 #   * The restored database is a low-compute serverless test copy, not a
 #     reproduction of the source's production compute and replica topology.
-#     Hyperscale serverless autoscales but does not auto-pause.
+#     Hyperscale serverless autoscales; auto-pause is a Hyperscale preview this
+#     script doesn't configure, so don't count on the copy pausing.
 #   * Hyperscale PITR retention window: default 7 days; configurable up to
 #     35 days. Cite Microsoft Learn — Hyperscale backups, access date
 #     captured at write time.
@@ -63,7 +64,7 @@ if ($TargetServiceObjective -notmatch '^HS_S_') {
   throw "Target service objective '$TargetServiceObjective' is outside this demo. Use a Hyperscale serverless objective such as 'HS_S_Gen5_8'."
 }
 if ($TargetMinVCore -le 0) {
-  throw 'TargetMinVCore must be greater than zero because Hyperscale serverless does not auto-pause.'
+  throw 'TargetMinVCore must be greater than zero.'
 }
 $pointInTime = $RestorePointUtc.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ')
 

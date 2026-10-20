@@ -16,6 +16,11 @@ on the `wardgeneral-research` named replica.
 > [`../ch02-getting-started`](../ch02-getting-started) creates it, and the
 > Research page below is the first thing that actually uses it. The application
 > itself is Chapter 4, in [`../ch04-first-app`](../ch04-first-app).
+>
+> The named replica is **serverless** (`HS_S_Gen5_8`): its compute scales
+> between a minimum and maximum vCore setting with demand and is billed per
+> second. The book explains serverless in Chapter 10's *Serverless* section;
+> see also [Microsoft Learn](https://aka.ms/azuresqlserverless).
 
 ![The Ward General application architecture with the Chapter 5 AI layer](../../figures/ch05-ai-ready-sql/ch05-figure-01-application-architecture.svg)
 

@@ -50,10 +50,12 @@ separate billable Hyperscale serverless test database. It never overwrites
    cleanup or a different name; never delete it as part of the restore.
 4. Explain that the operation creates a billable `HS_S_Gen5_8` Hyperscale
    serverless test database with a 1-vCore minimum. Show the source, target,
-   earliest restore point, exact selected point, and target compute. State that
-   Hyperscale serverless autoscales but does not auto-pause, and that this test
-   copy intentionally does not reproduce the source's compute or replica
-   topology.
+   earliest restore point, exact selected point, and target compute. Explain
+   that serverless compute autoscales between its minimum and maximum vCores
+   (Chapter 10's *Serverless* section covers it), that Hyperscale auto-pause
+   is a preview the restore doesn't configure so the copy shouldn't be assumed
+   to pause, and that this test copy intentionally does not reproduce the
+   source's compute or replica topology.
 5. Obtain explicit approval, then rerun the identical command with `-Execute`.
    It submits the restore asynchronously with `--no-wait`; do not treat command
    return as restore completion.
@@ -84,7 +86,8 @@ separate billable Hyperscale serverless test database. It never overwrites
 9. Stop here and give the required report. As the book does, leave the
    restored database in place so the reader can connect to it with SSMS or
    VS Code and test it. Remind them that it is billable while it exists
-   (serverless does not auto-pause) and that cleanup is a separate request.
+   (storage always; compute unless the preview auto-pause has paused it) and
+   that cleanup is a separate request.
 
 ### Clean up (only when the reader asks)
 

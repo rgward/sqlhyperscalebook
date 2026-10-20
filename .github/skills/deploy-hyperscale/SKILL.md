@@ -412,8 +412,9 @@ After the primary provision is verified, offer one optional step.
 - prints the resulting replica topology.
 
 State the cost before asking: the named replica is a separate serverless compute
-meter that bills continuously at its minimum when idle because Hyperscale
-serverless does not auto-pause. It is optional: Chapter 3 inspects
+meter that bills continuously at its minimum when idle, because named replicas
+don't auto-pause (Hyperscale serverless auto-pause is in preview and doesn't
+support named replicas). It is optional: Chapter 3 inspects
 `wardgeneral-research`, and Chapter 5's Research page first uses it. The reader
 can skip it now and run the script when they reach those chapters.
 
