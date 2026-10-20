@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Chapter 11 platform map. Dashed boxes labeled ICON are placeholders for
+  official Azure architecture icons. Replace the placeholder groups without
+  changing the surrounding labels or layout.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720"
+     font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="down" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#B15C00"/></marker>
+    <marker id="up" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#5F6B7A"/></marker>
+    <marker id="blueRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/></marker>
+    <marker id="blueLeft" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/></marker>
+    <marker id="tealRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#0F766E"/></marker>
+    <marker id="tealLeft" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#0F766E"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+  <text x="640" y="32" text-anchor="middle" font-size="21" font-weight="700" fill="#1F2937">Hyperscale is built on and integrated with Azure</text>
+  <text x="640" y="53" text-anchor="middle" font-size="11.5" fill="#555555">The Azure platform operates, connects, and extends the managed database service</text>
+
+  <!-- Control plane -->
+  <rect x="100" y="75" width="1080" height="132" rx="9" fill="#FBF4EA" stroke="#B15C00" stroke-width="2"/>
+  <text x="124" y="101" font-size="15" font-weight="700" fill="#8A4600">Azure control plane</text>
+  <text x="124" y="119" font-size="9.5" fill="#6B4A1F">Provision · secure · govern · observe · scale · recover</text>
+
+  <g id="icon-arm"><rect x="160" y="139" width="44" height="44" rx="5" fill="#FFFFFF" stroke="#B15C00" stroke-width="1.4" stroke-dasharray="4 3"/><text x="182" y="165" text-anchor="middle" font-size="8" font-weight="700" fill="#8A4600">ICON</text><text x="218" y="156" font-size="11" font-weight="700" fill="#374151">Azure Resource Manager</text><text x="218" y="173" font-size="8.5" fill="#555555">deployment and lifecycle</text></g>
+  <g id="icon-entra"><rect x="430" y="139" width="44" height="44" rx="5" fill="#FFFFFF" stroke="#B15C00" stroke-width="1.4" stroke-dasharray="4 3"/><text x="452" y="165" text-anchor="middle" font-size="8" font-weight="700" fill="#8A4600">ICON</text><text x="488" y="156" font-size="11" font-weight="700" fill="#374151">Microsoft Entra ID</text><text x="488" y="173" font-size="8.5" fill="#555555">identity and access</text></g>
+  <g id="icon-monitor"><rect x="690" y="139" width="44" height="44" rx="5" fill="#FFFFFF" stroke="#B15C00" stroke-width="1.4" stroke-dasharray="4 3"/><text x="712" y="165" text-anchor="middle" font-size="8" font-weight="700" fill="#8A4600">ICON</text><text x="748" y="156" font-size="11" font-weight="700" fill="#374151">Azure Monitor</text><text x="748" y="173" font-size="8.5" fill="#555555">metrics, logs, and alerts</text></g>
+  <g id="icon-policy"><rect x="930" y="139" width="44" height="44" rx="5" fill="#FFFFFF" stroke="#B15C00" stroke-width="1.4" stroke-dasharray="4 3"/><text x="952" y="165" text-anchor="middle" font-size="8" font-weight="700" fill="#8A4600">ICON</text><text x="988" y="156" font-size="11" font-weight="700" fill="#374151">Azure Policy</text><text x="988" y="173" font-size="8.5" fill="#555555">governance and compliance</text></g>
+
+  <!-- Application services -->
+  <rect x="40" y="244" width="350" height="280" rx="9" fill="#F5F9FF" stroke="#0072C6" stroke-width="2"/>
+  <text x="62" y="271" font-size="15" font-weight="700" fill="#0072C6">Application and integration services</text>
+  <text x="62" y="289" font-size="9.5" fill="#4B6380">Build applications and connect the data estate</text>
+  <g id="icon-app-service"><rect x="72" y="316" width="50" height="50" rx="5" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.4" stroke-dasharray="4 3"/><text x="97" y="345" text-anchor="middle" font-size="8" font-weight="700" fill="#0072C6">ICON</text><text x="138" y="337" font-size="12" font-weight="700" fill="#374151">Azure App Service</text><text x="138" y="355" font-size="8.5" fill="#555555">web and API applications</text></g>
+  <g id="icon-functions"><rect x="72" y="389" width="50" height="50" rx="5" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.4" stroke-dasharray="4 3"/><text x="97" y="418" text-anchor="middle" font-size="8" font-weight="700" fill="#0072C6">ICON</text><text x="138" y="410" font-size="12" font-weight="700" fill="#374151">Azure Functions</text><text x="138" y="428" font-size="8.5" fill="#555555">event-driven processing</text></g>
+  <g id="icon-integration"><rect x="72" y="462" width="50" height="50" rx="5" fill="#FFFFFF" stroke="#0072C6" stroke-width="1.4" stroke-dasharray="4 3"/><text x="97" y="491" text-anchor="middle" font-size="8" font-weight="700" fill="#0072C6">ICON</text><text x="138" y="483" font-size="12" font-weight="700" fill="#374151">Event Hubs · Fabric · APIM</text><text x="138" y="501" font-size="8.5" fill="#555555">stream, integrate, and govern</text></g>
+
+  <!-- Hyperscale -->
+  <rect x="430" y="244" width="420" height="280" rx="11" fill="#FFFFFF" stroke="#0072C6" stroke-width="3"/>
+  <g id="icon-azure-sql"><rect x="452" y="267" width="64" height="64" rx="7" fill="#F5F9FF" stroke="#0072C6" stroke-width="1.6" stroke-dasharray="5 3"/><text x="484" y="295" text-anchor="middle" font-size="8.5" font-weight="700" fill="#0072C6">AZURE SQL</text><text x="484" y="309" text-anchor="middle" font-size="8.5" font-weight="700" fill="#0072C6">ICON</text></g>
+  <text x="534" y="284" font-size="12" font-weight="700" fill="#0072C6">Azure SQL Database</text>
+  <text x="534" y="313" font-size="24" font-weight="700" fill="#1F2937">Hyperscale</text>
+  <text x="452" y="350" font-size="10" fill="#555555">A managed SQL database service with a cloud-native architecture</text>
+  <rect x="452" y="374" width="112" height="62" rx="7" fill="#F5F9FF" stroke="#0072C6" stroke-width="1.5"/><text x="508" y="399" text-anchor="middle" font-size="11" font-weight="700" fill="#0072C6">Compute</text><text x="508" y="416" text-anchor="middle" font-size="8.5" fill="#555555">primary · replicas</text>
+  <rect x="584" y="374" width="112" height="62" rx="7" fill="#FFF6F1" stroke="#D83B01" stroke-width="1.5"/><text x="640" y="399" text-anchor="middle" font-size="11" font-weight="700" fill="#D83B01">Log service</text><text x="640" y="416" text-anchor="middle" font-size="8.5" fill="#555555">durable log path</text>
+  <rect x="716" y="374" width="112" height="62" rx="7" fill="#F2FAF8" stroke="#008575" stroke-width="1.5"/><text x="772" y="399" text-anchor="middle" font-size="11" font-weight="700" fill="#0E6E63">Page servers</text><text x="772" y="416" text-anchor="middle" font-size="8.5" fill="#555555">independent storage</text>
+  <rect x="452" y="458" width="376" height="44" rx="7" fill="#F7F8FA" stroke="#5F6B7A" stroke-width="1.5"/><text x="640" y="477" text-anchor="middle" font-size="11" font-weight="700" fill="#4B5563">One database from small to 128 TB</text><text x="640" y="493" text-anchor="middle" font-size="8.5" fill="#555555">scale · availability · security · performance · AI-ready data</text>
+
+  <!-- AI plane: intentionally high level; a separate figure owns the deeper dive. -->
+  <rect x="890" y="244" width="350" height="280" rx="9" fill="#F2FAF8" stroke="#0F766E" stroke-width="2"/>
+  <text x="912" y="271" font-size="15" font-weight="700" fill="#0F766E">AI plane</text>
+  <text x="912" y="289" font-size="9.5" fill="#426B67">Microsoft Foundry powers AI for Hyperscale</text>
+  <g id="icon-microsoft-foundry"><rect x="940" y="329" width="82" height="82" rx="7" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.7" stroke-dasharray="5 3"/><text x="981" y="365" text-anchor="middle" font-size="9" font-weight="700" fill="#0F766E">FOUNDRY</text><text x="981" y="381" text-anchor="middle" font-size="9" font-weight="700" fill="#0F766E">ICON</text></g>
+  <text x="1042" y="350" font-size="16" font-weight="700" fill="#0F766E">Microsoft Foundry</text>
+  <text x="1042" y="374" font-size="10" fill="#555555">Models · agents · tools</text>
+  <text x="1042" y="392" font-size="10" fill="#555555">Tracing · evaluation · governance</text>
+  <rect x="932" y="446" width="266" height="48" rx="7" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.3"/><text x="1065" y="467" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0F766E">AI beside operational data</text><text x="1065" y="484" text-anchor="middle" font-size="8.5" fill="#555555">without moving the system of record</text>
+
+  <!-- Relationships -->
+  <path d="M640,207 L640,242" fill="none" stroke="#B15C00" stroke-width="2.2" marker-end="url(#down)"/><text x="651" y="231" font-size="8.5" font-weight="700" fill="#8A4600">manages and governs</text>
+  <path d="M390,384 L428,384" fill="none" stroke="#0072C6" stroke-width="2.2" marker-start="url(#blueLeft)" marker-end="url(#blueRight)"/><text x="409" y="372" text-anchor="middle" font-size="8" font-weight="700" fill="#0072C6">connects</text>
+  <path d="M852,384 L888,384" fill="none" stroke="#0F766E" stroke-width="2.2" marker-start="url(#tealLeft)" marker-end="url(#tealRight)"/><text x="870" y="372" text-anchor="middle" font-size="8" font-weight="700" fill="#0F766E">AI</text>
+
+  <!-- Foundation -->
+  <rect x="100" y="568" width="1080" height="116" rx="9" fill="#F7F8FA" stroke="#5F6B7A" stroke-width="2"/>
+  <text x="124" y="594" font-size="15" font-weight="700" fill="#4B5563">Azure platform foundation</text>
+  <text x="124" y="612" font-size="9.5" fill="#555555">The cloud capabilities on which the managed service runs</text>
+  <g id="icon-storage"><rect x="250" y="628" width="44" height="44" rx="5" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="1.4" stroke-dasharray="4 3"/><text x="272" y="654" text-anchor="middle" font-size="8" font-weight="700" fill="#4B5563">ICON</text><text x="308" y="645" font-size="11" font-weight="700" fill="#374151">Azure Storage</text><text x="308" y="662" font-size="8.5" fill="#555555">durability and snapshots</text></g>
+  <g id="icon-network"><rect x="520" y="628" width="44" height="44" rx="5" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="1.4" stroke-dasharray="4 3"/><text x="542" y="654" text-anchor="middle" font-size="8" font-weight="700" fill="#4B5563">ICON</text><text x="578" y="645" font-size="11" font-weight="700" fill="#374151">Azure network</text><text x="578" y="662" font-size="8.5" fill="#555555">low-latency connectivity</text></g>
+  <g id="icon-zones"><rect x="790" y="628" width="44" height="44" rx="5" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="1.4" stroke-dasharray="4 3"/><text x="812" y="654" text-anchor="middle" font-size="8" font-weight="700" fill="#4B5563">ICON</text><text x="848" y="645" font-size="11" font-weight="700" fill="#374151">Availability zones</text><text x="848" y="662" font-size="8.5" fill="#555555">failure-domain isolation</text></g>
+  <path d="M640,568 L640,526" fill="none" stroke="#5F6B7A" stroke-width="2.2" marker-end="url(#up)"/><text x="651" y="551" font-size="8.5" font-weight="700" fill="#4B5563">runs on Azure</text>
+</svg>

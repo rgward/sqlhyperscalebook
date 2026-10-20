@@ -51,7 +51,7 @@ examples/ch09-ha-resiliency/    Resiliency: observe application retry during a
 examples/ch10-performance/      Performance: scale compute under load, grow the
                            existing database, then demonstrate JSON indexing
                            and memory grant feedback
-figures/                   The book's architecture diagrams, as SVG, by chapter
+figures/                   Every book figure by chapter, plus the SVG diagram sources
 ```
 
 ## Chapter guide
@@ -195,11 +195,145 @@ MSSQL extension, SSMS, or `sqlcmd` — so leave it in place and run each file wh
 
 ## Figures
 
-The book's architecture diagrams are published here as **SVG**, under
-`figures/<chapter>/`. They are the source the printed figures are rendered from,
-so they stay crisp at any zoom and you can open one and adapt it.
+Every captioned figure in the book is published here, under `figures/<chapter>/`,
+named by its book number — `ch02-fig-06-…` is Figure 2-6. Some printed figures
+are hard to read at book size; open the file here to zoom in.
 
 ![The road to Azure SQL Hyperscale](figures/ch01-introduction/ch01-figure-01-timeline.svg)
+
+### Chapter 1
+
+| Figure | Caption |
+| --- | --- |
+| [1-1](figures/ch01-introduction/ch01-fig-01-the-road-to-azure-sql-hyperscale.png) | The road to Azure SQL Hyperscale |
+| [1-2](figures/ch01-introduction/ch01-fig-02-hyperscale-is-built-for-mission-critical-applications.png) | Hyperscale is built for mission-critical applications |
+
+### Chapter 2
+
+| Figure | Caption |
+| --- | --- |
+| [2-1](figures/ch02-getting-started/ch02-fig-01-azure-sql-in-the-azure-portal.png) | Azure SQL in the Azure portal |
+| [2-2](figures/ch02-getting-started/ch02-fig-02-creating-a-hyperscale-database-in-the-azure-portal.png) | Creating a Hyperscale database in the Azure portal |
+| [2-3](figures/ch02-getting-started/ch02-fig-03-files-and-scripts-in-vs-code-to-deploy-hyperscale.png) | Files and scripts in VS Code to deploy Hyperscale |
+| [2-4](figures/ch02-getting-started/ch02-fig-04-using-ai-assistance-to-make-decisions-like-zone-redundancy.png) | Using AI assistance to make decisions like Zone Redundancy |
+| [2-5](figures/ch02-getting-started/ch02-fig-05-confirming-choices-before-deploy.png) | Confirming choices before deploy |
+| [2-6](figures/ch02-getting-started/ch02-fig-06-hyperscale-deployment-confirmation.png) | Hyperscale deployment confirmation |
+| [2-7](figures/ch02-getting-started/ch02-fig-07-connecting-with-the-mssql-extension.png) | Connecting with the MSSQL extension |
+| [2-8](figures/ch02-getting-started/ch02-fig-08-the-azure-activity-log-for-the-hyperscale-deployment.png) | The Azure Activity log for the Hyperscale deployment |
+| [2-9](figures/ch02-getting-started/ch02-fig-09-using-ssms-with-azure-sql-hyperscale.png) | Using SSMS with Azure SQL Hyperscale |
+| [2-10](figures/ch02-getting-started/ch02-fig-10-using-ghcp-with-your-schema.png) | Using GHCP with your schema |
+| [2-11](figures/ch02-getting-started/ch02-fig-11-using-ghcp-with-ssms-to-explore-data.png) | Using GHCP with SSMS to explore data |
+
+### Chapter 3
+
+| Figure | Caption |
+| --- | --- |
+| [3-1](figures/ch03-architecture/ch03-fig-01-the-socrates-architecture.png) | The Socrates architecture |
+| [3-2](figures/ch03-architecture/ch03-fig-02-the-modern-azure-sql-hyperscale-architecture.png) | The modern Azure SQL Hyperscale architecture |
+| [3-3](figures/ch03-architecture/ch03-fig-03-looking-at-hyperscale-tiers.png) | Looking at Hyperscale tiers |
+| [3-4](figures/ch03-architecture/ch03-fig-04-the-primary-compute-in-hyperscale.png) | The Primary Compute in Hyperscale |
+| [3-5](figures/ch03-architecture/ch03-fig-05-limits-for-hyperscale-primary-compute.png) | Limits for Hyperscale Primary Compute |
+| [3-6](figures/ch03-architecture/ch03-fig-06-tempdb-files-on-primary-compute.png) | Tempdb files on Primary Compute |
+| [3-7](figures/ch03-architecture/ch03-fig-07-the-log-service.png) | The Log Service |
+| [3-8](figures/ch03-architecture/ch03-fig-08-page-servers.png) | Page Servers |
+| [3-9](figures/ch03-architecture/ch03-fig-09-data-file-storage-in-hyperscale.png) | Data file storage in Hyperscale |
+| [3-10](figures/ch03-architecture/ch03-fig-10-hyperscale-replicas.png) | Hyperscale replicas |
+| [3-11](figures/ch03-architecture/ch03-fig-11-list-of-hyperscale-replicas.png) | List of Hyperscale replicas |
+| [3-12](figures/ch03-architecture/ch03-fig-12-end-to-end-flows-in-hyperscale.png) | End-to-end flows in Hyperscale |
+
+### Chapter 4
+
+| Figure | Caption |
+| --- | --- |
+| [4-1](figures/ch04-first-app/ch04-fig-01-the-digital-chart-application.png) | The digital chart application |
+| [4-2](figures/ch04-first-app/ch04-fig-02-top-of-patient-digital-chart.png) | Top of patient digital chart |
+| [4-3](figures/ch04-first-app/ch04-fig-03-bottom-of-the-patient-chart.png) | Bottom of the patient chart |
+| [4-4](figures/ch04-first-app/ch04-fig-04-application-architecture.png) | Application architecture |
+| [4-5](figures/ch04-first-app/ch04-fig-05-application-source-code-in-the-github-repo-for-the-book.png) | Application source code in the GitHub repo for the book |
+| [4-6](figures/ch04-first-app/ch04-fig-06-building-the-application-with-github-copilot-in-vs-code.png) | Building the application with GitHub Copilot in VS Code |
+| [4-7](figures/ch04-first-app/ch04-fig-07-how-to-chat-with-your-schema-with-github-copilot.png) | How to chat with your schema with GitHub Copilot |
+| [4-8](figures/ch04-first-app/ch04-fig-08-from-the-note-using-regex.png) | From the note using RegEx |
+
+### Chapter 5
+
+| Figure | Caption |
+| --- | --- |
+| [5-1](figures/ch05-ai-ready-sql/ch05-fig-01-patient-research-in-the-application-using-vector-search.png) | Patient Research in the application using vector search |
+| [5-2](figures/ch05-ai-ready-sql/ch05-fig-02-clinical-assistance-in-the-digital-chart.png) | Clinical Assistance in the digital chart |
+| [5-3](figures/ch05-ai-ready-sql/ch05-fig-03-application-architecture-with-ai.png) | Application architecture with AI |
+| [5-4](figures/ch05-ai-ready-sql/ch05-fig-04-the-hyperscale-vector-architecture.png) | The Hyperscale vector architecture |
+| [5-5](figures/ch05-ai-ready-sql/ch05-fig-05-hyperscale-agentic-rag.png) | Hyperscale Agentic RAG |
+
+### Chapter 6
+
+| Figure | Caption |
+| --- | --- |
+| [6-1](figures/ch06-agentic-ai/ch06-fig-01-llms-and-tools.svg) | LLMs and tools |
+| 6-2 | The Model Context Protocol (MCP) — [PNG](figures/ch06-agentic-ai/ch06-fig-02-the-model-context-protocol-mcp.png) · [SVG](figures/ch06-agentic-ai/ch06-fig-02-the-model-context-protocol-mcp.svg) |
+| [6-3](figures/ch06-agentic-ai/ch06-fig-03-data-api-builder-dab.png) | Data API Builder (DAB) |
+| [6-4](figures/ch06-agentic-ai/ch06-fig-04-using-the-sql-mcp-server-with-dab.png) | Using the SQL MCP Server with DAB |
+| [6-5](figures/ch06-agentic-ai/ch06-fig-05-the-ward-general-digital-chart-application-with-ai-agents.png) | The Ward General digital chart application with AI agents |
+| [6-6](figures/ch06-agentic-ai/ch06-fig-06-the-agent-chat-feature.png) | The Agent chat feature |
+| [6-7](figures/ch06-agentic-ai/ch06-fig-07-the-agent-side-chat-interface.png) | The Agent side chat interface |
+| [6-8](figures/ch06-agentic-ai/ch06-fig-08-shift-handoff-candidates.png) | Shift handoff candidates |
+| [6-9](figures/ch06-agentic-ai/ch06-fig-09-shift-handoff-approval.png) | Shift handoff approval |
+| [6-10](figures/ch06-agentic-ai/ch06-fig-10-shift-handoff-recommendations.png) | Shift handoff recommendations |
+| [6-11](figures/ch06-agentic-ai/ch06-fig-11-the-agent-flow.png) | The Agent flow |
+
+### Chapter 7
+
+| Figure | Caption |
+| --- | --- |
+| [7-1](figures/ch07-observability/ch07-fig-01-azure-monitor-metrics-in-the-portal-for-hyperscale.png) | Azure Monitor metrics in the portal for Hyperscale |
+| [7-2](figures/ch07-observability/ch07-fig-02-cpu-spike-for-hyperscale.png) | CPU spike for Hyperscale |
+| [7-3](figures/ch07-observability/ch07-fig-03-an-azure-copilot-prompt-for-availability.png) | An Azure Copilot prompt for availability |
+| [7-4](figures/ch07-observability/ch07-fig-04-watching-live-data-with-xevent.png) | Watching live data with XEvent |
+
+### Chapter 8
+
+| Figure | Caption |
+| --- | --- |
+| [8-1](figures/ch08-security/ch08-fig-01-the-wardgeneral-digital-chart-application-with-extra-security.svg) | The WardGeneral digital chart application with extra security |
+| [8-2](figures/ch08-security/ch08-fig-02-choosing-a-provider-in-the-digital-chart-application.png) | Choosing a provider in the digital chart application |
+| [8-3](figures/ch08-security/ch08-fig-03-shift-handoff-with-rls-applied.png) | Shift handoff with RLS applied |
+| [8-4](figures/ch08-security/ch08-fig-04-a-private-link-for-hyperscale.png) | A private link for Hyperscale |
+| [8-5](figures/ch08-security/ch08-fig-05-the-flow-of-always-encrypted.png) | The flow of Always Encrypted |
+| [8-6](figures/ch08-security/ch08-fig-06-microsoft-defender-for-cloud.png) | Microsoft Defender for Cloud |
+
+### Chapter 9
+
+| Figure | Caption |
+| --- | --- |
+| [9-1](figures/ch09-ha-resiliency/ch09-fig-01-the-hyperscale-ha-architecture.svg) | The Hyperscale HA architecture |
+| [9-2](figures/ch09-ha-resiliency/ch09-fig-02-the-hyperscale-zone-redundancy-architecture.svg) | The Hyperscale Zone Redundancy architecture |
+| [9-3](figures/ch09-ha-resiliency/ch09-fig-03-hyperscale-geo-replication-architecture.svg) | Hyperscale Geo-Replication architecture |
+| [9-4](figures/ch09-ha-resiliency/ch09-fig-04-the-hyperscale-failover-group-architecture.svg) | The Hyperscale Failover Group architecture |
+| [9-5](figures/ch09-ha-resiliency/ch09-fig-05-a-hyperscale-geo-replica.png) | A Hyperscale Geo-Replica |
+
+### Chapter 10
+
+| Figure | Caption |
+| --- | --- |
+| [10-1](figures/ch10-performance/ch10-fig-01-scaling-the-compute-of-the-wardgeneral-database.png) | Scaling the compute of the wardgeneral database |
+| [10-2](figures/ch10-performance/ch10-fig-02-hands-free-data-growth-and-io-for-hyperscale.png) | Hands-free data growth and IO for Hyperscale |
+| [10-3](figures/ch10-performance/ch10-fig-03-the-hyperscale-elastic-pool-architecture.svg) | The Hyperscale Elastic Pool architecture |
+| [10-4](figures/ch10-performance/ch10-fig-04-json-index-seek-in-hyperscale.png) | JSON index seek in Hyperscale |
+| [10-5](figures/ch10-performance/ch10-fig-05-tempdb-spill-due-to-underestimated-memory-grant.png) | Tempdb spill due to underestimated memory grant |
+| [10-6](figures/ch10-performance/ch10-fig-06-automatic-index-compaction-in-hyperscale.png) | Automatic Index Compaction in Hyperscale |
+
+### Chapter 11
+
+| Figure | Caption |
+| --- | --- |
+| [11-1](figures/ch11-azure-best-cloud/ch11-fig-01-why-azure-is-the-best-cloud-for-hyperscale.svg) | Why Azure is the best cloud for Hyperscale |
+| [11-2](figures/ch11-azure-best-cloud/ch11-fig-02-the-azure-ai-plane-microsoft-foundry.png) | The Azure AI Plane, Microsoft Foundry |
+| [11-3](figures/ch11-azure-best-cloud/ch11-fig-03-using-skills-to-migrate-to-hyperscale-with-dms.svg) | Using skills to migrate to Hyperscale with DMS |
+
+### Diagram sources (SVG)
+
+The architecture diagrams are also published as **SVG** — the source several of
+the printed figures were drawn from. They stay crisp at any zoom, and you can open
+one and adapt it.
 
 | Chapter | Figure | What it shows |
 | --- | --- | --- |

@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" font-family="Segoe UI, Arial, sans-serif">
+  <!-- High-level Hyperscale elastic-pool architecture. The manuscript supplies the caption. -->
+  <rect x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <text x="640" y="34" text-anchor="middle" font-size="21" font-weight="700" fill="#1F2937">Hyperscale elastic pool architecture</text>
+  <text x="640" y="58" text-anchor="middle" font-size="12" fill="#555555">Independent databases share compute capacity while retaining independent storage</text>
+
+  <!-- Primary pool -->
+  <rect x="55" y="88" width="830" height="327" rx="9" fill="#F5F9FF" stroke="#0072C6" stroke-width="2"/>
+  <text x="78" y="116" font-size="15" font-weight="700" fill="#0072C6">Primary Hyperscale elastic pool</text>
+
+  <!-- Independent databases -->
+  <rect x="95" y="142" width="220" height="92" rx="7" fill="#FFFFFF" stroke="#107C10" stroke-width="2"/>
+  <text x="205" y="177" text-anchor="middle" font-size="15" font-weight="700" fill="#107C10">DB1</text>
+  <text x="205" y="201" text-anchor="middle" font-size="11" fill="#555555">independent database</text>
+
+  <rect x="360" y="142" width="220" height="92" rx="7" fill="#FFFFFF" stroke="#107C10" stroke-width="2"/>
+  <text x="470" y="177" text-anchor="middle" font-size="15" font-weight="700" fill="#107C10">DB2</text>
+  <text x="470" y="201" text-anchor="middle" font-size="11" fill="#555555">independent database</text>
+
+  <rect x="625" y="142" width="220" height="92" rx="7" fill="#FFFFFF" stroke="#107C10" stroke-width="2"/>
+  <text x="735" y="177" text-anchor="middle" font-size="15" font-weight="700" fill="#107C10">DB3</text>
+  <text x="735" y="201" text-anchor="middle" font-size="11" fill="#555555">independent database</text>
+
+  <!-- Shared resources -->
+  <rect x="95" y="258" width="750" height="64" rx="7" fill="#FFFFFF" stroke="#0072C6" stroke-width="2"/>
+  <text x="470" y="284" text-anchor="middle" font-size="16" font-weight="700" fill="#0072C6">Shared compute for DB1, DB2, and DB3</text>
+  <text x="470" y="306" text-anchor="middle" font-size="11" fill="#555555">vCores · memory · workers · SSD cache</text>
+
+  <rect x="175" y="344" width="590" height="48" rx="7" fill="#FFFFFF" stroke="#D83B01" stroke-width="2"/>
+  <text x="470" y="365" text-anchor="middle" font-size="15" font-weight="700" fill="#D83B01">Shared log service</text>
+  <text x="470" y="382" text-anchor="middle" font-size="10" fill="#555555">writes from every database</text>
+
+  <!-- Optional HA pool -->
+  <rect x="925" y="88" width="300" height="327" rx="9" fill="#F7FBF7" stroke="#107C10" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="1075" y="116" text-anchor="middle" font-size="15" font-weight="700" fill="#107C10">Optional HA pool</text>
+
+  <rect x="965" y="142" width="220" height="92" rx="7" fill="#FFFFFF" stroke="#107C10" stroke-width="2"/>
+  <text x="1075" y="177" text-anchor="middle" font-size="15" font-weight="700" fill="#107C10">Read-only replicas</text>
+  <text x="1075" y="201" text-anchor="middle" font-size="11" fill="#555555">of pooled databases</text>
+
+  <rect x="965" y="258" width="220" height="64" rx="7" fill="#FFFFFF" stroke="#0072C6" stroke-width="2"/>
+  <text x="1075" y="284" text-anchor="middle" font-size="16" font-weight="700" fill="#0072C6">Shared HA compute</text>
+  <text x="1075" y="306" text-anchor="middle" font-size="11" fill="#555555">separate pool capacity</text>
+
+  <!-- Per-database page-server tiers -->
+  <rect x="55" y="432" width="1170" height="132" rx="9" fill="#FAFAFA" stroke="#008575" stroke-width="2"/>
+  <text x="78" y="458" font-size="15" font-weight="700" fill="#0E6E63">Independent page-server tiers</text>
+
+  <rect x="95" y="478" width="300" height="66" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <text x="245" y="507" text-anchor="middle" font-size="14" font-weight="700" fill="#0E6E63">DB1 page servers</text>
+  <text x="245" y="529" text-anchor="middle" font-size="11" fill="#555555">independent data pages</text>
+
+  <rect x="490" y="478" width="300" height="66" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <text x="640" y="507" text-anchor="middle" font-size="14" font-weight="700" fill="#0E6E63">DB2 page servers</text>
+  <text x="640" y="529" text-anchor="middle" font-size="11" fill="#555555">independent data pages</text>
+
+  <rect x="885" y="478" width="300" height="66" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <text x="1035" y="507" text-anchor="middle" font-size="14" font-weight="700" fill="#0E6E63">DB3 page servers</text>
+  <text x="1035" y="529" text-anchor="middle" font-size="11" fill="#555555">independent data pages</text>
+
+  <!-- Durable storage -->
+  <rect x="55" y="586" width="1170" height="100" rx="9" fill="#FAFAFA" stroke="#5F6B7A" stroke-width="2"/>
+  <text x="78" y="612" font-size="15" font-weight="700" fill="#4B5563">Azure Storage · durable tier</text>
+
+  <rect x="95" y="628" width="300" height="36" rx="7" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="2"/>
+  <text x="245" y="651" text-anchor="middle" font-size="12" font-weight="700" fill="#4B5563">DB1 data files</text>
+
+  <rect x="490" y="628" width="300" height="36" rx="7" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="2"/>
+  <text x="640" y="651" text-anchor="middle" font-size="12" font-weight="700" fill="#4B5563">DB2 data files</text>
+
+  <rect x="885" y="628" width="300" height="36" rx="7" fill="#FFFFFF" stroke="#5F6B7A" stroke-width="2"/>
+  <text x="1035" y="651" text-anchor="middle" font-size="12" font-weight="700" fill="#4B5563">DB3 data files</text>
+
+  <!-- Structural relationships; these are not data-flow arrows. -->
+  <path d="M205,234 L205,258" fill="none" stroke="#0072C6" stroke-width="2"/>
+  <path d="M470,234 L470,258" fill="none" stroke="#0072C6" stroke-width="2"/>
+  <path d="M735,234 L735,258" fill="none" stroke="#0072C6" stroke-width="2"/>
+  <path d="M1075,234 L1075,258" fill="none" stroke="#0072C6" stroke-width="2"/>
+  <path d="M470,322 L470,344" fill="none" stroke="#D83B01" stroke-width="2"/>
+  <path d="M470,392 L470,424 L245,424 L245,432" fill="none" stroke="#D83B01" stroke-width="2"/>
+  <path d="M470,424 L640,424 L640,432" fill="none" stroke="#D83B01" stroke-width="2"/>
+  <path d="M640,424 L1035,424 L1035,432" fill="none" stroke="#D83B01" stroke-width="2"/>
+  <path d="M765,368 L900,368 L900,290 L965,290" fill="none" stroke="#D83B01" stroke-width="2"/>
+  <path d="M245,544 L245,628" fill="none" stroke="#5F6B7A" stroke-width="2"/>
+  <path d="M640,544 L640,628" fill="none" stroke="#5F6B7A" stroke-width="2"/>
+  <path d="M1035,544 L1035,628" fill="none" stroke="#5F6B7A" stroke-width="2"/>
+</svg>
