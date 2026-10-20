@@ -98,7 +98,8 @@ foreach ($flag in $flagVars.Keys) {
     }
 }
 
-$logRoot = Join-Path $env:LOCALAPPDATA 'WardGeneral\logs'
+# %LOCALAPPDATA% on Windows; the temp folder where it doesn't exist (macOS, Linux).
+$logRoot = Join-Path ($env:LOCALAPPDATA ?? [IO.Path]::GetTempPath()) 'WardGeneral' 'logs'
 New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
 
 if ($Enable -contains 'AiAgent') {
