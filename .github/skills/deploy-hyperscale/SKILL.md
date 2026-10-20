@@ -99,6 +99,11 @@ Rules for the agent:
   interview only gathers values.
 - The reader's **password is entered in the terminal, never in chat** and never
   written to a file.
+- **Prompts are answered in chat, where the reader can't send an empty
+  message.** Never ask them to "press Enter" to accept something. For a prompt
+  with a `[default …]`, tell them to reply **ok** (or "default") to accept it,
+  and treat that reply as the default. The only keypress in the terminal is the
+  Step 8 password, and Step 1's browser sign-in happens outside chat.
 - **This skill only deploys billable Hyperscale.** If the reader asks for the
   free Azure SQL Database offer, don't run the interview or the script — point
   them to "Using the free Azure SQL Database offer instead" in
@@ -375,7 +380,7 @@ This Ch 2 deploy is a **follow-along test database**, so tags state what it IS n
 - `dataClassification` = `nonproduction` (the seed is synthetic / no PHI)
 - `costCenter` = the chargeback code (**no sensible default — ask if they want it**)
 Spaces aren't allowed in a tag passed on the command line — hyphenate values.
-Prompt: "Tags? Press Enter to accept the recommended set, or give
+Prompt: "Tags? Reply **ok** to accept the recommended set, or give
 `key=value` pairs (space-separated) to override."
 
 ## Step 21 — Confirm and deploy

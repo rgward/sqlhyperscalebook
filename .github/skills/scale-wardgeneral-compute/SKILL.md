@@ -36,8 +36,10 @@ reader-facing source of truth.
 
 For "run the 8-vCore baseline", do exactly this:
 
-1. Run `preflight.ps1`. If `SQLSIM` is absent or invalid, allow its prompt for
-   the full local path to the extracted `sqlsim.exe`.
+1. Run `preflight.ps1`. If `SQLSIM` is not set, ask the reader in chat for the
+   full local path to the extracted `sqlsim.exe` and set `$env:SQLSIM` in the
+   same command that runs the script. Don't rely on the script's terminal
+   prompt; a reader working in chat may not be able to answer it.
 2. Confirm `HS_Gen5_8`, token authentication, firewall/network connectivity,
    ODBC 18, Query Store, five procedures, and encounter data. If preflight
    reports a serverless (`HS_S_Gen5_*`) database, stop. Explain that Demo 1
