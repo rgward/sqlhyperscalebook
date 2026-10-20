@@ -119,16 +119,20 @@ the resources exist — the script is safe to re-run once they have.
 
 ### Model quota
 
-Each deployment asks for **capacity 100**. If the region has fewer than 100 units
-free on either model, `deployment create` fails and the chapter has nothing to
-embed with. Check before you deploy:
+Each deployment asks for **capacity 100** in the Foundry region — `AI_LOCATION`
+in `ch05.env`, or `eastus2` if you leave it unset. If that region has fewer than
+100 units free on either model, `deployment create` fails and the chapter has
+nothing to embed with. Check that region before you deploy:
 
 ```powershell
 $want = @('OpenAI.GlobalStandard.gpt-5','OpenAI.GlobalStandard.text-embedding-3-large')
-az cognitiveservices usage list -l <your-region> -o json | ConvertFrom-Json |
+az cognitiveservices usage list -l eastus2 -o json | ConvertFrom-Json |   # or your AI_LOCATION
   Where-Object { $want -contains $_.name.value } |
   ForEach-Object { '{0}  used {1} of {2}' -f $_.name.value, $_.currentValue, $_.limit }
 ```
+
+The APIM gateway and the Content Safety resource are always created in
+`centralus`, whatever `AI_LOCATION` is.
 
 Filter in PowerShell as shown rather than with `--query`. On Windows `az.cmd`
 re-parses the argument and a JMESPath filter expression breaks before the CLI
@@ -173,7 +177,8 @@ Every script in this folder reads these values, so you set them once:
 
 | Value | Goes to |
 |---|---|
-| `RG`, `SRV`, `AI_RESOURCE`, `PUBLISHER_EMAIL`, `SUBSCRIPTION_ID`, `CS_RESOURCE` | `deploy-ai.ps1` |
+| `RG`, `SRV`, `AI_RESOURCE`, `PUBLISHER_EMAIL`, `SUBSCRIPTION_ID`, `CS_RESOURCE` | `deploy-ai.ps1` and `reset-ai-azure.ps1`, which load `ch05.env` themselves |
+| `AI_LOCATION` (optional) | the Foundry region — default `eastus2` |
 | `AI_RESOURCE` | the `<your-foundry>` placeholder you paste into `06`, `08` |
 | `APIM_NAME` | the `<your-apim>` placeholder, and `reset-ai-azure.ps1` |
 | `WardGeneral__Server`, `WardGeneral__Database` | the app itself, so `run-ai-app.ps1` needs no `-Server` or `-Database` |

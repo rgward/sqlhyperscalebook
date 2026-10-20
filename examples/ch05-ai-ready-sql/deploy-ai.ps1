@@ -125,8 +125,21 @@ param(
 $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
 
+# ch05.env is where the reader's names live. Parameter defaults are read before
+# it can load, so load it here and fill whatever is still empty. A value already
+# in the shell, or passed explicitly, wins.
+if (Test-Path (Join-Path $here 'ch05.env')) {
+    & (Join-Path $here 'load-env.ps1') -Require @() -Quiet
+    if (-not $SqlServerName)  { $SqlServerName  = $env:SRV }
+    if (-not $ResourceGroup)  { $ResourceGroup  = $env:RG }
+    if (-not $AiResourceName) { $AiResourceName = $env:AI_RESOURCE }
+    if (-not $SubscriptionId) { $SubscriptionId = $env:SUBSCRIPTION_ID }
+    if (-not $PublisherEmail) { $PublisherEmail = $env:PUBLISHER_EMAIL }
+    if (-not $CsResourceName) { $CsResourceName = $env:CS_RESOURCE }
+}
+
 if (-not $SqlServerName) {
-    throw 'SqlServerName is required -- pass -SqlServerName <short name of your logical server>, or set the SRV environment variable. It is the server whose managed identity gets the Cognitive Services OpenAI User role.'
+    throw 'SqlServerName is required -- pass -SqlServerName <short name of your logical server>, or set SRV in ch05.env. It is the server whose managed identity gets the Cognitive Services OpenAI User role.'
 }
 if (-not $ResourceGroup) {
     throw 'ResourceGroup is required -- pass -ResourceGroup <your resource group>, or set the RG environment variable. There is no default: a default resource group is always someone else''s.'

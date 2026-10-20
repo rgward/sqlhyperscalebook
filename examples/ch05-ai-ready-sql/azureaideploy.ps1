@@ -304,5 +304,5 @@ Write-Host ' 06 embeds ~60K notes (~3-3.5 hr) — longer than an Entra token liv
 Write-Host ' connection WILL drop part-way. Expected. Reconnect and re-run its INSERT; it' -ForegroundColor Gray
 Write-Host ' resumes. Check with verify-embeddings.sql and stop when MISSING=0.' -ForegroundColor Gray
 Write-Host ''
-Write-Host " Teardown (billable bits): az apim delete -n <your-apim-name> -g $ResourceGroup --yes --no-wait" -ForegroundColor Gray
+Write-Host " Teardown later: ./reset-ai-azure.ps1 -WhatIf   (-KeepFoundry removes only the billable gateway)" -ForegroundColor Gray
 Write-Host '=============================================' -ForegroundColor Green

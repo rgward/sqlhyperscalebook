@@ -268,6 +268,12 @@ SELECT TOP (2)
     ResponseRetCode,                 -- 403 = blocked at the gateway, 0 = reached the model
     SuggestedTriageFlag,
     LEFT(Summary, 300) AS Summary,   -- a real block says "Request failed content safety check."
+    -- The two signals the book shows. ResponsePayload is stored truncated to
+    -- 4,000 characters, so read it only when it is still valid JSON.
+    CASE WHEN ISJSON(ResponsePayload) = 1
+         THEN JSON_VALUE(ResponsePayload, '$.result.message') END                  AS GatewayMessage,  -- gateway row: "Request failed content safety check."
+    CASE WHEN ISJSON(ResponsePayload) = 1
+         THEN JSON_VALUE(ResponsePayload, '$.response.headers."x-ms-rai-invoked"') END AS RaiInvoked,  -- direct row: "true" = the model's own responsible-AI filter fired
     ProcessingTimeMs,
     CreatedAt
 FROM clinical.AIAssistanceLog
