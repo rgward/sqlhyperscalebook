@@ -302,9 +302,10 @@ did not read the row, nothing downstream catches it for you.
 
 The gateway is technically optional: the AI assistance procedure works without it
 by calling the model deployment directly. If *they* raise skipping it, add
-`-NoGateway`, tell them to set `@UseGateway`'s default to `0` in `08` as that
-script instructs, and tell them the gateway can be added later by re-running
-`deploy-ai.ps1` without the switch, putting that default back to `1` and re-running
+`-NoGateway`, tell them to replace `<your-apim>` with `no-gateway` and set
+`@UseGateway`'s default to `0` in `08` as that script instructs, and tell them
+the gateway can be added later by re-running `deploy-ai.ps1` without the switch,
+replacing `no-gateway` with the APIM name, putting that default back to `1` and re-running
 `08` — it is `CREATE OR ALTER`, so nothing is lost. Offer that as an escape hatch
 when they ask for it, not as a decision you put back to them.
 
@@ -460,10 +461,13 @@ embedding deployment something other than `text-embedding-3-large`, that goes in
 `06` too. `10` and `11` have no placeholders. `reset-ai-objects.sql` (optional,
 destructive) carries both placeholders too — mention it only if they run it.
 
-**If they took `-NoGateway`:** `08` carries a clearly marked note telling them to
-change `@UseGateway`'s default from `1` to `0`. Point it out — without that edit
-the procedure calls an APIM instance that does not exist, and the failure is a
-timeout, not a clear error.
+**If they took `-NoGateway`:** they have no APIM name, so in `08` they replace
+`<your-apim>` with `no-gateway` (literally) — that passes `08`'s placeholder
+check and skips the gateway credential — and change `@UseGateway`'s default
+from `1` to `0`. Point out both. Without the first, `08` stops at its
+placeholder check and creates nothing; without the second, the procedure calls
+an APIM instance that does not exist, and the failure is a timeout, not a clear
+error.
 
 If they ask *why a placeholder and not a variable* — the credential's **name must
 exactly equal the endpoint URL**, because SQL matches an outbound URL against a

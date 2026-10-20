@@ -198,9 +198,11 @@ if (-not $NoGateway) {
 Write-Host '      Each file opens with a BEFORE YOU RUN block that says which.' -ForegroundColor Gray
 if ($NoGateway) {
     Write-Host ''
-    Write-Host '      You deployed WITHOUT the gateway, so also change @UseGateway''s default' -ForegroundColor Yellow
-    Write-Host '      in 08 from 1 to 0. The script says exactly where. Without that edit the' -ForegroundColor Yellow
-    Write-Host '      proc calls an APIM instance you do not have.' -ForegroundColor Yellow
+    Write-Host '      You deployed WITHOUT the gateway, so in 08 also:' -ForegroundColor Yellow
+    Write-Host '        - replace <your-apim> with no-gateway (literally), and' -ForegroundColor Yellow
+    Write-Host '        - change @UseGateway''s default from 1 to 0.' -ForegroundColor Yellow
+    Write-Host '      08''s BEFORE YOU RUN block says exactly where. Without these, 08 stops' -ForegroundColor Yellow
+    Write-Host '      at its placeholder check, or the proc calls an APIM you do not have.' -ForegroundColor Yellow
 }
 Write-Host ''
 Write-Host '   1. 06-ai-embeddings.sql           external model, vector table, the embeddings' -ForegroundColor White
@@ -223,7 +225,8 @@ Write-Host '      progress with verify-embeddings.sql and stop when MISSING=0.' 
 if ($NoGateway) {
     Write-Host ''
     Write-Host '      Changed your mind about the gateway later? Re-run this script without' -ForegroundColor Gray
-    Write-Host '      -NoGateway, put @UseGateway''s default in 08 back to 1, and re-run 08.' -ForegroundColor Gray
+    Write-Host '      -NoGateway, replace no-gateway in 08 with your APIM name, put' -ForegroundColor Gray
+    Write-Host '      @UseGateway''s default back to 1, and re-run 08.' -ForegroundColor Gray
     Write-Host '      It is CREATE OR ALTER, so nothing is lost.' -ForegroundColor Gray
 }
 Write-Host ''

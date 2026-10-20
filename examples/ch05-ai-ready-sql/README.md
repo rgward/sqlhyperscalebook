@@ -376,14 +376,14 @@ Each reseed leaves one more behind and **they are meant to stay.** Leave them.
 
 ## Adding the gateway later
 
-If you deployed with `-NoGateway`, you followed the note in `08` and set
-`@UseGateway`'s default to `0`. Nothing is lost — you can add the gateway
-whenever you want:
+If you deployed with `-NoGateway`, you followed the note in `08`: you replaced
+`<your-apim>` with `no-gateway` and set `@UseGateway`'s default to `0`. Nothing
+is lost — you can add the gateway whenever you want:
 
 1. Re-run `deploy-ai.ps1` **without** `-NoGateway`. It is idempotent; it creates
    the APIM instance and the content-safety policies and leaves everything else
    alone. A first provision takes ~30–45 minutes and is billable.
-2. In `08`, replace `<your-apim>` with your API Management service name, put
+2. In `08`, replace `no-gateway` with your API Management service name, put
    `@UseGateway`'s default back to `1`, and re-run the file. It is
    `CREATE OR ALTER`, so that is the whole of it — there is no separate
    "add the gateway" script to run.
