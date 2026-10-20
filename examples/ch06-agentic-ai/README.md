@@ -503,6 +503,12 @@ other is implemented.
 
 ## Evolution sequence
 
+The Chapter 6 code already ships in `examples/ch04-first-app/src/`. Steps 2 and
+5 describe how it was built — read them to understand the design; there is
+nothing to write. As a reader you build (step 1), deploy the SQL and start DAB
+(steps 3–4), build again (step 6), and run (step 7). The book's prompt *"build
+the Chapter 6 agent"* does exactly that.
+
 ### 1. Prove the shared-app baseline
 
 From the repository root:
@@ -535,8 +541,11 @@ Build immediately after this application change:
 
 ### 3. Add the SQL contracts
 
-The reader runs the Chapter 6 SQL themselves, in numeric order so the deployed
-contracts match the DAB configuration.
+`setup-dab.ps1` deploys these — it's what the skill runs for *"build the Chapter
+6 agent"*, and you can run it yourself (see
+[Publish the MCP endpoint](#4-publish-the-mcp-endpoint)). To run the T-SQL
+yourself instead, use `setup-dab.ps1 -SkipSql` and run them in this order, so
+the deployed contracts match the DAB configuration.
 
 | script | adds |
 |---|---|
@@ -842,8 +851,10 @@ clone. Commit or stash your Chapter 6 work first so you do not lose it.
 
 ## Agent-driven workflow
 
-Ask Copilot to **build the Chapter 6 agent**, **evolve the Ward General app**,
-**set up the Chapter 6 SQL MCP tools**, or **run the app with AiAgent**. The
+Ask Copilot to **build the Chapter 6 agent** (the book's prompt) — it configures
+what's missing, runs `setup-dab.ps1` after telling you what it will do, builds,
+and starts DAB and the app with `AiAssistance` and `AiAgent`. You can also ask
+it to **set up the Chapter 6 SQL MCP tools** or **run the app with AiAgent**. The
 repository skill is:
 
 ```text

@@ -156,16 +156,15 @@ clinical realism.
 
 Read these before editing:
 
-1. `manuscript/ch06-agentic-ai/outline.md` — locked behavior and boundaries.
-2. `examples/ch06-agentic-ai/README.md` — reader workflow; keep it in parity
-   with this skill.
-3. `examples/ch06-agentic-ai/payload.md` — normalized system/user/tool and
+1. `examples/ch06-agentic-ai/README.md` — reader workflow and locked behavior;
+   keep it in parity with this skill.
+2. `examples/ch06-agentic-ai/payload.md` — normalized system/user/tool and
   approval exchange for the complete handoff conversation.
-4. `examples/ch06-agentic-ai/OBJECT-CATALOG.md` — reader-facing map from the
+3. `examples/ch06-agentic-ai/OBJECT-CATALOG.md` — reader-facing map from the
   Chapter 2–6 database objects to their application, SQL, and MCP callers.
-5. `examples/ch04-first-app/README.md` — shared-app build and configuration.
-6. `examples/ch04-first-app/src/WardGeneral.Agent/` — current MAF client.
-7. `examples/ch06-agentic-ai/11-handoff-contract.sql` and DAB configuration.
+4. `examples/ch04-first-app/README.md` — shared-app build and configuration.
+5. `examples/ch04-first-app/src/WardGeneral.Agent/` — current MAF client.
+6. `examples/ch06-agentic-ai/11-handoff-contract.sql` and DAB configuration.
 
 Before changing a current Microsoft Agent Framework or DAB API, verify the exact
 API against Microsoft Learn or by reflection over the referenced assemblies. Do
@@ -177,15 +176,21 @@ composes inside the gate.
 
 ## Route by intent
 
+The code for Chapter 6 **ships complete** in `examples/ch04-first-app/src/`. A
+reader's request never needs app source edited. Rows marked *maintainer* are for
+changing the example itself — use them only when the reader explicitly asks to
+modify the code.
+
 | Reader request | Work | Stop after |
 |---|---|---|
+| **"build the Chapter 6 agent"** (the book's prompt) | Phase 0 (ask only for values missing from `ch04.env` / `appsettings.Development.json`). Then tell the reader what `setup-dab.ps1` will do — install or update the DAB CLI, deploy `11`, `12`, `14`, `13` with go-sqlcmd, validate the DAB config — and run it on their OK. Then `build.ps1`, then Phase 6 with `-Enable AiAssistance,AiAgent`. Do **not** edit app source. | Browser running with the dock |
 | Review what Chapter 6 still needs | Read the completion gates and inspect files | Report present/missing evidence |
 | Find the WardGeneral.Agent source or ask why it is under Chapter 4 | Point to the shared source tree and explain the ownership split | Reader has the exact path and rationale |
 | Explain the agent payload or message/tool exchange | Read `payload.md` and the current agent configuration | Explain the normalized sequence; do not claim it is a raw HTTP capture |
 | Find what creates or uses a database object | Read `OBJECT-CATALOG.md`, then verify against the owning SQL or caller when needed | Report the owning chapter, purpose, and caller |
 | Configure the app / fresh clone or second machine | Restore `ch04.env` and `appsettings.Development.json` | Both files present and git-ignored |
-| Evolve the app | Implement only the missing app/runtime-skill slice | Focused build for that slice |
-| Add SQL and DAB objects | Implement or explain the SQL and DAB contracts | Config validation and direct tool probes |
+| *Maintainer:* change the app or runtime skill | Implement only the requested slice (Phase 2) | Focused build for that slice |
+| Deploy or explain the SQL and DAB objects | Phase 3 — `setup-dab.ps1`, or explain the contracts | Config validation and direct tool probes |
 | Build only | Run the shared solution build | Report build result; do not start services |
 | Run Chapter 6 end to end | Complete all gates, start DAB, restart with `-Enable AiAssistance,AiAgent` (the book turns on both) | Browser running and smoke evidence captured |
 | Run the agent only | As above, restart with `-Enable AiAgent` — only when the reader asks to leave Chapter 5's surface off | Dock present, AI card/Research off |
@@ -243,7 +248,12 @@ Build the known baseline before the first application edit:
 A baseline build failure is not a Chapter 6 failure. Capture the raw error and
 resolve or report it before editing.
 
-## Phase 2 — Evolve the shared application
+## Phase 2 — Evolve the shared application (maintainer only)
+
+**Skip this phase for every reader request**, including *"build the Chapter 6
+agent"*. Everything below already exists in the shipped code; it documents the
+design for someone changing the example. Only do this work when the reader
+explicitly asks to modify the application or the runtime skill.
 
 Application changes belong under `examples/ch04-first-app/src/`. Keep the core
 agent instructions short and always active; put the handoff procedure in a
@@ -300,9 +310,10 @@ Do not continue to another implementation slice until that build passes.
 
 ## Phase 3 — Add the database contracts
 
-The reader normally runs chapter SQL themselves because the T-SQL is teaching
-content. State the script order and explain it. Execute SQL only when the reader
-explicitly asks.
+For the book's prompt (*"build the Chapter 6 agent"*), the skill applies these:
+tell the reader what will run, then run `setup-dab.ps1` on their OK. If the
+reader wants to run the T-SQL themselves, use `setup-dab.ps1 -SkipSql` (it still
+installs the DAB CLI and validates the config) and give them the order below.
 
 Run the scripts in numeric order so the deployed contracts match the DAB
 configuration:
@@ -317,7 +328,7 @@ configuration:
 Deploy order is `11`, `12`, `14`, then `13`. The refresh script runs last because
 it re-anchors the demo window to the moment it runs.
 
-`setup-dab.ps1` deploys all four in order when the reader wants that instead. It
+`setup-dab.ps1` deploys all four in this order. It
 runs them with **go-sqlcmd** (`sqlcmd` v1.x), whose bare `-G` resolves
 `DefaultAzureCredential` — the same passwordless identity the app and DAB use.
 **The legacy ODBC `sqlcmd` is not interchangeable:** its `-G` attempts Entra
