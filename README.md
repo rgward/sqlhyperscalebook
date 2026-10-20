@@ -96,7 +96,7 @@ Install these before running the guided deploy:
 
 ### Azure account
 
-- An **Azure subscription** with rights to create a logical server + database (Contributor or a SQL-specific role). See Chapter 2 for subscription options, including the free path. A Hyperscale database **bills from creation** — mind the meter.
+- An **Azure subscription** with rights to create a logical server + database (Contributor or a SQL-specific role). A Hyperscale database **bills from creation** — mind the meter. To follow the early chapters for free instead, see [Using the free Azure SQL Database offer](examples/ch02-getting-started/README.md#using-the-free-azure-sql-database-offer-instead).
 - A **Microsoft Entra** account — you become the server's Entra admin (no SQL password needed to connect).
 
 ### Optional

@@ -116,6 +116,42 @@ behave identically in the MSSQL extension, SSMS, or `sqlcmd`. See the
 [repository README](../../README.md) for the full re-run and `SET`-options
 explanation.
 
+## Using the free Azure SQL Database offer instead
+
+The book (Chapter 2, "Azure Subscription") notes that you can follow the SQL and
+application work on the [Azure SQL Database free offer](https://aka.ms/freedboffer)
+instead of Hyperscale. Know what that changes before you start:
+
+- **The guided deploy always creates billable Hyperscale.** The
+  `deploy-hyperscale` skill, `provision-hyperscale.ps1`, and `add-replicas.ps1`
+  don't create a free-offer database. Create it yourself in the portal (Azure SQL
+  hub → **Create a database** → **Start free**) and skip those three.
+- **Name it `wardgeneral`**, or set `WardGeneral__Database` in
+  `examples/ch04-first-app/ch04.env` to the name you used. Add your Microsoft
+  Entra account as the server's Entra admin so the passwordless scripts and app
+  can connect.
+- **What still works:** `connect-and-verify.sql` (it will report General
+  Purpose, not Hyperscale), `01`→`05`, `verify-data.sql`, and the SQL and
+  application work that builds on them.
+- **What needs a real Hyperscale database**, per the book: the Chapter 3
+  architecture deep-dive, named replicas (Chapter 2's optional step and Chapter
+  5's Research page), Chapter 6's agents, the Hyperscale observability signals in
+  Chapter 7, and Chapters 9 and 10. Several of those scripts check for Hyperscale
+  and stop. There's also no HA replica or zone redundancy to choose.
+- **Mind the monthly allowance.** Each free database gets 100,000 vCore seconds
+  of serverless compute, 32 GB of data, and 32 GB of backup storage per month.
+  The ~12 GB seed fits, but General Purpose has a lower log rate than Hyperscale,
+  so `05-seed.sql` takes longer and uses a noticeable share of the month's vCore
+  seconds. Watch **Free amount remaining** on the database's Overview page, and
+  disconnect tools when you're done — an open connection keeps the database from
+  auto-pausing.
+- **Choose what happens at the limit.** *Auto-pause the database until next
+  month* keeps it free; *Continue using database for additional charges* bills
+  you at General Purpose serverless rates and can't be switched back.
+
+Check the [free offer documentation](https://learn.microsoft.com/azure/azure-sql/database/free-offer)
+for current limits — they can change after the book.
+
 ## Cost and cleanup
 
 A Hyperscale database **bills from the moment it's created**, for compute (the

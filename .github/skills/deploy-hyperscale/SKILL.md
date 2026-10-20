@@ -99,6 +99,11 @@ Rules for the agent:
   interview only gathers values.
 - The reader's **password is entered in the terminal, never in chat** and never
   written to a file.
+- **This skill only deploys billable Hyperscale.** If the reader asks for the
+  free Azure SQL Database offer, don't run the interview or the script — point
+  them to "Using the free Azure SQL Database offer instead" in
+  `examples/ch02-getting-started/README.md` (they create it in the portal) and
+  stop.
 
 ## The deployment interview
 
