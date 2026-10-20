@@ -77,7 +77,7 @@ function Get-AttributeValue {
     return $Node.Attributes[$Name].Value
 }
 
-function Get-TargetPlan {
+function Get-TargetPlans {
     param([Parameter(Mandatory)] [string] $OutputPath)
 
     $rawOutput = Get-Content -LiteralPath $OutputPath -Raw
@@ -86,17 +86,18 @@ function Get-TargetPlan {
         '<ShowPlanXML\b.*?</ShowPlanXML>',
         [System.Text.RegularExpressions.RegexOptions]::Singleline)
 
-    foreach ($match in $planMatches) {
+    $plans = @(foreach ($match in $planMatches) {
         [xml] $plan = $match.Value
         $namespace = [System.Xml.XmlNamespaceManager]::new($plan.NameTable)
         $namespace.AddNamespace('sp', $plan.DocumentElement.NamespaceURI)
         $statement = $plan.SelectSingleNode(
             "//sp:StmtSimple[contains(@StatementText, 'JSON_CONTAINS')]",
             $namespace)
-        if ($statement) { return $match.Value }
-    }
+        if ($statement) { $match.Value }
+    })
 
-    throw "No JSON_CONTAINS actual plan was found in $OutputPath."
+    if ($plans.Count -eq 0) { throw "No JSON_CONTAINS actual plan was found in $OutputPath." }
+    return ,$plans
 }
 
 function Get-AncestorRelOp {
@@ -132,6 +133,14 @@ function Get-PlanEvidence {
         './/sp:RunTimeCountersPerThread[@Thread="0"]',
         $namespace)
 
+    # Whole-statement reads: every operator's actual logical reads, summed.
+    $logicalReads = 0
+    foreach ($counter in $statement.SelectNodes('.//sp:RunTimeCountersPerThread', $namespace)) {
+        $value = Get-AttributeValue -Node $counter -Name 'ActualLogicalReads'
+        if ($value) { $logicalReads += [long] $value }
+    }
+    $timeStats = $statement.SelectSingleNode('.//sp:QueryTimeStats', $namespace)
+
     [pscustomobject]@{
         Phase = $Phase
         PlanFile = Split-Path $PlanPath -Leaf
@@ -142,6 +151,9 @@ function Get-PlanEvidence {
         Index = Get-AttributeValue -Node $accessObject -Name 'Index'
         EstimatedRows = Get-AttributeValue -Node $accessOperator -Name 'EstimateRows'
         ActualRows = Get-AttributeValue -Node $runtime -Name 'ActualRows'
+        LogicalReads = $logicalReads
+        CpuMs = Get-AttributeValue -Node $timeStats -Name 'CpuTime'
+        ElapsedMs = Get-AttributeValue -Node $timeStats -Name 'ElapsedTime'
     }
 }
 
@@ -149,7 +161,7 @@ Write-Host 'Chapter 10 Demo 3: JSON index before and after' -ForegroundColor Cya
 Write-Host ("  Target database {0} @ {1}" -f $Database, $Server)
 Write-Host '  Creates 5,000,005 demo-owned rows.'
 Write-Host '  CREATE JSON INDEX is offline and can block access to the demo archive while it runs.' -ForegroundColor Yellow
-Write-Host '  Saves before-index.sqlplan and after-index.sqlplan, then removes all demo objects.'
+Write-Host '  Saves before-index.sqlplan, after-index-first-run.sqlplan, and after-index.sqlplan (warm), then removes all demo objects.'
 
 if (-not $Execute) {
     Write-Host ''
@@ -162,31 +174,33 @@ $beforeOutputPath = Join-Path $runDirectory 'before-output.txt'
 $indexOutputPath = Join-Path $runDirectory 'index-build-output.txt'
 $afterOutputPath = Join-Path $runDirectory 'after-output.txt'
 $beforePlanPath = Join-Path $runDirectory 'before-index.sqlplan'
+$afterFirstPlanPath = Join-Path $runDirectory 'after-index-first-run.sqlplan'
 $afterPlanPath = Join-Path $runDirectory 'after-index.sqlplan'
+$utf8 = [System.Text.UTF8Encoding]::new($false)
 
 try {
     Invoke-SqlScript -Script $cleanupScript
     Invoke-SqlScript -Script $setupScript
     Invoke-SqlScript -Script $beforeScript -OutputPath $beforeOutputPath
 
-    $beforePlan = Get-TargetPlan -OutputPath $beforeOutputPath
-    [System.IO.File]::WriteAllText(
-        $beforePlanPath,
-        $beforePlan,
-        [System.Text.UTF8Encoding]::new($false))
+    $beforePlan = (Get-TargetPlans -OutputPath $beforeOutputPath)[0]
+    [System.IO.File]::WriteAllText($beforePlanPath, $beforePlan, $utf8)
 
     Invoke-SqlScript -Script $indexScript -OutputPath $indexOutputPath
     Invoke-SqlScript -Script $afterScript -OutputPath $afterOutputPath
 
-    $afterPlan = Get-TargetPlan -OutputPath $afterOutputPath
-    [System.IO.File]::WriteAllText(
-        $afterPlanPath,
-        $afterPlan,
-        [System.Text.UTF8Encoding]::new($false))
+    # 04-after.sql runs the query twice: first run (compiles) and warm run.
+    $afterPlans = Get-TargetPlans -OutputPath $afterOutputPath
+    if ($afterPlans.Count -lt 2) {
+        throw "Expected two indexed plans (first and warm run) in $afterOutputPath; found $($afterPlans.Count)."
+    }
+    [System.IO.File]::WriteAllText($afterFirstPlanPath, $afterPlans[0], $utf8)
+    [System.IO.File]::WriteAllText($afterPlanPath, $afterPlans[-1], $utf8)
 
     $planEvidence = @(
         Get-PlanEvidence -Phase 'Before index' -PlanPath $beforePlanPath
-        Get-PlanEvidence -Phase 'After index' -PlanPath $afterPlanPath
+        Get-PlanEvidence -Phase 'After index (first run)' -PlanPath $afterFirstPlanPath
+        Get-PlanEvidence -Phase 'After index (warm)' -PlanPath $afterPlanPath
     )
     $summaryPath = Join-Path $runDirectory 'plan-summary.csv'
     $planEvidence | Export-Csv -LiteralPath $summaryPath -NoTypeInformation
@@ -194,14 +208,18 @@ try {
     Write-Host ''
     Write-Host 'Actual-plan evidence' -ForegroundColor Green
     foreach ($evidence in $planEvidence) {
-        Write-Host ("  {0}: Operator={1}; JsonIndexAccess={2}; IndexKind={3}; Index={4}; ActualRows={5}" -f
+        Write-Host ("  {0}: Operator={1}; JsonIndexAccess={2}; IndexKind={3}; Index={4}; ActualRows={5}; LogicalReads={6:N0}; CpuMs={7}; ElapsedMs={8}" -f
             $evidence.Phase,
             $evidence.PhysicalOperator,
             $evidence.JsonIndexAccess,
             $(if ($evidence.IndexKind) { $evidence.IndexKind } else { 'none' }),
             $(if ($evidence.Index) { $evidence.Index } else { 'none' }),
-            $evidence.ActualRows)
+            $evidence.ActualRows,
+            $evidence.LogicalReads,
+            $(if ($null -ne $evidence.CpuMs) { $evidence.CpuMs } else { 'n/a' }),
+            $(if ($null -ne $evidence.ElapsedMs) { $evidence.ElapsedMs } else { 'n/a' }))
     }
+    Write-Host 'Compare "Before index" with "After index (warm)" - that is the book''s comparison. Timings vary with machine, network, and service size.' -ForegroundColor DarkGray
     Write-Host ("Results: {0}" -f $runDirectory)
 }
 finally {

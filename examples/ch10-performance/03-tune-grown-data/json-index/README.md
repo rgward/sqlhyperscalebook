@@ -22,7 +22,9 @@ From this folder (the scripts find their files from their own location):
 The JSON index build is **offline** for the demo table while it runs, which is
 why `-Execute` is an explicit approval. The run always cleans up, and writes its
 evidence (actual plans, `plan-summary.csv`, raw output) under
-`results/runs/<UTC timestamp>/`.
+`results/runs/<UTC timestamp>/`. It prints logical reads, CPU, and elapsed time
+for the scan, the first indexed run, and the **warm** indexed run — compare the
+scan with the warm run, as the book does.
 
 ## Run the scripts yourself
 
@@ -33,7 +35,8 @@ Run them in order, in the MSSQL extension, SSMS, or `sqlcmd`:
 2. `02-before.sql` — capture the baseline plan, reads, and duration.
 3. `03-create-index.sql` — perform the offline JSON index build with
    array-search optimization.
-4. `04-after.sql` — repeat the identical predicate and compare the evidence.
+4. `04-after.sql` — repeat the identical predicate twice (first run, then warm)
+   and compare the evidence.
 5. `05-cleanup.sql` — drop only the JSON index and archive table this example
    created.
 

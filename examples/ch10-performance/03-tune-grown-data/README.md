@@ -46,23 +46,32 @@ indexed actual plan, writes `plan-summary.csv`, and always runs cleanup.
 Generated evidence is written under
 `json-index/results/runs/<UTC timestamp>/`.
 
-Expected console output resembles:
+Expected console output resembles (your timings will differ):
 
 ```text
-Before index: Operator=Clustered Index Scan; JsonIndexAccess=False; IndexKind=Clustered; Index=[PK_LabResultArchive]; ActualRows=5000005
-After index: Operator=Index Seek; JsonIndexAccess=True; IndexKind=Json; Index=[json_index_search_optimization_nci]; ActualRows=5
+Before index: Operator=Clustered Index Scan; JsonIndexAccess=False; IndexKind=Clustered; Index=[PK_LabResultArchive]; ActualRows=5000005; LogicalReads=162,050; CpuMs=…; ElapsedMs=…
+After index (first run): Operator=Index Seek; JsonIndexAccess=True; IndexKind=Json; Index=[json_index_search_optimization_nci]; ActualRows=5; LogicalReads=…; CpuMs=…; ElapsedMs=…
+After index (warm): Operator=Index Seek; JsonIndexAccess=True; IndexKind=Json; Index=[json_index_search_optimization_nci]; ActualRows=5; LogicalReads=24; CpuMs=0; ElapsedMs=…
 ```
+
+`04-after.sql` runs the indexed query twice. The **first run** includes compiling
+a plan against the new index; the **warm** run is the one the book compares with
+the scan ("24 total reads, under 1 ms warm execution"). Logical reads are summed
+across every operator in the actual plan, and CPU and elapsed time come from the
+plan's `QueryTimeStats`. Timings vary with your machine, network, and service
+size; the reads and the access path are the stable comparison.
 
 The run directory should contain:
 
 | File | Evidence |
 | --- | --- |
 | `before-index.sqlplan` | Actual baseline plan with the clustered index scan. |
-| `after-index.sqlplan` | Actual indexed plan with the internal JSON index seek. |
-| `plan-summary.csv` | Extracted operator, JSON-index, index-kind, and row-count attributes. |
+| `after-index-first-run.sqlplan` | Actual indexed plan from the first run after the build (includes compilation). |
+| `after-index.sqlplan` | Actual indexed plan from the warm run, with the internal JSON index seek. |
+| `plan-summary.csv` | Operator, JSON-index, index-kind, row-count, logical-read, CPU, and elapsed-time evidence for all three runs. |
 | `before-output.txt` | Baseline rows, I/O, timing, and actual-plan XML. |
 | `index-build-output.txt` | Offline JSON-index build and catalog confirmation. |
-| `after-output.txt` | Indexed rows, I/O, timing, and actual-plan XML. |
+| `after-output.txt` | Both indexed runs' rows, I/O, timing, and actual-plan XML. |
 
 ### Open the JSON plans in SSMS
 
@@ -87,8 +96,8 @@ The underlying scripts remain individually runnable:
 2. `json-index/02-before.sql` — capture the baseline plan, reads, and duration.
 3. `json-index/03-create-index.sql` — deliberately perform the offline index
   build with array-search optimization.
-4. `json-index/04-after.sql` — repeat the identical predicate and compare
-  evidence.
+4. `json-index/04-after.sql` — repeat the identical predicate twice (the first
+  run compiles; the second is the warm run) and compare evidence.
 5. `json-index/05-cleanup.sql` — drop only the JSON index and archive table
   created by this example.
 

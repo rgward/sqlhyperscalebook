@@ -28,11 +28,14 @@ Follow `examples/ch10-performance/03-tune-grown-data/README.md`.
   boundary.
 2. Run `json-index/run-demo.ps1 -Execute` only after the reader accepts that
   boundary. It performs setup, captures `before-index.sqlplan`, builds the
-  offline index, captures `after-index.sqlplan`, summarizes both plans, and
-  always cleans up.
+  offline index, runs the indexed query twice and captures
+  `after-index-first-run.sqlplan` and `after-index.sqlplan` (warm), summarizes
+  all three, and always cleans up.
 3. Use `plan-summary.csv` to confirm the transition from a Clustered Index Scan
   over 5,000,005 rows to an Index Seek with `IndexKind="Json"` returning five
-  rows.
+  rows. Report logical reads, CPU ms, and elapsed ms for **Before index** and
+  **After index (warm)** — the book's comparison — and note the first indexed
+  run separately as including compilation. Say timings vary by environment.
 4. If the reader wants graphical proof, have them open each `.sqlplan` through
   SSMS **File > Open > File**. Compare the baseline scan on
   `PK_LabResultArchive` with the indexed seek on
