@@ -40,3 +40,19 @@ existing Chapter 5 ledger table conceptually. The application runs from a
 laptop, so Private Link is architecture discussion rather than a live exercise.
 
 **All data is synthetic. There is no real patient data (PHI) here.**
+
+## Links from the book
+
+Every web link printed in Chapter 8, in the order it appears, so you can click
+instead of typing it. Cross-references to other chapters and links to this
+repository are left out.
+
+- Row-level security (RLS) — <https://aka.ms/sqlrls>
+- Ledger — <https://aka.ms/sqlledger>
+- User-assigned managed identity for Azure SQL — <https://learn.microsoft.com/azure/azure-sql/database/authentication-azure-ad-user-assigned-managed-identity>
+- Outbound firewall rules — <https://learn.microsoft.com/azure/azure-sql/database/outbound-firewall-rule-overview>
+- Transparent data encryption (TDE) — <https://aka.ms/sqltde>
+- Always Encrypted with secure enclaves — <https://aka.ms/sqlae>
+- Research paper on Always Encrypted and secure enclaves — <https://dl.acm.org/doi/epdf/10.1145/3318464.3386141>
+- Azure SQL Database auditing — <https://aka.ms/azuresqlaudit>
+- Microsoft Defender for SQL — <https://learn.microsoft.com/azure/defender-for-cloud/defender-for-sql-introduction>

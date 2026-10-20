@@ -356,6 +356,41 @@ one and adapt it.
 Chapters 4, 5, 6 and 8 are drawn on **one shared grid** on purpose. Put them
 side by side and the layout does not move — only what has been added to it.
 
+## Links from the book
+
+Each chapter README under `examples/` ends with a **Links from the book** list:
+every web link printed in that chapter, in order, so you can click instead of
+typing. Chapters 1 and 11 have no example folder, so their links are here.
+
+### Chapter 1 links
+
+- Socrates research paper (the architecture behind Hyperscale) — <https://aka.ms/socratespaper>
+- Azure SQL Database resource limits — <https://aka.ms/sqldbresourcelimits>
+- Azure SQL service level agreement (SLA) — <https://aka.ms/azuresqlsla>
+
+### Chapter 11 links
+
+- Microsoft Foundry — <https://ai.azure.com>
+- Foundry Agent Service — <https://learn.microsoft.com/azure/foundry/agents/overview>
+- SqlPackage — <https://aka.ms/sqlpackages>
+- Azure Database Migration Service — <https://aka.ms/dms>
+- Database compatibility level — <https://aka.ms/dbcompat>
+- T-SQL differences between SQL Server and Azure SQL Database — <https://aka.ms/azuresqldbtsqldiff>
+- Microsoft Entra authentication with Microsoft.Data.SqlClient — <https://learn.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication>
+- Azure SQL trigger for Azure Functions — <https://learn.microsoft.com/azure/azure-functions/functions-bindings-azure-sql-trigger>
+- Change event streaming (CES) — <https://learn.microsoft.com/sql/relational-databases/track-changes/change-event-streaming/overview>
+- Fabric Mirroring for SQL — <https://aka.ms/sqlmirroring>
+- Azure SQL Database Container — <https://microsoft.github.io/azure-sql-database-container>
+- Azure SQL Hyperscale documentation — <https://aka.ms/sqlhyperscale>
+- Azure SQL Foundations companion repo — <https://aka.ms/azuresqlfoundations>
+- Azure SQL Foundations video series — <https://aka.ms/azuresqlfoundationseries>
+- Bob Ward's presentations — <https://aka.ms/bobwardms>
+- sqlsimtools — <https://aka.ms/sqlsimtools>
+- Exam DP-800 — <https://aka.ms/dp800/exam>
+- Data Exposed — <https://aka.ms/dataexposed>
+- Azure SQL blog — <https://aka.ms/azuresqlblog>
+- Azure SQL dev blog — <https://devblogs.microsoft.com/azure-sql>
+
 ## License
 
 The examples are licensed under the [MIT License](LICENSE).

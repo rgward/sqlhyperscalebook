@@ -66,3 +66,18 @@ Per example:
 | `engineevents/azuresqlerrors/` | Rights to create a Log Analytics workspace and diagnostic setting in your resource group (Contributor). **Billable** until you run its teardown. |
 
 **All data is synthetic. There is no real patient data (PHI) here.**
+
+## Links from the book
+
+Every web link printed in Chapter 7, in the order it appears, so you can click
+instead of typing it. Cross-references to other chapters and links to this
+repository are left out.
+
+- Azure SQL Database resource limits — <https://aka.ms/azuresqlresourcelimits>
+- Dynamic management views (DMVs) — <https://aka.ms/sqldmvs>
+- Query Store — <https://aka.ms/querystore>
+- Extended Events — <https://aka.ms/sqlxevents>
+- AzureSQLErrors — <https://aka.ms/azuresqlerrors>
+- Azure Monitor OpenTelemetry — <https://learn.microsoft.com/azure/azure-monitor/app/opentelemetry-enable>
+- Application Insights — <https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview>
+- GenAI gateway capabilities in Azure API Management — <https://learn.microsoft.com/azure/api-management/genai-gateway-capabilities>

@@ -426,3 +426,18 @@ clinical, diagnostic, or any real-world healthcare decision-making.
 Model output is likewise illustrative. `clinical.GenerateClinicalAssistance`
 writes a **suggestion** to a ledger for a clinician to confirm — it is not a
 diagnosis, and nothing in this chapter should be read as one.
+
+## Links from the book
+
+Every web link printed in Chapter 5, in the order it appears, so you can click
+instead of typing it. Cross-references to other chapters and links to this
+repository are left out.
+
+- Microsoft Foundry — <https://ai.azure.com>
+- DiskANN — <https://aka.ms/diskann>
+- AI_GENERATE_CHUNKS — <https://learn.microsoft.com/sql/t-sql/functions/ai-generate-chunks-transact-sql>
+- Hybrid search sample (full-text and vector re-ranking; older vector syntax) — <https://github.com/Azure-Samples/azure-sql-db-vector-search/tree/main/Hybrid-Search>
+- Azure OpenAI chat completions REST reference — <https://learn.microsoft.com/rest/api/microsoft-foundry/azureopenai/chat>
+- sp_invoke_external_rest_endpoint reference — <https://aka.ms/sqlrestapi>
+- Ledger tables — <https://aka.ms/sqlledger>
+- Content safety policy in Azure API Management — <https://learn.microsoft.com/azure/api-management/llm-content-safety-policy>

@@ -188,3 +188,44 @@ dataset was generated with AI assistance and, while plausible, may not accuratel
 represent real medical, clinical, laboratory, or billing data. It is for
 educational and illustrative purposes only and must not be used for clinical,
 diagnostic, or any real-world healthcare decision-making.
+
+## Links from the book
+
+Every web link printed in Chapter 2, in the order it appears, so you can click
+instead of typing it. Cross-references to other chapters and links to this
+repository are left out.
+
+- Visual Studio subscriptions (monthly Azure credits) — <https://visualstudio.microsoft.com/subscriptions>
+- Azure free trial — <https://aka.ms/azurefree>
+- Azure for Students — <https://aka.ms/azurestudent>
+- Azure SQL Database free offer — <https://aka.ms/freedboffer>
+- Azure role-based access control (RBAC) — <https://aka.ms/azurerolebasedaccesscontrol>
+- Azure portal — <https://portal.azure.com>
+- Azure CLI (az) — <https://aka.ms/azcli>
+- Azure PowerShell — <https://learn.microsoft.com/powershell/azure>
+- Bicep — <https://aka.ms/bicep>
+- Terraform — <https://developer.hashicorp.com/terraform>
+- Azure REST API reference — <https://learn.microsoft.com/rest/api/azure>
+- Azure SQL REST API reference — <https://learn.microsoft.com/rest/api/sql>
+- Visual Studio Code — <https://aka.ms/vscode>
+- MSSQL extension for VS Code — <https://aka.ms/vscodemssql>
+- SQL Server Management Studio (SSMS) — <https://aka.ms/ssms>
+- sqlcmd (go-sqlcmd) — <https://aka.ms/sqlcmd>
+- SQL Server PowerShell modules — <https://aka.ms/sqlpowershell>
+- SQL Database Projects — <https://aka.ms/sqlprojects>
+- GitHub Copilot CLI — <https://github.com/features/copilot/cli/>
+- GitHub Copilot desktop app — <https://github.com/github/app>
+- AI model choices for GitHub Copilot — <https://docs.github.com/copilot/how-tos/use-ai-models>
+- Microsoft Foundry models — <https://learn.microsoft.com/azure/foundry/concepts/foundry-models-overview>
+- HammerDB — <https://www.hammerdb.com>
+- sqlsimtools (workload simulation) — <https://aka.ms/sqlsimtools>
+- FabCon and SQLCon 2026 announcements (Fabric Database Hub) — <https://aka.ms/FabCon-SQLCon-2026-news>
+- VS Code download — <https://code.visualstudio.com>
+- GitHub Copilot — <https://github.com/features/copilot>
+- PowerShell 7 — <https://aka.ms/powershell>
+- Install the Azure CLI on Windows (downloads the MSI installer) — <https://aka.ms/installazurecliwindows>
+- Azure MCP Server extension for VS Code — <https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azure-mcp-server>
+- Azure SQL Database resource limits — <https://aka.ms/azuresqlresourcelimits>
+- ALTER DATABASE options for Azure SQL Database — <https://learn.microsoft.com/sql/t-sql/statements/alter-database-transact-sql?view=azuresqldb-current>
+- ALTER DATABASE SCOPED CONFIGURATION — <https://learn.microsoft.com/sql/t-sql/statements/alter-database-scoped-configuration-transact-sql>
+- What's new in Azure SQL Database — <https://aka.ms/whatsnewsqldb>

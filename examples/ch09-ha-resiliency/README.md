@@ -66,3 +66,21 @@ Per example:
 | `geo/` | Permission to create a logical server and set its Entra admin. If Chapter 8 switched the source to a customer-managed key, rights to grant the new server access to that Key Vault key. The target server and secondary are **billable** until cleanup. |
 
 **All data is synthetic. There is no real patient data (PHI) here.**
+
+## Links from the book
+
+Every web link printed in Chapter 9, in the order it appears, so you can click
+instead of typing it. Cross-references to other chapters and links to this
+repository are left out.
+
+- Azure SQL service level agreement (SLA) — <https://aka.ms/azuresqlsla>
+- Configurable retry logic in Microsoft.Data.SqlClient — <https://learn.microsoft.com/sql/connect/ado-net/configurable-retry-logic>
+- Databases - Failover REST API — <https://learn.microsoft.com/rest/api/sql/databases/failover>
+- Ways to trigger a manual failover — <https://aka.ms/testazuresqlfailover>
+- Azure availability zones — <https://azure.microsoft.com/explore/global-infrastructure/availability-zones>
+- Azure regions and zone support — <https://learn.microsoft.com/azure/reliability/regions-list>
+- Azure paired regions — <https://aka.ms/azurepairedregions>
+- Immutable backups — <https://learn.microsoft.com/azure/azure-sql/database/backup-immutability>
+- Point-in-time restore (PITR) — <https://aka.ms/sqlpitr>
+- Database copy — <https://aka.ms/azuresqldbcopy>
+- Planned maintenance events — <https://learn.microsoft.com/azure/azure-sql/database/planned-maintenance>

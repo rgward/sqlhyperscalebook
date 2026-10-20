@@ -433,3 +433,19 @@ Three things worth knowing:
 
 No rebuild is involved. `run.ps1` uses `dotnet run`, so the app reads
 `src/WardGeneral.Web/appsettings.json` from the project directory directly.
+
+## Links from the book
+
+Every web link printed in Chapter 4, in the order it appears, so you can click
+instead of typing it. Cross-references to other chapters and links to this
+repository are left out.
+
+- Blazor — <https://aka.ms/blazor>
+- SQL drivers and providers — <https://aka.ms/sqldrivers>
+- Agent skills in VS Code — <https://code.visualstudio.com/docs/agent-customization/agent-skills>
+- Agent Skills — <https://agentskills.io/home>
+- Awesome Copilot — <https://github.com/github/awesome-copilot>
+- Visual Studio Code Marketplace — <https://marketplace.visualstudio.com>
+- MSSQL extension and Copilot in VS Code — <https://aka.ms/mssqlvscode>
+- JSON in SQL — <https://aka.ms/jsonsql>
+- Regular expressions in SQL — <https://aka.ms/regexsql>

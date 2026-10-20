@@ -141,3 +141,28 @@ To stop all charges, delete the resources as described in the Chapter 2 README.
 - [Microsoft Learn — Hyperscale secondary replicas](https://learn.microsoft.com/azure/azure-sql/database/service-tier-hyperscale-replicas), accessed 2026-09-11.
 - [Microsoft Learn — Intelligent Query Processing](https://learn.microsoft.com/sql/relational-databases/performance/intelligent-query-processing), accessed 2026-09-11.
 - [Microsoft Learn — `CREATE JSON INDEX`](https://learn.microsoft.com/sql/t-sql/statements/create-json-index-transact-sql), accessed 2026-09-11. At that time, the reference labeled this feature preview and listed SQL Server 2025. Check the current Azure SQL Database documentation and feature availability before running the JSON-index example.
+
+## Links from the book
+
+Every web link printed in Chapter 10, in the order it appears, so you can click
+instead of typing it. Cross-references to other chapters and links to this
+repository are left out.
+
+- Redmond Magazine: why Hyperscale is not just for massive workloads — <https://redmondmag.com/articles/2026/07/21/why-azure-sql-database-hyperscale-is-not-just-for-massive-workloads.aspx>
+- Azure SQL performance tuning — <https://aka.ms/azuresqltune>
+- SQL Server performance tuning — <https://aka.ms/sqlservertune>
+- Query processing architecture — <https://aka.ms/sqlqp>
+- Query Store — <https://aka.ms/querystore>
+- sqlsimtools (sqlsim) — <https://aka.ms/sqlsimtools>
+- Named replicas — <https://aka.ms/namedreplicas>
+- Query Store for secondary replicas — <https://learn.microsoft.com/sql/relational-databases/performance/query-store-for-secondary-replicas>
+- Serverless — <https://aka.ms/azuresqlserverless>
+- ProRP research paper — <https://www.microsoft.com/research/publication/prorp>
+- CREATE JSON INDEX — <https://learn.microsoft.com/sql/t-sql/statements/create-json-index-transact-sql>
+- Intelligent query processing (IQP) — <https://aka.ms/sqliqp>
+- Memory grant feedback — <https://aka.ms/sqlmgf>
+- Optimized locking demo — <https://github.com/microsoft/bobsql/tree/master/demos/sqlserver2025/optimized_locking>
+- Optimized locking — <https://aka.ms/optimizedlocking>
+- Automatic index compaction demo — <https://github.com/microsoft/bobsql/tree/master/demos/auto_index_compaction>
+- Automatic index compaction — <https://aka.ms/sqlaic>
+- Independent Hyperscale performance study — <https://aka.ms/hyperscalebenchmark>

@@ -109,3 +109,14 @@ dataset was generated with AI assistance and, while plausible, may not accuratel
 represent real medical, clinical, laboratory, or billing data. It is for
 educational and illustrative purposes only and must not be used for clinical,
 diagnostic, or any real-world healthcare decision-making.
+
+## Links from the book
+
+Every web link printed in Chapter 3, in the order it appears, so you can click
+instead of typing it. Cross-references to other chapters and links to this
+repository are left out.
+
+- Socrates project — <https://aka.ms/socratesproject>
+- T-SQL differences between SQL Server and Azure SQL Database — <https://aka.ms/azuresqldbtsqldiff>
+- Buffer Pool Extension (the basis for RBPEX) — <https://aka.ms/sqlbpe>
+- Azure SQL Database resource limits — <https://aka.ms/azuresqlresourcelimits>

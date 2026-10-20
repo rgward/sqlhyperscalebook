@@ -909,3 +909,16 @@ than treating the chat icon as proof.
 It stops the app and DAB, including the background processes `start-demo.ps1`
 and `refresh-and-run.ps1 -Detached` start. If you ran DAB in its own terminal,
 you can also Ctrl+C it there.
+
+## Links from the book
+
+Every web link printed in Chapter 6, in the order it appears, so you can click
+instead of typing it. Cross-references to other chapters and links to this
+repository are left out.
+
+- Model Context Protocol (MCP) — <https://modelcontextprotocol.io>
+- Data API builder (DAB) — <https://aka.ms/dab>
+- SQL MCP Server — <https://aka.ms/sqlmcpserver>
+- Microsoft Agent Framework — <https://github.com/microsoft/agent-framework>
+- Agent Skills specification — <https://agentskills.io/specification>
+- Agent skills in Microsoft Agent Framework (C#) — <https://learn.microsoft.com/agent-framework/agents/skills?pivots=programming-language-csharp#skill-structure>
