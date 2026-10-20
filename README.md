@@ -159,6 +159,42 @@ environment variables or prompt you.
   current Microsoft documentation before running them; availability and
   behavior can change independently of the book.
 
+### What the whole book costs to run
+
+The repo doesn't print dollar figures: prices vary by region and change over
+time. Instead, here is everything the examples can create that bills, when it
+appears, and how to stop it. For live numbers, run Chapter 2's
+[`estimate-cost.ps1`](examples/ch02-getting-started/estimate-cost.ps1) (it reads
+the public Azure Retail Prices API) or use the
+[Azure pricing calculator](https://azure.microsoft.com/pricing/calculator/).
+
+| Chapter | What bills | When it bills | How to stop it |
+| --- | --- | --- | --- |
+| 2 | `wardgeneral`: Hyperscale `HS_Gen5_8` primary **and** its HA replica, plus storage and backup storage | **Always**, from creation | Delete it; see [Chapter 2 cost and cleanup](examples/ch02-getting-started/README.md#cost-and-cleanup) |
+| 2 (optional) | `wardgeneral-research` named replica, serverless | Always, at least its minimum vCores | Delete the named replica |
+| 5 | Microsoft Foundry model deployments (`gpt-5`, embeddings) | Per token used | [`reset-ai-azure.ps1`](examples/ch05-ai-ready-sql/reset-ai-azure.ps1) |
+| 5 | API Management StandardV2 gateway | **Always** while it exists; `-NoGateway` skips it | `reset-ai-azure.ps1` |
+| 5 | Content Safety (with the gateway) | Free F0 tier by default | `reset-ai-azure.ps1` |
+| 7 (optional) | Log Analytics workspace for AzureSQLErrors | Per GB ingested and retained | `teardown-azuresqlerrors.ps1` |
+| 8 (optional) | Log Analytics workspace for auditing | Per GB ingested and retained | `teardown-auditing.ps1` |
+| 8 (optional) | Key Vault for TDE with a customer-managed key | Per key operation; purge protection keeps it for its retention period | No automated teardown; see the [TDE README](examples/ch08-security/tde/README.md) |
+| 9 | PITR test copy, serverless | Storage always; compute unless paused | `cleanup-pitr.ps1` |
+| 9 (optional) | Geo-replica logical server and database, same size as the primary | **Always** | `cleanup-geo-replica.ps1` |
+| 10 | `wardgeneral` scaled to 16, then 40 vCores (the HA replica too), and about 12 GB more storage per growth interval | **Always**, at the larger size until you scale back | `scale-compute.ps1 -TargetServiceObjective HS_Gen5_8`; see [Chapter 10 cost and cleanup](examples/ch10-performance/README.md#cost-and-cleanup--scale-back-when-you-finish) |
+
+The Ward General app, DAB, and the agent run on your machine and add no Azure
+charges of their own beyond the model calls above.
+
+**Free trial or Visual Studio subscription?** Monthly credits differ by
+subscription, so check yours against the estimate. The **Always** rows use
+credit fastest, so delete or scale back between sessions rather than leaving
+them running. These subscriptions have a
+[spending limit](https://learn.microsoft.com/azure/cost-management-billing/manage/spending-limit)
+on by default: when the credit runs out, Azure disables the deployed services
+for the rest of the billing period. There's no free Hyperscale tier, but the
+[free Azure SQL Database offer](examples/ch02-getting-started/README.md#using-the-free-azure-sql-database-offer-instead)
+covers the SQL and application work in the early chapters.
+
 ### Running the SQL scripts (and re-running them)
 
 Run the five schema scripts **in order once**, then verify:
