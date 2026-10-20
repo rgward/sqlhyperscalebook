@@ -452,6 +452,44 @@ Model output is likewise illustrative. `clinical.GenerateClinicalAssistance`
 writes a **suggestion** to a ledger for a clinician to confirm — it is not a
 diagnosis, and nothing in this chapter should be read as one.
 
+## Supplement: going further with vectors
+
+This section is a repository supplement, not text from the book. Facts come
+from [CREATE VECTOR INDEX](https://learn.microsoft.com/sql/t-sql/statements/create-vector-index-transact-sql)
+and [Vector search and vector indexes](https://learn.microsoft.com/sql/sql-server/ai/vectors)
+on Microsoft Learn (accessed 2026-10-20).
+
+**Research behind the index.** SQL's vector index uses DiskANN, from Microsoft
+Research:
+
+- [DiskANN: Fast Accurate Billion-point Nearest Neighbor Search on a Single Node](https://www.microsoft.com/en-us/research/publication/diskann-fast-accurate-billion-point-nearest-neighbor-search-on-a-single-node/)
+  (NeurIPS 2019): the graph index itself.
+- [FreshDiskANN: A Fast and Accurate Graph-Based ANN Index for Streaming Similarity Search](https://arxiv.org/abs/2105.09613):
+  keeping that graph current as data changes, the idea behind an updateable
+  index.
+
+**Do I have to rebuild the index after changing data?** No. Indexes created
+with the current version support `INSERT`, `UPDATE`, `DELETE`, and `MERGE`,
+and changes appear in search results automatically through background
+maintenance (watch it with `sys.dm_db_vector_indexes`). `10-updateable-index-proof.sql`
+shows it.
+
+**When is a fresh index better?** When you replace most or all embeddings,
+for example re-embedding with a new model. Searches still return valid
+results, but recall and ranking can degrade because the graph was built for
+the old distribution. Learn's guidance is to **drop and recreate** the index
+after loading the new data; it doesn't document an in-place rebuild. That's
+what `07-vector-index.sql` is for, and why it lives in its own file.
+
+**What happens to searches without the index?** `VECTOR_SEARCH` falls back to
+an exact, brute-force scan, so results stay correct but get slower as the
+table grows. The optimizer chooses between the index and that scan. Learn
+doesn't document whether searches wait while the index is being created, so
+build it outside busy periods if that matters to you.
+
+**Quantization.** The current index version applies vector quantization
+automatically for storage efficiency and speed; there's nothing to configure.
+
 ## Links from the book
 
 Every web link printed in Chapter 5, in the order it appears, so you can click
