@@ -167,9 +167,10 @@ So: to reload just the data, re-run **`05` alone**; to rebuild after a schema
 change, re-run **`02`→`05`**. Dropping the *database* is never necessary and
 would needlessly discard your compute shape, HA replica, and firewall rules.
 
-### Why each script starts with `SET` options
+### Why the schema scripts start with `SET` options
 
-Every `.sql` file opens with the same seven-line block:
+Every `.sql` file that creates or alters schema objects — tables, views,
+procedures, functions, indexes — opens with the same seven-line block:
 
 ```sql
 SET QUOTED_IDENTIFIER ON;
@@ -188,10 +189,12 @@ unique index on `Encounter`, and `QUOTED_IDENTIFIER` / `ANSI_NULLS` are recorded
 on the object at creation, so they also apply to later work (like the JSON index
 added in a later chapter).
 
-The preamble is in **every** file for portability: **SSMS** already defaults most
+The preamble is in each of those files for portability: **SSMS** already defaults most
 of these ON, but **`sqlcmd` defaults `QUOTED_IDENTIFIER` and `ARITHABORT` OFF**.
 With the preamble, the scripts behave identically whether you run them from the
 MSSQL extension, SSMS, or `sqlcmd` — so leave it in place and run each file whole.
+Read-only diagnostic queries, cleanup scripts, and the sqlsim workload
+statements create nothing, so they don't carry it.
 
 ## Figures
 
