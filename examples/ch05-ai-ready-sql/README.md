@@ -128,19 +128,25 @@ the resources exist — the script is safe to re-run once they have.
 ### Model quota
 
 Each deployment asks for **capacity 100** in the Foundry region — `AI_LOCATION`
-in `ch05.env`, or `eastus2` if you leave it unset. If that region has fewer than
-100 units free on either model, `deployment create` fails and the chapter has
-nothing to embed with. Check that region before you deploy:
+in `ch05.env`, or your **SQL server's region** if you leave it unset. Keeping the
+AI resources in the database's region keeps the many model calls `06` makes
+in-region. If that region doesn't offer `gpt-5` or `text-embedding-3-large` with
+GlobalStandard, the deploy stops and says so; set `AI_LOCATION` (for example
+`eastus2`) and run it again. If the region has fewer than 100 units free on
+either model, `deployment create` fails and the chapter has nothing to embed
+with. Check that region before you deploy:
 
 ```powershell
+$region = '<your SQL server region, or AI_LOCATION>'
 $want = @('OpenAI.GlobalStandard.gpt-5','OpenAI.GlobalStandard.text-embedding-3-large')
-az cognitiveservices usage list -l eastus2 -o json | ConvertFrom-Json |   # or your AI_LOCATION
+az cognitiveservices usage list -l $region -o json | ConvertFrom-Json |
   Where-Object { $want -contains $_.name.value } |
   ForEach-Object { '{0}  used {1} of {2}' -f $_.name.value, $_.currentValue, $_.limit }
 ```
 
-The APIM gateway and the Content Safety resource are always created in
-`centralus`, whatever `AI_LOCATION` is.
+The APIM gateway and the Content Safety resource are created in the Foundry
+region unless you set `GATEWAY_LOCATION`. Resources that already exist stay
+where they are; changing these values only affects what gets created next.
 
 Filter in PowerShell as shown rather than with `--query`. On Windows `az.cmd`
 re-parses the argument and a JMESPath filter expression breaks before the CLI
@@ -186,7 +192,8 @@ Every script in this folder reads these values, so you set them once:
 | Value | Goes to |
 |---|---|
 | `RG`, `SRV`, `AI_RESOURCE`, `PUBLISHER_EMAIL`, `SUBSCRIPTION_ID`, `CS_RESOURCE` | `deploy-ai.ps1` and `reset-ai-azure.ps1`, which load `ch05.env` themselves |
-| `AI_LOCATION` (optional) | the Foundry region — default `eastus2` |
+| `AI_LOCATION` (optional) | the Foundry region — default: your SQL server's region |
+| `GATEWAY_LOCATION` (optional) | the APIM gateway and Content Safety region — default: the Foundry region |
 | `AI_RESOURCE` | the `<your-foundry>` placeholder you paste into `06`, `08` |
 | `APIM_NAME` | the `<your-apim>` placeholder, and `reset-ai-azure.ps1` |
 | `WardGeneral__Server`, `WardGeneral__Database` | the app itself, so `run-ai-app.ps1` needs no `-Server` or `-Database` |

@@ -102,7 +102,11 @@ param(
     # Set them per-shell (RG / AI_RESOURCE / SRV) or pass them explicitly.
     [string] $ResourceGroup     = ($env:RG ?? ''),
     [string] $AiResourceName    = ($env:AI_RESOURCE ?? ''),
-    [string] $AiLocation        = ($env:AI_LOCATION ?? 'eastus2'),
+    # Empty = the SQL server's own region, so the database's model calls stay
+    # in-region. Set AI_LOCATION when that region doesn't offer the models.
+    [string] $AiLocation        = ($env:AI_LOCATION ?? ''),
+    # APIM gateway and Content Safety region. Empty = the Foundry region.
+    [string] $GatewayLocation   = ($env:GATEWAY_LOCATION ?? ''),
     [string] $SqlServerName     = ($env:SRV ?? ''),
     # Gateway naming. Both default to a name DERIVED from your Foundry resource,
     # so there is still nothing of anyone else's baked in. Only used with -Gateway.
@@ -161,7 +165,7 @@ function Resolve-ModelVersion {
     })
     $pick = @($versions | Where-Object { $_.model.isDefaultVersion }) + $versions | Select-Object -First 1
     if (-not $pick) {
-        throw "Model '$ModelName' is not offered with GlobalStandard in '$AiLocation'. Choose another AI_LOCATION, or check 'az cognitiveservices model list --location $AiLocation'."
+        throw "Model '$ModelName' is not offered with GlobalStandard in '$AiLocation'$(if ($script:aiLocationFromServer) { " (your SQL server's region)" }). Set AI_LOCATION in ch05.env to a region that offers it, for example eastus2, and run again. Check with 'az cognitiveservices model list --location <region>'."
     }
     return [string]$pick.model.version
 }
@@ -185,7 +189,7 @@ function Set-ModelDeployment {
 
 Write-Host '=============================================' -ForegroundColor Cyan
 Write-Host ' Ward General — Azure AI layer deploy'         -ForegroundColor Cyan
-Write-Host "  Foundry : $AiResourceName ($AiLocation)"     -ForegroundColor Gray
+Write-Host "  Foundry : $AiResourceName ($(if ($AiLocation) { $AiLocation } else { "SQL server's region" }))" -ForegroundColor Gray
 Write-Host "  SQL MI  : $SqlServerName"                    -ForegroundColor Gray
 Write-Host "  Gateway : $([bool]$Gateway)  ContentSafety: $([bool]$ContentSafety)" -ForegroundColor Gray
 Write-Host '=============================================' -ForegroundColor Cyan
@@ -203,6 +207,24 @@ if ($SubscriptionId) {
 Write-Host "  OK - $(az account show --query name -o tsv) ($SubscriptionId)" -ForegroundColor Green
 Write-Host ''
 
+# ── Regions ──
+# Default the AI resources to the SQL server's region: 06 makes tens of
+# thousands of model calls from the database, and keeping them in-region keeps
+# latency down. An existing Foundry account or gateway stays where it is.
+$script:aiLocationFromServer = $false
+if (-not $AiLocation) {
+    $AiLocation = az sql server show -n $SqlServerName -g $ResourceGroup --query location -o tsv 2>$null
+    if ($AiLocation) {
+        $script:aiLocationFromServer = $true
+    } else {
+        $AiLocation = 'eastus2'
+        Write-Host "  Could not read the SQL server's region; using $AiLocation for the AI resources." -ForegroundColor Yellow
+    }
+}
+Write-Host "  Regions - Foundry: $AiLocation$(if ($script:aiLocationFromServer) { ' (the SQL server''s region)' })$(if ($Gateway) { "; gateway and Content Safety: $(if ($GatewayLocation) { $GatewayLocation } else { 'same as Foundry' })" })" -ForegroundColor Gray
+Write-Host '  Set AI_LOCATION / GATEWAY_LOCATION in ch05.env to choose others. Existing resources are not moved.' -ForegroundColor DarkGray
+Write-Host ''
+
 # ── 2. Foundry account + model deployments ──
 if ($SkipModels) {
     Write-Host '[2] Skipping Foundry account + models (-SkipModels).' -ForegroundColor Yellow
@@ -210,6 +232,10 @@ if ($SkipModels) {
     Write-Host '[2] Foundry (Azure OpenAI) account + models...' -ForegroundColor Yellow
     $acct = az cognitiveservices account show -n $AiResourceName -g $ResourceGroup --query name -o tsv 2>$null
     if (-not $acct) {
+        # Check both models are offered here BEFORE creating the account: an
+        # account in the wrong region can't be moved, only deleted.
+        $null = Resolve-ModelVersion -ModelName 'gpt-5' -Requested $ChatModelVersion
+        $null = Resolve-ModelVersion -ModelName 'text-embedding-3-large' -Requested $EmbeddingModelVersion
         Write-Host "  Creating Foundry account '$AiResourceName' (kind=OpenAI, S0, custom subdomain)..." -ForegroundColor Gray
         az cognitiveservices account create -n $AiResourceName -g $ResourceGroup `
             --location $AiLocation --kind OpenAI --sku S0 `
@@ -217,7 +243,16 @@ if ($SkipModels) {
         if ($LASTEXITCODE -ne 0) { throw "Failed to create Foundry account '$AiResourceName'." }
         Write-Host "  Foundry account created." -ForegroundColor Green
     } else {
-        Write-Host "  Foundry account '$AiResourceName' exists." -ForegroundColor Green
+        # Deployments live in the account's region, whatever AI_LOCATION says now.
+        $acctLoc = az cognitiveservices account show -n $AiResourceName -g $ResourceGroup --query location -o tsv 2>$null
+        if ($acctLoc -and $acctLoc -ne $AiLocation) {
+            Write-Host "  Foundry account '$AiResourceName' exists in $acctLoc; using that region for its deployments." -ForegroundColor Green
+            $AiLocation = $acctLoc
+            $script:aiLocationFromServer = $false
+            $script:modelCatalog = $null
+        } else {
+            Write-Host "  Foundry account '$AiResourceName' exists." -ForegroundColor Green
+        }
     }
     Set-ModelDeployment -Name 'gpt-5'                 -ModelName 'gpt-5'                 -Capacity $ChatCapacity      -ModelVersion $ChatModelVersion
     Set-ModelDeployment -Name 'text-embedding-3-large' -ModelName 'text-embedding-3-large' -Capacity $EmbeddingCapacity -ModelVersion $EmbeddingModelVersion
@@ -252,6 +287,9 @@ Write-Host ''
 
 # ── 5. APIM AI gateway + content safety (default; -NoGateway skips) ──
 if ($Gateway) {
+    # Default to the Foundry account's actual region (step 2 may have found an
+    # existing account somewhere other than AI_LOCATION).
+    if (-not $GatewayLocation) { $GatewayLocation = $AiLocation }
     Write-Host '[5] APIM AI gateway (setup-ai-gateway.ps1, ~30-45 min)...' -ForegroundColor Yellow
     $setupArgs = @{
         SubscriptionId = $SubscriptionId
@@ -260,6 +298,7 @@ if ($Gateway) {
         AiResourceName = $AiResourceName
         SqlServerName  = $SqlServerName
         PublisherEmail = $PublisherEmail
+        Location       = $GatewayLocation
     }
     if ($Force) { $setupArgs['Force'] = $true }
     & (Join-Path $here 'setup-ai-gateway.ps1') @setupArgs
@@ -274,6 +313,7 @@ if ($Gateway) {
             ApimName       = $ApimName
             CsResourceName = $CsResourceName
             SqlServerName  = $SqlServerName
+            Location       = $GatewayLocation
         }
         & (Join-Path $here 'add-content-safety.ps1') @csArgs
         if ($LASTEXITCODE -ne 0) { throw "add-content-safety.ps1 failed." }

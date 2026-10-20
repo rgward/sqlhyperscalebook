@@ -193,6 +193,21 @@ if (-not $NoGateway) {
 
 $rows | Format-Table -AutoSize
 
+# Say where anything new will land, so co-location is a visible decision.
+$willCreateAi = -not $aiOk
+$willCreateGateway = (-not $NoGateway) -and ((-not $apimOk) -or (-not $csOk))
+if ($srvOk -and ($willCreateAi -or $willCreateGateway)) {
+    $srvLoc  = Get-AzValue @('sql', 'server', 'show', '-n', $srv, '-g', $rg, '--query', 'location', '-o', 'tsv')
+    $aiLoc   = if ($aiOk) {
+        Get-AzValue @('cognitiveservices', 'account', 'show', '-n', $ai, '-g', $rg, '--query', 'location', '-o', 'tsv')
+    } elseif ([string]::IsNullOrWhiteSpace($env:AI_LOCATION)) { $srvLoc } else { $env:AI_LOCATION }
+    $gwLoc   = if ([string]::IsNullOrWhiteSpace($env:GATEWAY_LOCATION)) { $aiLoc } else { $env:GATEWAY_LOCATION }
+    $parts = @()
+    if ($willCreateAi)      { $parts += "Foundry in $aiLoc$(if ([string]::IsNullOrWhiteSpace($env:AI_LOCATION)) { ' (the SQL server''s region)' })" }
+    if ($willCreateGateway) { $parts += "gateway/Content Safety in $gwLoc" }
+    $notes.Add("New AI resources will be created in: $($parts -join '; '). To choose other regions, set AI_LOCATION / GATEWAY_LOCATION in ch05.env.")
+}
+
 foreach ($n in $notes) {
     Write-Host "note: $n" -ForegroundColor Yellow
     Write-Host ''

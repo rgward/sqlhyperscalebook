@@ -413,9 +413,17 @@ the reader also resets the database objects, hours of re-embedding.
 
 Every name the scripts default to is an environment-variable override —
 `SUBSCRIPTION_ID`, `RG`, `SRV` (the Hyperscale server), `AI_RESOURCE`,
-`AI_LOCATION`. Set the ones that differ in the **same** PowerShell session before
-running anything. `RG` and `SRV` are the same variables the Chapter 2 deploy
-used, so a session that still has them set is already correct.
+`AI_LOCATION`, `GATEWAY_LOCATION`. Set the ones that differ in the **same**
+PowerShell session before running anything. `RG` and `SRV` are the same
+variables the Chapter 2 deploy used, so a session that still has them set is
+already correct.
+
+The AI resources default to the **SQL server's region** (`AI_LOCATION` unset), and
+the gateway and Content Safety default to the Foundry region (`GATEWAY_LOCATION`
+unset). Before the deploy, tell the reader which regions will be used —
+`check-ai-env.ps1` prints them — so co-location is a decision they see, not a
+surprise. If the deploy reports a model isn't offered in that region, have them
+set `AI_LOCATION` in `ch05.env` and run it again.
 
 The Foundry account is created **`kind=OpenAI`** with a custom subdomain — the
 subdomain is what makes Entra token auth possible at all. Note that
