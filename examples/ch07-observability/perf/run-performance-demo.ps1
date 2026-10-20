@@ -235,8 +235,9 @@ $cacheResult = if ($rbpexObserved -and $pageServerObserved) {
 
 Write-Host 'Retrieving Azure Monitor metrics...' -ForegroundColor Yellow
 $logicalServer = ($Server -split '\.')[0]
-$subscriptions = @(& $az account list --query "[?state=='Enabled'].id" -o tsv) |
-    Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+# @() keeps this an array even with one subscription; Resource Graph rejects a string.
+$subscriptions = @(@(& $az account list --query "[?state=='Enabled'].id" -o tsv) |
+    Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 $managementToken = & $az account get-access-token `
     --resource https://management.azure.com/ `
     --query accessToken -o tsv

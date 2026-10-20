@@ -78,7 +78,8 @@ $databaseResource = az sql db show `
 $locations = @(az account list-locations -o json | ConvertFrom-Json)
 $location = $locations | Where-Object { $_.name -ieq $databaseResource.location } |
     Select-Object -First 1
-$regionDisplayName = if ($location.displayName) {
+# StrictMode: $location can be $null, and a match might not carry displayName.
+$regionDisplayName = if ($location -and $location.PSObject.Properties['displayName'] -and $location.displayName) {
     $location.displayName
 }
 else {
@@ -170,15 +171,21 @@ $replicationResult = az @commonMetricArguments `
     --metrics replication_lag_seconds `
     --aggregation Average Maximum | ConvertFrom-Json
 
+# A metric the database doesn't emit can come back without a value array (or as
+# nothing at all); under StrictMode reading .value on that throws.
+function Get-MetricValues([object] $Result) {
+    if ($Result -and $Result.PSObject.Properties['value']) { @($Result.value) } else { @() }
+}
+
 $metricEvidence = [pscustomobject][ordered]@{
     ResourceId = $databaseResource.id
     Region = $databaseResource.location
     WindowStartUtc = $startTimeUtc.ToString('o')
     WindowEndUtc = $endTimeUtc.ToString('o')
     Metrics = @(
-        $availabilityResult.value
-        $connectionResult.value
-        $replicationResult.value
+        Get-MetricValues $availabilityResult
+        Get-MetricValues $connectionResult
+        Get-MetricValues $replicationResult
     )
 }
 $metricEvidence | ConvertTo-Json -Depth 20 |
@@ -194,7 +201,8 @@ function Get-MetricPointValue {
 }
 
 $metricSummary = foreach ($metric in $metricEvidence.Metrics) {
-    $points = @($metric.timeseries | ForEach-Object { $_.data })
+    $series = if ($metric.PSObject.Properties['timeseries']) { $metric.timeseries } else { @() }
+    $points = @($series | ForEach-Object { if ($_.PSObject.Properties['data']) { $_.data } })
     $metricName = $metric.name.value
     if ($metricName -eq 'availability') {
         $minimumValues = @($points | ForEach-Object {
