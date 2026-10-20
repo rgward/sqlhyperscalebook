@@ -119,7 +119,8 @@ principal.
 
 When finished, preview teardown. Because teardown disables the audit policy and
 removes the generated audit-only diagnostic route if necessary, and deletes
-the tagged workspace, perform it only after explicit approval:
+the tagged workspace, perform it only after explicit approval (or ask Copilot:
+*"Tear down the Chapter 8 audit."*):
 
 ```powershell
 ./examples/ch08-security/auditing/teardown-auditing.ps1 -WhatIf
@@ -127,7 +128,14 @@ the tagged workspace, perform it only after explicit approval:
 ```
 
 The setup and teardown scripts refuse to replace another audit policy or delete
-an unowned workspace. Log Analytics ingestion and retention are billable.
+an unowned workspace.
+
+> **Cost.** Log Analytics ingestion and retention are billable, and they keep
+> billing until you run the teardown. Auditing is configured at the
+> **logical-server level**, so it covers every database on the server — not just
+> `wardgeneral`, but also the optional `wardgeneral-research` named replica and
+> any Chapter 9 PITR copy — and each adds ingestion. Tear it down when you've
+> finished the investigation.
 
 The example explicitly enables completed batches and successful and failed
 database authentication. Azure SQL Database auditing records database

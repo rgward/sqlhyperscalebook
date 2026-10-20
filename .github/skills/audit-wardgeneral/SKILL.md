@@ -60,9 +60,10 @@ When the reader asks to start or run the Ward General audit investigation:
    for the second turn; do not substitute a later time.
 6. Stop after auditing is ready. Do not start, restart, or otherwise manage
    Ward General from this skill.
-7. Tell the reader to run Ward General through the chapter workflow, open the
-   unit board, and then open one patient chart. End with the exact continuation
-   prompt: `I opened a patient chart. Find my audit activity.`
+7. Tell the reader to start Ward General with the book's prompt, **`Run the
+   Chapter 8 RLS app demo`**, open the unit board, and then open one patient
+   chart. End with the exact continuation prompt:
+   `I opened a patient chart. Find my audit activity.`
 
 ### Turn 2 — Find the activity
 
@@ -159,6 +160,13 @@ the matching app evidence, whether unit-board and patient-chart activity were
 both proved, whether a context-setter batch was correlated on the same session,
 and any delivery limitation. For teardown, report the audit policy and owned
 workspace removed.
+
+**Always end a setup or investigation report with the cost reminder** (never
+tear down on your own):
+
+> Auditing is still on for every database on `<server>`, sending to
+> `<workspace>` (billable ingestion, 30-day retention). When you're finished,
+> say **"Tear down the Chapter 8 audit."**
 
 ## Files
 
