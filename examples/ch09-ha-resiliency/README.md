@@ -67,6 +67,59 @@ Per example:
 
 **All data is synthetic. There is no real patient data (PHI) here.**
 
+## Supplement: backups at a glance
+
+This section is a repository supplement, not text from the book. It summarizes
+the backup and restore options Chapter 9 walks through, using Microsoft Learn
+(accessed 2026-10-20). Limits and preview status change, so check the linked
+pages before you rely on a value.
+
+| Option | What it is | How often | Kept for | Restores to | Size of operation |
+| --- | --- | --- | --- | --- | --- |
+| [Automated backups and PITR](https://learn.microsoft.com/azure/azure-sql/database/hyperscale-automated-backups-overview) | Storage snapshots of the data files plus the retained transaction log. No full, differential, or log backups. | Continuous: each file is snapshotted on its own cadence and the log is kept as is. | 1–35 days (default 7). | A new database on the same logical server. | Not size-of-data in the same region; it becomes size-of-data if you change storage or zone redundancy during the restore. |
+| [Long-term retention (LTR)](https://learn.microsoft.com/azure/azure-sql/database/long-term-retention-overview) | Backups copied to separate long-term storage by a policy. | Weekly, monthly, and/or yearly, per the policy. | Up to 10 years. | Any server in the same subscription. | Size-of-data (the book: LTR restores can't use snapshots). |
+| [Immutable LTR backups](https://learn.microsoft.com/azure/azure-sql/database/backup-immutability) | LTR backups stored write-once, read-many so no one can modify or delete them. | Applies to LTR backups. | Time-based: until the backup's retention ends. Legal hold (preview): until you remove it. | Same as LTR. | Same as LTR. |
+| [Geo-restore](https://learn.microsoft.com/azure/azure-sql/database/recovery-using-backups#geo-restore) | A restore from geo-replicated backups. Needs geo-redundant or geo-zone-redundant backup storage. | Uses the most recent geo-replicated backups. | — | Any logical server in any Azure region. | Size-of-data; faster to the paired region. |
+| [Database copy](https://learn.microsoft.com/azure/azure-sql/database/database-copy#database-copy-for-hyperscale-databases) | A transactionally consistent copy as of when the copy started. | On demand. | Until you delete it. | The same or a different logical server. | Fast from snapshots in the same region with the same storage redundancy; size-of-data otherwise. |
+
+Two settings that affect every row:
+
+- **Backup storage redundancy** (LRS, ZRS, RA-GRS, RA-GZRS) is chosen when the
+  database is created and can't be changed later. Data and backups share the
+  same storage, so the choice applies to both. LRS or ZRS turns off geo-restore.
+- **Cost:** backup storage is billed per GB per month, and an amount equal to
+  the database size is free. Write-heavy workloads change more pages, which
+  produces larger snapshots and more log.
+
+### Questions from readers
+
+**Do I still need to run `DBCC CHECKDB`?** It isn't available in Hyperscale.
+The book's *Data Integrity* section covers this: run
+`DBCC CHECKTABLE ('schema.table') WITH TABLOCK` on individual tables at a time
+you choose, because it uses significant resources. Microsoft also verifies page
+checksums, detects lost writes, verifies pages during backups and during every
+restore, and can repair some pages automatically from another replica. See
+[Data integrity in Azure SQL Database](https://learn.microsoft.com/azure/azure-sql/database/data-integrity).
+
+**Can a snapshot backup become corrupt, and should I still test restores?**
+Learn documents page verification during service-managed backups and during
+each restore, with any problem alerting the engineering team. Testing restores
+is still how you learn your own restore time. The [pitr/](pitr/) example in this
+chapter is a ready-made restore test.
+
+**Are named replicas backed up?** A named replica uses the same page servers as
+the primary and holds no copy of the data. Hyperscale backups are snapshots of
+those page-server data files plus the log, which belong to the primary
+database. Learn doesn't document a separate backup or retention setting for
+named replicas. See
+[Hyperscale secondary replicas](https://learn.microsoft.com/azure/azure-sql/database/service-tier-hyperscale-replicas#named-replica).
+
+**Do snapshot backups grow when I add data?** Yes. Learn says backup costs are
+higher for workloads that add, modify, or delete large volumes of data, because
+those workloads change data pages more often and generate more log. Mostly
+read-only workloads have smaller backup costs. See
+[Backup storage costs](https://learn.microsoft.com/azure/azure-sql/database/hyperscale-automated-backups-overview#backup-storage-costs).
+
 ## Links from the book
 
 Every web link printed in Chapter 9, in the order it appears, so you can click
