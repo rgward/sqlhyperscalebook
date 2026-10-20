@@ -118,6 +118,23 @@ and the `HS_Gen5_8` starting state. It cannot prove permission to update the
 database without attempting a change; the first approved scale is the
 management-plane authorization check.
 
+### Starting from a serverless database
+
+Demo 1 measures **provisioned** compute at 8, 16, and 40 vCores. A Hyperscale
+serverless database (`HS_S_Gen5_*`) scales itself within its min/max range, so
+it can't show those fixed steps, and the preflight stops with an explanation.
+Chapter 2 deploys provisioned `HS_Gen5_8`; you'd typically have serverless only
+if you created the database yourself or are pointing at the Chapter 9 PITR
+test copy. To switch it to provisioned, preview and then approve:
+
+```powershell
+./scale-compute.ps1 -TargetServiceObjective HS_Gen5_8            # preview, changes nothing
+./scale-compute.ps1 -TargetServiceObjective HS_Gen5_8 -Approve   # switch to provisioned
+```
+
+Provisioned compute bills for every vCore every hour, busy or idle. See
+[Cost and cleanup](../README.md#cost-and-cleanup--scale-back-when-you-finish).
+
 ## Reset before a fresh progression
 
 Do not clean between 8, 16, and 40 vCores. Those phases are one progression,

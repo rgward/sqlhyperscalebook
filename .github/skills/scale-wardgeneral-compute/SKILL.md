@@ -39,7 +39,12 @@ For "run the 8-vCore baseline", do exactly this:
 1. Run `preflight.ps1`. If `SQLSIM` is absent or invalid, allow its prompt for
    the full local path to the extracted `sqlsim.exe`.
 2. Confirm `HS_Gen5_8`, token authentication, firewall/network connectivity,
-   ODBC 18, Query Store, five procedures, and encounter data.
+   ODBC 18, Query Store, five procedures, and encounter data. If preflight
+   reports a serverless (`HS_S_Gen5_*`) database, stop. Explain that Demo 1
+   measures provisioned scaling, run `scale-compute.ps1 -TargetServiceObjective
+   HS_Gen5_8` without `-Approve`, show the compute-model and billing change, and
+   switch only after explicit approval. Do not edit the scripts to bypass the
+   check or run the progression on serverless.
 3. Capture `network-probe.ps1` and `capture-server.ps1` before the workload.
 4. Run `run-workload.ps1 -WorkloadPath workload-8.json` once.
 5. Capture the same network and server evidence after the workload.
@@ -50,7 +55,9 @@ For "run the 8-vCore baseline", do exactly this:
 ## Full Demo 1
 
 1. Run `run-demo.ps1` without `-ApproveScaling`. It runs preflight and previews
-   `HS_Gen5_8 → HS_Gen5_16 → HS_Gen5_40` without changing Azure.
+   `HS_Gen5_8 → HS_Gen5_16 → HS_Gen5_40` without changing Azure. If preflight
+   stops on a serverless or other non-`HS_Gen5_8` starting point, follow the
+   baseline step 2 guidance above before continuing.
 2. Present both changes and obtain explicit approval.
 3. Run `run-demo.ps1 -ApproveScaling` only after approval. The resource group
    resolves from `RG` (shell or `ch04.env`) and defaults to `rg-collierhealth`;

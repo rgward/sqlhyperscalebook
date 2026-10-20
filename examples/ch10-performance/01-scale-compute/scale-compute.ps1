@@ -54,6 +54,12 @@ if ($current.serviceObjective -eq $TargetServiceObjective) {
     Write-Host 'The database is already at the requested service objective.' -ForegroundColor Green
     return
 }
+if ($current.serviceObjective -like 'HS_S_*') {
+    Write-Host ''
+    Write-Host ("  This changes the compute model from serverless ({0}) to provisioned ({1})." -f
+        $current.serviceObjective, $TargetServiceObjective) -ForegroundColor Yellow
+    Write-Host '  Provisioned compute bills for every vCore every hour, whether or not the database is busy.' -ForegroundColor Yellow
+}
 if (-not $Approve) {
     Write-Host ''
     Write-Host 'Preview only. This command changes a billable Azure resource.' -ForegroundColor Yellow
