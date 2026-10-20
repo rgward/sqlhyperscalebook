@@ -38,7 +38,8 @@ Four moves, in order. The first is a script; the middle ones are yours to run.
    the assistance procedure already routed through the gateway — there is no
    separate step to turn governance on.
 4. **Run the app** — `run-ai-app.ps1` builds the Chapter 4 application and
-   starts it with the `AiAssistance` feature flag already on.
+   starts it with the `AiAssistance` feature flag already on. It reads the
+   server and database from `ch05.env`, so no arguments are needed.
 
 That is every SQL file you run. If you deployed with `-NoGateway` and later
 change your mind, you re-run `08` rather than running anything new; see

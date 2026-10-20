@@ -79,6 +79,30 @@ So: state the order, name the files, explain any of them on request, and stop.
 If the reader explicitly asks you to execute a script, that is their call — but
 never volunteer it, and never do it as part of the flow below.
 
+## Entry points — match the reader's request, start there
+
+The book gives readers separate prompts for separate moments. **Do not run the
+whole flow for each one.**
+
+| The reader says | Do | Stop after |
+|---|---|---|
+| *"prepare the application for AI"* (the book's first prompt) | Steps 0–3: `ch05.env` and `check-ai-env.ps1`, the deploy, the placeholders, the SQL hand-off | Handing them the SQL list. Do **not** start the app — they haven't run the SQL yet. |
+| *"run the app with AI"* (the book's second prompt) | Read-only checks, then Step 5 (below) | The app is running |
+| *"Tear down and rebuild all the Chapter 5 Azure AI resources…"* | The section of that name under **Tearing down** | The redeploy |
+
+**"run the app with AI" never deploys.** Its checks, in order:
+
+1. `./check-ai-env.ps1` (read-only). If any row says **WILL BE CREATED**, the
+   Azure side isn't ready: stop and tell the reader to start with *"prepare the
+   application for AI"*. Don't run `deploy-ai.ps1` from this entry point.
+2. Ask the reader to confirm they've run `06`→`09` and that
+   `verify-embeddings.sql` reports `MISSING=0` (Step 4). Don't run the SQL for
+   them. If they haven't, point them at Step 3 and stop — the app would show an
+   empty AI card.
+3. If the named replica row said **optional / missing**, mention that Research
+   won't work until they run Chapter 2's `add-replicas.ps1`, then continue.
+4. Step 5.
+
 ## Read this before you do anything else
 
 **There is one Ward General application, and it lives in
@@ -550,8 +574,12 @@ the policy, the backend, or the managed-identity role — not in SQL.
 ## Step 5 — Build and run the app with AI on
 
 ```powershell
-./run-ai-app.ps1 -Server <your-server>.database.windows.net -Database wardgeneral
+./run-ai-app.ps1
 ```
+
+It reads the server and database from `ch05.env` (the `WardGeneral__Server` /
+`WardGeneral__Database` lines). Pass `-Server` / `-Database` only if the reader
+names different ones.
 
 One command, and the order inside it is build-then-run: it calls
 `../ch04-first-app/build.ps1`, then `restart.ps1 -Enable AiAssistance`.

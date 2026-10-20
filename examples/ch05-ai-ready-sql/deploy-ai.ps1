@@ -227,8 +227,8 @@ if ($NoGateway) {
     Write-Host '      It is CREATE OR ALTER, so nothing is lost.' -ForegroundColor Gray
 }
 Write-Host ''
-Write-Host ' Then put it on screen:' -ForegroundColor Cyan
-Write-Host '   ./run-ai-app.ps1 -Server <your-server>.database.windows.net -Database wardgeneral' -ForegroundColor White
+Write-Host ' Then put it on screen (reads the server from ch05.env):' -ForegroundColor Cyan
+Write-Host '   ./run-ai-app.ps1' -ForegroundColor White
 Write-Host ''
 Write-Host ' See README.md in this folder for the full run order and the re-run notes.' -ForegroundColor DarkGray
 Write-Host ''
