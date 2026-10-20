@@ -117,8 +117,8 @@ server name, redundancy, auth, size), and runs the deployment.
 
 **By hand.** Open the chapter folder under `examples/` and run the PowerShell
 scripts yourself in **PowerShell 7** — `./provision-hyperscale.ps1` (set any
-overrides as `$env:*` first), then `./add-replicas.ps1` to finish the provision
-step with a second HA replica and the `wardgeneral-research` named replica, then
+overrides as `$env:*` first), optionally `./add-replicas.ps1` to add the
+`wardgeneral-research` named replica (used from Chapter 5), then
 run `01-schemas.sql` … `05-seed.sql` via the MSSQL extension or `sqlcmd`.
 
 Either way, **scripts never hard-code secrets** — they read them from

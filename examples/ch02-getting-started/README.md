@@ -14,12 +14,13 @@ every later chapter builds on: the **Ward General Hospital** database
 
 Five moves, in order:
 
-1. **Deploy** — create the logical server + Hyperscale database (`provision-hyperscale.ps1`).
-2. **Add the replicas** — run `add-replicas.ps1` for a second HA replica and the
-   `wardgeneral-research` named replica. This finishes the provision step:
-   Chapter 3 examines that named replica as an architectural object, and Chapter
-   5's Research page is the first thing to actually use it — both assume it
-   exists.
+1. **Deploy** — create the logical server + Hyperscale database with one HA
+   replica (`provision-hyperscale.ps1`).
+2. **Optional: add the named replica** — run `add-replicas.ps1` to create the
+   `wardgeneral-research` named replica. It leaves the HA replica count at one.
+   Chapter 3 examines it as an architectural object, and Chapter 5's Research
+   page is the first thing to actually use it; skip it now and run it when you
+   get there.
 3. **Connect & prove it's SQL Server** — run `connect-and-verify.sql`.
 4. **Build the schema** — run `01`→`04` in order.
 5. **Seed & verify** — run `05-seed.sql`, then `verify-data.sql`.
@@ -27,8 +28,8 @@ Five moves, in order:
 You can drive all of this through Copilot (ask it to *"deploy my Hyperscale
 database"* and it runs the `deploy-hyperscale` skill), or run the scripts by hand
 as described below. After the primary deploy succeeds, the guided path explains
-the additional replica costs and asks for separate approval before it runs
-`add-replicas.ps1`; it never creates those billable replicas silently.
+the named replica's cost and asks for separate approval before it runs
+`add-replicas.ps1`; it never creates that billable replica silently.
 
 > **Tip — a third way to verify.** After the deploy, run
 > `verify-activity-log.ps1` for a control-plane check: it summarizes the Azure
@@ -50,7 +51,7 @@ the additional replica costs and asks for separate approval before it runs
 | `04-procedures.sql` | SQL | Creates the eleven read/write procedures (admit, discharge, record vitals, place order, file lab, add note/diagnosis/allergy, `SearchEncounters`, chart reads). `SearchEncounters` supports optional ID, date, status, unit, department, and provider-name filters and returns readable encounter summaries. They are the hospital's contract, not this book's app's: the same procedures are what Data API Builder and the agent expose in Chapter 6. |
 | `05-seed.sql` | SQL | Seeds the database to roughly **12 GB** of fully synthetic data (Observation is the ~108M-row anchor). Runs ~5–15 min — log-rate gated. |
 | `verify-data.sql` | SQL | Read-only PASS/FAIL check with per-table volume checks. You want it to end with **`ALL CHECKS PASSED`**. |
-| `add-replicas.ps1` | PowerShell | Adds a second **HA replica**, then creates the **`wardgeneral-research`** named replica (serverless `HS_S_Gen5_8`) and prints the resulting topology. A named replica is read-only, looks like a separate database, and is **not** a failover target. Chapter 3 dissects it; Chapter 5 uses it. |
+| `add-replicas.ps1` | PowerShell | **Optional.** Creates the **`wardgeneral-research`** named replica (serverless `HS_S_Gen5_8`) and prints the resulting topology; the HA replica count stays at one. A named replica is read-only, looks like a separate database, and is **not** a failover target. Chapter 3 dissects it; Chapter 5 uses it. |
 
 ## Deploy inputs (environment variables)
 

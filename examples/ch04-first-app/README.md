@@ -113,10 +113,10 @@ selector suddenly filtering.
 Chapter 4 features are **not** flags. The base chart — including the `REGEXP_*`
 card — is simply part of the app.
 
-The Research page reads the **`wardgeneral-research` named replica**, which
-already exists: [Chapter 2](../ch02-getting-started/README.md) deploys it with
-`add-replicas.ps1`, and Chapter 3's `06-replicas.sql` surfaces it. Only the
-Chapter 5 proc is missing.
+The Research page reads the **`wardgeneral-research` named replica**. The
+optional `add-replicas.ps1` step in [Chapter 2](../ch02-getting-started/README.md)
+creates it (run it now if you skipped it), and Chapter 3's `06-replicas.sql`
+surfaces it. Only the Chapter 5 proc is missing.
 
 ## Files in this folder
 

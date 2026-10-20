@@ -2,18 +2,18 @@
 # Azure SQL Hyperscale Unveiled — Chapter 2 §4 (Provision)
 # add-replicas.ps1
 #
-# Add a second HA replica, then add a named replica. Show that they are
-# different things: HA replicas are failover targets (and read-scale
-# endpoints via ApplicationIntent=ReadOnly); named replicas are read-only
-# scale-out objects that look like separate databases — never failover
-# targets.
+# Add the optional named replica. The HA replica already exists — the deploy
+# (provision-hyperscale.ps1) created the primary with one HA replica, which
+# zone redundancy requires; this script leaves that count unchanged.
 #
-# Two realities the chapter wants to land (§4):
-#   1. First-failover RTO depends on whether you pre-provisioned an HA
-#      replica. With 0 HA replicas, the system must build one from scratch
-#      on failover (slower). With >=1, the spare is hot. Forward-point Ch 9.
-#   2. Named replicas are NOT failover targets. The full HA-vs-named-vs-geo
-#      comparison lives in Ch 3 §7.
+# HA and named replicas are different things: an HA replica is a failover
+# target (and a read-scale endpoint via ApplicationIntent=ReadOnly); a named
+# replica is a read-only scale-out object that looks like a separate
+# database — never a failover target. The full HA-vs-named-vs-geo comparison
+# lives in Ch 3 §7.
+#
+# Optional: it adds its own compute meter. Skip it and the rest of Chapter 2
+# still works; run this script later when you reach Ch 3 §7 or Ch 5.
 #
 # Hard constraint to flag here (Ch 3 §8 introduces, Ch 10 §11 fills out):
 # named replicas cannot live in a Hyperscale elastic pool.
@@ -56,28 +56,13 @@ az sql db show `
     --query "{name:name, sku:currentServiceObjectiveName, ha:highAvailabilityReplicaCount}" `
     -o table
 
-# ---------- 1. Add a second HA replica --------------------------------------
-# HA replicas live "inside" the primary database object — there is no
-# separate database resource. Increment the count.
-Write-Host ""
-Write-Host "--- 1/2 HA replica: increment to 2 ---"
-az sql db update `
-    --resource-group $Rg --server $Srv --name $Db `
-    --ha-replicas 2 `
-    -o table
-
-Write-Host ""
-Write-Host "Tip: connect with ApplicationIntent=ReadOnly to be routed to an HA replica."
-Write-Host "Connection-string fragment:"
-Write-Host "  Server=tcp:$Srv.database.windows.net,1433;Database=$Db;ApplicationIntent=ReadOnly;Authentication=Active Directory Default;Encrypt=true;"
-
-# ---------- 2. Add a named replica ------------------------------------------
+# ---------- Add a named replica ---------------------------------------------
 # Named replicas are created as a *new* database whose `createMode` is
 # `Secondary` and whose source-database id points at the Hyperscale primary.
 # `az sql db replica create` is the helper that wraps this; --secondary-type
 # must be `Named` for a named replica (default `Geo`).
 Write-Host ""
-Write-Host "--- 2/2 Named replica: $NamedReplica ---"
+Write-Host "--- Named replica: $NamedReplica ---"
 az sql db replica create `
     --resource-group $Rg --server $Srv --name $Db `
     --partner-server $Srv --partner-database $NamedReplica `
@@ -105,7 +90,8 @@ Notes (Ch 2 §4):
   * Two endpoints in play:
       Primary  ->  $Srv.database.windows.net  (database: $Db)
                    Read/write, plus reroute via ApplicationIntent=ReadOnly
-                   to an HA replica.
+                   to its HA replica:
+                   Server=tcp:$Srv.database.windows.net,1433;Database=$Db;ApplicationIntent=ReadOnly;Authentication=Active Directory Default;Encrypt=true;
       Named    ->  $Srv.database.windows.net  (database: $NamedReplica)
                    Read-only. Looks like a separate database to clients.
                    NOT a failover target. Used by the app's Research page
