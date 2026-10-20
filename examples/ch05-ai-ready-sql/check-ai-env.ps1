@@ -9,6 +9,8 @@
     that is still a cheap question to ask.
 
     It reads ch05.env, then probes each resource by name with `az ... show`.
+    That includes the Chapter 2 database (required) and the optional
+    wardgeneral-research named replica the Research page reads.
     Every call is a GET. This script creates nothing, changes nothing, deletes
     nothing, and needs no more permission than the ability to read the
     resources it names.
@@ -110,6 +112,23 @@ if ($srvOk) {
     Add-Row 'Server managed identity' $(if ($mi) { $mi } else { '(none yet)' }) ([bool]$mi) 'WILL BE CREATED'
 }
 
+# -- The Chapter 2 database and its optional named replica. Read-only: this
+# chapter creates neither. The database is required for everything here; the
+# named replica only for the Research page, and Chapter 2 makes it optional.
+$db      = $env:WardGeneral__Database
+$replica = 'wardgeneral-research'
+$dbOk      = $false
+$replicaOk = $false
+if ($srvOk) {
+    $dbOk      = [bool] (Get-AzValue @('sql', 'db', 'show', '-n', $db,      '-s', $srv, '-g', $rg, '--query', 'name', '-o', 'tsv'))
+    $replicaOk = [bool] (Get-AzValue @('sql', 'db', 'show', '-n', $replica, '-s', $srv, '-g', $rg, '--query', 'name', '-o', 'tsv'))
+}
+Add-Row 'Database' $db $dbOk 'MISSING - prerequisite'
+Add-Row 'Named replica' $replica $replicaOk 'MISSING - optional (Research page)'
+if ($srvOk -and -not $replicaOk) {
+    $notes.Add("The Research page reads the '$replica' named replica, which Chapter 2 makes optional. Create it with examples/ch02-getting-started/add-replicas.ps1 (billable, serverless) before using Research. The AI assistance card works without it.")
+}
+
 # -- The AI resources.
 $aiOk = [bool] (Get-AzValue @('cognitiveservices', 'account', 'show', '-n', $ai, '-g', $rg, '--query', 'name', '-o', 'tsv'))
 Add-Row 'Foundry account' $ai $aiOk 'WILL BE CREATED'
@@ -155,11 +174,11 @@ foreach ($n in $notes) {
     Write-Host ''
 }
 
-if (-not $rgOk -or -not $srvOk) {
-    Write-Host 'The resource group and the logical server belong to Chapter 2 and are' -ForegroundColor Red
-    Write-Host 'shared by every chapter. This chapter never creates them. If either is' -ForegroundColor Red
-    Write-Host 'missing, check RG and SRV for a typo before assuming they are gone --' -ForegroundColor Red
-    Write-Host 'SRV is the SHORT name, not the FQDN.' -ForegroundColor Red
+if (-not $rgOk -or -not $srvOk -or -not $dbOk) {
+    Write-Host 'The resource group, logical server, and database belong to Chapter 2 and' -ForegroundColor Red
+    Write-Host 'are shared by every chapter. This chapter never creates them. If one is' -ForegroundColor Red
+    Write-Host 'missing, check RG, SRV, and WardGeneral__Database for a typo before' -ForegroundColor Red
+    Write-Host 'assuming it is gone -- SRV is the SHORT name, not the FQDN.' -ForegroundColor Red
     Write-Host ''
     exit 1
 }

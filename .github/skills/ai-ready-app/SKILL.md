@@ -221,6 +221,13 @@ catching it afterwards can mean a 30–45 minute APIM provision they did not wan
 including on someone else's environment, and it is the right first move when a
 reader reports that something is not working.
 
+It also checks the Chapter 2 `wardgeneral` database (missing = stop; nothing in
+Chapter 5 works) and the `wardgeneral-research` named replica. The replica is
+optional in Chapter 2, so a missing one is reported as optional, not a failure:
+tell the reader the Research page needs it and that
+`examples/ch02-getting-started/add-replicas.ps1` creates it (billable — get
+approval before running it). Don't block the rest of the chapter on it.
+
 The file also feeds the rest of the chapter, so nothing is asked for twice:
 
 | From `ch05.env` | Used by |

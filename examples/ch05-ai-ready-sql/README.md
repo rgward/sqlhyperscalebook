@@ -197,10 +197,20 @@ Resource                Name                            Status
 --------                ----                            ------
 Resource group          rg-contoso                      exists
 SQL server              contoso-sql-01                  exists
+Database                wardgeneral                     exists
+Named replica           wardgeneral-research            exists
 Foundry account         contoso-ai                      exists
 Model deployment        text-embedding-3-large          exists
 APIM gateway            contoso-ai-gateway              WILL BE CREATED
 ```
+
+It also checks the two Chapter 2 objects this chapter uses. A missing
+`wardgeneral` database stops the check — nothing here works without it. A
+missing `wardgeneral-research` named replica is reported as **optional**: the AI
+assistance card works without it, but the Research page doesn't. Create it with
+Chapter 2's optional
+[`add-replicas.ps1`](../ch02-getting-started/add-replicas.ps1) before you use
+Research.
 
 **Read that list before you deploy.** Anything you expected to already have,
 showing up as *will be created*, is a typo in `ch05.env` or the wrong
@@ -250,7 +260,7 @@ destructive) carries both placeholders too — replace them only if you run it.
 |---|---|---|
 | `ch05.env.template` | Config | The template for your resource names. Copy it to `ch05.env` and fill it in — that file is git-ignored, so your names stay out of commits. Every entry carries a comment saying what it is and where it is used. No secrets: Chapter 5 is passwordless throughout. |
 | `load-env.ps1` | PowerShell | Reads `ch05.env` into the environment. Creates the file from the template if it is missing, and refuses to continue while any value is still empty or still in `<angle brackets>`. A variable already exported in your shell wins over the file, and it says so. Dot-source it (`. ./load-env.ps1`) to keep the values for a whole session. |
-| `check-ai-env.ps1` | PowerShell | **Read-only.** Reports what `ch05.env` names, what already exists in Azure, and what `deploy-ai.ps1` would therefore create. Run it before the deploy — a resource you expected to have, listed as *will be created*, is a typo or the wrong subscription. Also catches a Content Safety resource whose name is not the derived one, which is the single case where a re-run still creates something. |
+| `check-ai-env.ps1` | PowerShell | **Read-only.** Reports what `ch05.env` names, what already exists in Azure, and what `deploy-ai.ps1` would therefore create. Also confirms the Chapter 2 `wardgeneral` database exists and reports whether the optional `wardgeneral-research` named replica (needed by the Research page) exists. Run it before the deploy — a resource you expected to have, listed as *will be created*, is a typo or the wrong subscription. Also catches a Content Safety resource whose name is not the derived one, which is the single case where a re-run still creates something. |
 | `deploy-ai.ps1` | PowerShell | The Azure side, in one command. Creates the Foundry account, both model deployments, the server's system-assigned managed identity and its **Cognitive Services OpenAI User** role, and — unless `-NoGateway` — APIM plus content safety. Stops at the edge of the database and prints the SQL run order. Idempotent. |
 | `azureaideploy.ps1` | PowerShell | The worker `deploy-ai.ps1` calls. Run it directly if you want finer control over which pieces get created. |
 | `setup-ai-gateway.ps1` | PowerShell | Provisions the APIM StandardV2 instance and wires the Foundry backend. A first provision takes ~30–45 minutes and is billable. |
