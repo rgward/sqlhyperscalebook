@@ -70,9 +70,9 @@ a sensible default. Set any overrides **before** running it (the
 | `DB` | `wardgeneral` | The Hyperscale database. |
 | `SLO` | `HS_Gen5_8` | Compute shape — changeable later. |
 | `HA_REPLICAS` | `1` | Required for zone redundancy. |
-| `ADMIN_OBJECT_ID` | *(required)* | Entra object ID for the server's Entra admin. |
-| `ADMIN_DISPLAY_NAME` | `Collier Health DBAs` | Entra admin display name. |
-| `ADMIN_TYPE` | `Group` | `User` \| `Group` \| `ServicePrincipal`. |
+| `ADMIN_OBJECT_ID` | *(required)* | Entra object ID for the server's Entra admin. The guided deploy fills the three `ADMIN_*` values from your signed-in account by default (as the book does); by hand, `az ad signed-in-user show --query "{id:id, upn:userPrincipalName}"`. |
+| `ADMIN_DISPLAY_NAME` | `Collier Health DBAs` | Entra admin display name (your UPN when you use your own account). |
+| `ADMIN_TYPE` | `Group` | `User` \| `Group` \| `ServicePrincipal` — `User` for your own account. |
 | `SQL_ADMIN_USER` | `wardadmin` | Mixed-auth SQL admin login (Ch 8 moves to Entra-only). |
 | `SQL_ADMIN_PASSWORD` | *(required)* | Set in the environment — never hard-coded. |
 

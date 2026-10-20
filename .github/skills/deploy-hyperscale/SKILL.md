@@ -220,9 +220,21 @@ same PowerShell session so the deploy inherits it.
 Requirements: 8+ chars; 3 of {upper, lower, number, symbol}; not the login name.
 
 ### Step 9 — Entra admin  → `ADMIN_TYPE`, `ADMIN_DISPLAY_NAME`, `ADMIN_OBJECT_ID`
-Tell: the Microsoft Entra principal that will also be a server admin.
-Prompt: "Entra admin — User, Group, or ServicePrincipal? Its display name? Its
-object id?"
+Tell: the Microsoft Entra principal that will also be a server admin. The book
+uses the reader's own signed-in account, which is also what lets the MSSQL
+extension, the app, and later chapters connect passwordless as them.
+
+Prompt: "Entra admin — **use your signed-in account** (recommended, as in the
+book), or name a group / service principal?"
+
+- **Signed-in account:** run
+  `az ad signed-in-user show --query "{id:id, upn:userPrincipalName}" -o json`,
+  show the result, and ask the reader to confirm. On confirmation set
+  `ADMIN_TYPE=User`, `ADMIN_OBJECT_ID=<id>`, `ADMIN_DISPLAY_NAME=<upn>`. If the
+  lookup fails (for example, `az` is signed in as a service principal), say so
+  and fall back to asking — never guess an identity.
+- **Group or service principal:** ask for the type (`Group` | `ServicePrincipal`),
+  its display name, and its object id.
 
 ### Step 10 — Allow Azure services firewall rule  → `ALLOW_AZURE_SERVICES`
 Tell: this `0.0.0.0` rule lets **other Azure services** (Foundry, MCP servers,
