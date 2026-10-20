@@ -54,8 +54,9 @@ with no sign-in and no database.
 | An identity that can reach the database | The app connects as **you**, not as a service account. Chapter 2 makes you the server's Entra admin, which is enough. |
 | **`wardgeneral` with the Chapter 2 schema *and* its seed data** | Schema without seed gives you a working app with empty screens — a confusing place to land. |
 | A **firewall rule** for this client's IP on the logical server | Otherwise the first data load times out. |
-| Ports **7170** and **5170** free | Kestrel binds both. `shutdown.ps1` frees them. |
+| Ports **7170** and **5170** free | Kestrel binds both. `shutdown.ps1` frees them. To use other ports, see [Using different ports](#using-different-ports). |
 | A real browser | Not the VS Code Simple Browser — see the note under *Running it*. |
+| The **Go-based `sqlcmd`** (recommended) | `preflight-run.ps1` uses it to prove the database answers and the seed ran. Without it that check is skipped with a warning. Install with `winget install --id Microsoft.Sqlcmd` (Windows) or `brew install sqlcmd` (macOS). |
 
 You do not have to check these by hand. `build.ps1` runs `preflight-build.ps1`
 and `run.ps1` runs `preflight-run.ps1`, which verify all of it — including
@@ -70,13 +71,13 @@ Azure CLI all run on macOS and Linux, and the app itself — Blazor Server over
 platform dependency.
 
 Three places in the scripts genuinely differ by operating system, and each one
-branches:
+branches (the third uses the same tool everywhere):
 
 | What | Windows | macOS and Linux |
 |---|---|---|
 | Opening your browser (`run.ps1`) | `Start-Process` | `open` / `xdg-open` |
 | Finding which process holds a port (`shutdown.ps1`) | `Get-NetTCPConnection` | `lsof` |
-| Loading the SQL client for the pre-flight check (`preflight-run.ps1`) | the `win` runtime, with managed networking forced on | the `unix` runtime |
+| Checking the database answers (`preflight-run.ps1`) | the Go-based `sqlcmd` | the Go-based `sqlcmd` |
 
 **These were written for all three platforms but tested only on Windows.** If
 you are on a Mac and something misbehaves, that is where to look first. The rest
@@ -106,9 +107,10 @@ and which chapter gets you there.
 | **Chat icon** — the clinical assistant dock | `Features:AiAgent` | Chapter 6 | The Chapter 6 app evolution, its shift-handoff SQL, and its MCP endpoint over the primary — see [`examples/ch06-agentic-ai/`](../ch06-agentic-ai/) |
 | Row-level filtering behind the **"Viewing as"** selector | `RowLevelSecurity:Enabled` | Chapter 8 | The security predicate published with Chapter 8 |
 
-Row-level security is the one that looks like nothing is gated: the selector is
-live in Chapter 4, it just doesn't filter. Chapter 8's payoff *is* the same
-selector suddenly filtering.
+Row-level security is the one that looks like nothing is gated: in Chapter 4
+every user sees every patient, and the **"Viewing as"** selector is hidden. When
+Chapter 8 turns on `RowLevelSecurity`, the selector appears and the engine starts
+filtering by the clinician you pick.
 
 Chapter 4 features are **not** flags. The base chart — including the `REGEXP_*`
 card — is simply part of the app.
@@ -123,8 +125,8 @@ surfaces it. Only the Chapter 5 proc is missing.
 | File | What it does |
 |---|---|
 | `WardGeneral.slnx` | The solution. Three projects, all under `src/`. |
-| `CES-imaging-order-application.md` | A design-and-build guide for extending the Ward General app so approved imaging orders flow from `clinical.ImagingOrder` through Azure SQL change event streaming, Event Hubs, and an Azure Function adapter. |
-| `APP-SERVICE.md` | Moves `WardGeneral.Web`, `WardGeneral.Data`, and `WardGeneral.Agent` to one Azure App Service web app, using managed identity and either the public SQL endpoint or Private Link. |
+| `CES-imaging-order-application.md` | **Conceptual — not tested.** A design-and-build guide for extending the Ward General app so approved imaging orders flow from `clinical.ImagingOrder` through Azure SQL change event streaming, Event Hubs, and an Azure Function adapter. Referenced in Chapter 11. Following it creates billable Azure resources (Event Hubs, Functions). |
+| `APP-SERVICE.md` | **Conceptual — not tested.** Moves `WardGeneral.Web`, `WardGeneral.Data`, and `WardGeneral.Agent` to one Azure App Service web app, using managed identity and either the public SQL endpoint or Private Link. Referenced in Chapter 11. Following it creates billable Azure resources (App Service). |
 | `build.ps1` | Restore + build. `-Clean` for a from-scratch build (stop the app first — see [Rebuilding from scratch](#rebuilding-from-scratch)), `-Configuration Release` to switch config. Runs `preflight-build.ps1` first. |
 | `run.ps1` | Start the app and open your real browser. `-Server` / `-Database` override configuration for this run. |
 | `restart.ps1` | Stop, then start. **This is how you flip a feature flag** — `-Enable` takes the complete list of flags to force on. |
@@ -251,6 +253,21 @@ If `Server` is still blank the app **fails at startup** and names all these
 places. That is deliberate: a silent fallback to `localhost` is a worse first
 five minutes than an explicit error.
 
+If you prefer the JSON file, create
+`src/WardGeneral.Web/appsettings.Development.json` beside `appsettings.json`
+(it's git-ignored):
+
+```json
+{
+  "WardGeneral": {
+    "Server": "<your-sql-server>.database.windows.net",
+    "Database": "wardgeneral"
+  }
+}
+```
+
+Chapter 6 adds an `Agent` section to the same file — see its README.
+
 ### The easy way: `ch04.env`
 
 Copy the template, fill in two values, and every script in this folder picks
@@ -338,6 +355,17 @@ follow [the App Service path](APP-SERVICE.md).
 
 > Do **not** use the VS Code Simple Browser — it rejects the dev certificate and
 > drops the Blazor circuit. `run.ps1` launches your real browser.
+
+### Using different ports
+
+The scripts use fixed ports, 7170 (HTTPS) and 5170 (HTTP). If those are taken,
+pass your own to `run.ps1`, `restart.ps1`, or `start-demo.ps1`, and stop with the
+same ports:
+
+```powershell
+./run.ps1 -HttpsUrl https://localhost:7443 -HttpUrl http://localhost:5443
+./shutdown.ps1 -Ports 7443,5443
+```
 
 To stop:
 
