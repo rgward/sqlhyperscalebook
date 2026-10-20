@@ -123,9 +123,26 @@ az sql db list-editions `
     -o table
 
 # ---------- 1. Resource group ------------------------------------------------
+# Reuse an existing group as-is. That is the least-privilege path: an
+# administrator creates the group and grants you Contributor or SQL Server
+# Contributor on it, and SQL Server Contributor cannot create or re-tag a
+# resource group. Only a missing group is created (needs Contributor at the
+# subscription). Tags are still applied to the server and database below.
 Write-Host ""
 Write-Host "--- 1/4 Resource group: $Rg ---"
-az group create --name $Rg --location $Loc --tags @Tags -o table
+if ((az group exists --name $Rg) -eq 'true') {
+    $rgLoc = az group show --name $Rg --query location -o tsv
+    Write-Host "Using existing resource group '$Rg' ($rgLoc). Not modifying it."
+} else {
+    Write-Host "Resource group '$Rg' not found; creating it in $Loc."
+    try {
+        az group create --name $Rg --location $Loc --tags @Tags -o table
+    } catch {
+        throw ("Could not create resource group '$Rg'. Creating a group needs Contributor at the subscription. " +
+               "Ask an administrator to create it and grant you Contributor or SQL Server Contributor on it, then re-run with `$env:RG='$Rg'. " +
+               "Nothing else was created. ($($_.Exception.Message))")
+    }
+}
 
 # ---------- 2. Logical server (mixed auth: SQL + Entra) ----------------------
 # Mixed auth keeps a familiar SQL login for Ch 2's first steps and an Entra

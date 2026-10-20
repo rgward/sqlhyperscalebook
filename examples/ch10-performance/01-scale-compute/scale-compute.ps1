@@ -13,7 +13,7 @@ param(
     [ValidatePattern('^HS_Gen5_[0-9]+$')]
     [string] $TargetServiceObjective,
 
-    [string] $ResourceGroup = $env:RG,
+    [string] $ResourceGroup,
 
     [switch] $Approve
 )
@@ -22,12 +22,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 
-if ([string]::IsNullOrWhiteSpace($ResourceGroup)) {
-    throw 'Set RG or pass -ResourceGroup.'
-}
-
 $loadEnv = Join-Path $PSScriptRoot '..\..\ch04-first-app\load-env.ps1'
 . $loadEnv -Require @('WardGeneral__Server', 'WardGeneral__Database') -Quiet
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 
 if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
     throw 'Azure CLI was not found. Install it, run az login, and retry.'

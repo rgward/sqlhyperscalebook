@@ -37,7 +37,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [string] $ResourceGroup = ($env:RG ?? 'rg-collierhealth'),
+    [string] $ResourceGroup,
     [string] $Server,
     [string] $Database,
     [string] $SqlCmd,
@@ -51,6 +51,7 @@ $here = $PSScriptRoot
 
 $loadEnv = Join-Path $here '..' '..' 'ch04-first-app' 'load-env.ps1'
 if (Test-Path $loadEnv) { & $loadEnv -Optional -Quiet }
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 
 if (-not $Server) { $Server = $env:WardGeneral__Server }
 if (-not $Database) { $Database = $env:WardGeneral__Database ?? 'wardgeneral' }

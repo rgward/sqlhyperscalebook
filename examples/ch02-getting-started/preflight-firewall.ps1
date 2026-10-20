@@ -33,7 +33,7 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string]$Server,
-    [string]$ResourceGroup = 'rg-collierhealth',
+    [string]$ResourceGroup = ($env:RG ?? 'rg-collierhealth'),
     [string]$RuleName,
     [string]$Cidr,
     [switch]$Yes

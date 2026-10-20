@@ -41,7 +41,7 @@ the named replica's cost and asks for separate approval before it runs
 
 | File | Type | What it does |
 |---|---|---|
-| `provision-hyperscale.ps1` | PowerShell | Creates `rg-collierhealth`, the `collierhealth` logical server, and the `wardgeneral` Hyperscale database in one `az sql db create` — provisioned, single, **1 HA replica, zone-redundant, GeoZone backup**. Mixed SQL + Entra auth. Calls `estimate-cost.ps1` at the end. |
+| `provision-hyperscale.ps1` | PowerShell | Reuses the resource group if it already exists (so SQL Server Contributor on an administrator-created group is enough) or creates `rg-collierhealth`, then creates the `collierhealth` logical server and the `wardgeneral` Hyperscale database in one `az sql db create` — provisioned, single, **1 HA replica, zone-redundant, GeoZone backup**. Mixed SQL + Entra auth. Calls `estimate-cost.ps1` at the end. |
 | `estimate-cost.ps1` | PowerShell | Prints a live, itemized monthly cost estimate for the deployed Hyperscale shape from the public Azure Retail Prices API, plus the deploy-time cost-vs-resilience levers (inside Hyperscale, drop the HA replica / zone redundancy ≈ −50% compute; Zone vs GeoZone backup). For GP ZR comparisons, use the Azure portal cost summary or Pricing Calculator because GP ZR uses a different meter shape. No dollar figures are hard-coded. |
 | `verify-activity-log.ps1` | PowerShell | Read-only control-plane check: summarizes the Azure **Activity Log** for `rg-collierhealth` (every operation ARM ran to build the database) — events by status, by operation, most-recent table, and a **failure flag**. A clean deploy shows all `Succeeded`. Widen the window with `$env:OFFSET='1d'` (default 6h). |
 | `connect-and-verify.sql` | SQL | Proves it's SQL Server: `@@VERSION`, `DATABASEPROPERTYEX`, service objective, and the governing limits (workers, sessions, log rate, IOPS, memory, 128 TB ceiling, collation, compatibility level) in human units. |
@@ -62,7 +62,7 @@ a sensible default. Set any overrides **before** running it (the
 | Variable | Default | Notes |
 |---|---|---|
 | `LOC` | `eastus2` | Region — pick one with availability-zone support and `HS_Gen5` quota. |
-| `RG` | `rg-collierhealth` | Resource group. |
+| `RG` | `rg-collierhealth` | Resource group. An existing group is reused unchanged; a missing one is created (needs subscription Contributor). If you use a non-default name, also set `RG=` in `ch04-first-app/ch04.env` so later chapters find it. |
 | `SRV` | `collierhealth-<random>` | Logical server — must be globally unique. |
 | `DB` | `wardgeneral` | The Hyperscale database. |
 | `SLO` | `HS_Gen5_8` | Compute shape — changeable later. |

@@ -48,8 +48,9 @@ For "run the 8-vCore baseline", do exactly this:
 1. Run `run-demo.ps1` without `-ApproveScaling`. It runs preflight and previews
    `HS_Gen5_8 → HS_Gen5_16 → HS_Gen5_40` without changing Azure.
 2. Present both changes and obtain explicit approval.
-3. Run `run-demo.ps1 -ApproveScaling` only after approval. Pass the resource
-   group when `RG` is not set.
+3. Run `run-demo.ps1 -ApproveScaling` only after approval. The resource group
+   resolves from `RG` (shell or `ch04.env`) and defaults to `rg-collierhealth`;
+   pass `-ResourceGroup` only if the reader names a different one.
 4. The script runs 100, 200, and 400 workload threads respectively, each for 90
    seconds, and brackets every phase with network and server evidence.
 5. Stop at the first failed workload or scale. Report the actual SLO and do not

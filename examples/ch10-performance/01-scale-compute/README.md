@@ -96,10 +96,15 @@ timeout so a future bad phase stops instead of overrunning indefinitely.
 
 ## Run it
 
+The scripts read the server and database from `examples/ch04-first-app/ch04.env`.
+The resource group comes from `-ResourceGroup`, then `$env:RG`, then `RG=` in
+`ch04.env`, then the Chapter 2 default `rg-collierhealth` — so readers who kept
+the default pass nothing.
+
 Run the preflight by itself when preparing the environment:
 
 ```powershell
-./preflight.ps1 -ResourceGroup <resource-group>
+./preflight.ps1
 ```
 
 It verifies ODBC Driver 18, Azure CLI login, access-token acquisition, Azure
@@ -118,14 +123,14 @@ measurements. Retain the generated data when continuing into Demo 2.
 When deliberately repeating Demo 1 from a clean marker state, preview first:
 
 ```powershell
-./preflight.ps1 -ResourceGroup <resource-group> -ResetDemoData
+./preflight.ps1 -ResetDemoData
 ```
 
 The preview changes nothing. After reviewing the counts, approve the atomic
 delete explicitly:
 
 ```powershell
-./preflight.ps1 -ResourceGroup <resource-group> -ResetDemoData -ApproveCleanup
+./preflight.ps1 -ResetDemoData -ApproveCleanup
 ```
 
 The cleanup deletes **all** exact `CH10-SCALE` rows from all prior Demo 1 runs,
@@ -146,20 +151,20 @@ Preview the complete progression. This validates that the database starts at
 `HS_Gen5_8`, runs the same preflight automatically, and changes nothing:
 
 ```powershell
-./run-demo.ps1 -ResourceGroup <resource-group>
+./run-demo.ps1
 ```
 
 After reviewing both billable changes, authorize the displayed plan:
 
 ```powershell
-./run-demo.ps1 -ResourceGroup <resource-group> -ApproveScaling
+./run-demo.ps1 -ApproveScaling
 ```
 
 To reset the exact marker rows before the approved full progression, first run
 the cleanup preview above and obtain approval, then pass both cleanup switches:
 
 ```powershell
-./run-demo.ps1 -ResourceGroup <resource-group> -ResetDemoData -ApproveCleanup -ApproveScaling
+./run-demo.ps1 -ResetDemoData -ApproveCleanup -ApproveScaling
 ```
 
 The approved run performs:
@@ -208,7 +213,7 @@ interval or one scale independently.
 vCores, preview a reset to the required starting SLO:
 
 ```powershell
-./scale-compute.ps1 -ResourceGroup <resource-group> -TargetServiceObjective HS_Gen5_8
+./scale-compute.ps1 -TargetServiceObjective HS_Gen5_8
 ```
 
 Only after approving that displayed billable change, rerun with `-Approve`.

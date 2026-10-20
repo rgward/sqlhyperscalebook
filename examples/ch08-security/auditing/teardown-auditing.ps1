@@ -10,7 +10,7 @@
 #requires -Version 7.0
 [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
 param(
-    [string] $ResourceGroup = ($env:RG ?? 'rg-collierhealth'),
+    [string] $ResourceGroup,
     [string] $WorkspaceName,
     [string] $Server,
     [string] $Database
@@ -32,6 +32,7 @@ if (Test-Path $loadEnv) {
         $WhatIfPreference = $savedWhatIfPreference
     }
 }
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 
 if (-not $Server) { $Server = $env:WardGeneral__Server }
 if (-not $Database) { $Database = $env:WardGeneral__Database ?? 'wardgeneral' }

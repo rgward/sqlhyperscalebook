@@ -257,6 +257,11 @@ WardGeneral__Database=wardgeneral
 Or run `./load-env.ps1` once with no arguments — if `ch04.env` is missing it
 makes it from the template and tells you to fill it in.
 
+The template also has an optional `RG=` line. Leave it as a placeholder if you
+kept Chapter 2's default resource group, `rg-collierhealth`. If you used a
+different group, fill it in: the Azure control-plane scripts in Chapters 7–10
+read the server, database, and resource group from this same file.
+
 `ch04.env` is **git-ignored**. Your server name never reaches a commit, and a
 `git pull` never collides with your edits. `ch04.env.template`, which holds
 nothing but placeholders, is the part that ships.

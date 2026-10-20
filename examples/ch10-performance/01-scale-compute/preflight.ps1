@@ -15,7 +15,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [string] $ResourceGroup = $env:RG,
+    [string] $ResourceGroup,
 
     [switch] $ResetDemoData,
 
@@ -57,15 +57,13 @@ function Resolve-SqlsimPath {
     return $resolved
 }
 
-if ([string]::IsNullOrWhiteSpace($ResourceGroup)) {
-    throw 'Set RG or pass -ResourceGroup.'
-}
 if ($ApproveCleanup -and -not $ResetDemoData) {
     throw '-ApproveCleanup requires -ResetDemoData.'
 }
 
 $loadEnv = Join-Path $PSScriptRoot '..\..\ch04-first-app\load-env.ps1'
 . $loadEnv -Require @('WardGeneral__Server', 'WardGeneral__Database') -Quiet
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 
 $sqlsim = Resolve-SqlsimPath
 

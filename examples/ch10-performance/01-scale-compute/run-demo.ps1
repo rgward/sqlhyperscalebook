@@ -12,15 +12,19 @@
     8 -> 16 -> 40 plan. The script never scales the database back down.
 
 .EXAMPLE
-    ./run-demo.ps1 -ResourceGroup rg-collierhealth
+    ./run-demo.ps1
 
 .EXAMPLE
-    ./run-demo.ps1 -ResourceGroup rg-collierhealth -ApproveScaling
+    ./run-demo.ps1 -ApproveScaling
+
+.NOTES
+    Resource group: -ResourceGroup, else $env:RG, else RG in ch04.env, else
+    rg-collierhealth (the Chapter 2 default).
 #>
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [string] $ResourceGroup = $env:RG,
+    [string] $ResourceGroup,
 
     [switch] $ResetDemoData,
 
@@ -33,17 +37,14 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 
-if ([string]::IsNullOrWhiteSpace($ResourceGroup)) {
-    throw 'Set RG or pass -ResourceGroup.'
-}
+$loadEnv = Join-Path $PSScriptRoot '..\..\ch04-first-app\load-env.ps1'
+. $loadEnv -Require @('WardGeneral__Server', 'WardGeneral__Database') -Quiet
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 
 & (Join-Path $PSScriptRoot 'preflight.ps1') `
     -ResourceGroup $ResourceGroup `
     -ResetDemoData:$ResetDemoData `
     -ApproveCleanup:$ApproveCleanup
-
-$loadEnv = Join-Path $PSScriptRoot '..\..\ch04-first-app\load-env.ps1'
-. $loadEnv -Require @('WardGeneral__Server', 'WardGeneral__Database') -Quiet
 
 if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
     throw 'Azure CLI was not found. Install it, run az login, and retry.'

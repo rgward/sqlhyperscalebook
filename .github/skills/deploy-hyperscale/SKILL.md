@@ -133,9 +133,12 @@ Prompt: "Deploy into `<active-subscription>` — yes, or name a different one?"
 > one session, so every `$env:` value set along the way is in scope at deploy.
 
 ### Step 2 — Permissions (gate, no variable)
-Tell: creating a server + database needs **Contributor** or a SQL-specific role
-on the subscription/resource group. Confirm they have it; if not, tell them what
-to request.
+Tell: there are two supported paths (Chapter 2, "Permissions"):
+- **Contributor on the subscription** — the script can create the resource group.
+- **Least privilege** — an administrator creates the resource group first and
+  grants the reader **Contributor** or **SQL Server Contributor** on that group.
+  The script then reuses the group without modifying it.
+Ask which applies. If neither, tell them what to request; don't guess.
 
 ### Step 3 — Region  ⚠️ effectively permanent  → `LOC`
 Tell: region is **effectively permanent** (moving later means redeploying), so it
@@ -167,7 +170,10 @@ that, so a region with **no `HS_PRMS_*`** can't host the later scale-out.
 Prompt: "Which region?"
 
 ### Step 4 — Resource group  → `RG`
-Tell: a container for the resources; new or existing is fine.
+Tell: a container for the resources; new or existing is fine. An **existing**
+group is reused as-is (not re-tagged) — required on the least-privilege path from
+Step 2, where the reader can't create or modify the group. A missing group is
+created and needs subscription Contributor.
 Prompt: "Resource group name? [default `rg-collierhealth`]"
 
 ### Step 5 — Logical server name  ⚠️ FIXED AT CREATE  → `SRV`
@@ -337,7 +343,8 @@ incident response**. Azure's Cloud Adoption Framework groups them into
 **functional / classification / accounting / ownership** categories, and most
 orgs enforce a minimal set with Azure Policy. Tags are changeable later, but set
 them now so the resources are governed from birth. The script applies the **same
-tag set to the resource group, logical server, and database**.
+tag set to the logical server and database**, and to the resource group only when
+it creates that group (an existing group is left untouched).
 Recommended minimal set (CAF-aligned) — offer these defaults; let the reader edit.
 This Ch 2 deploy is a **follow-along test database**, so tags state what it IS now
 (a sandbox with synthetic data). In the scale chapter it is **promoted** —

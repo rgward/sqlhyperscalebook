@@ -37,7 +37,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string] $Rg       = 'rg-collierhealth',
+    [string] $Rg,
   [string] $Server,
   [string] $Database,
   [string] $Loc,
@@ -50,6 +50,7 @@ $ErrorActionPreference = 'Stop'
 
 $loadEnv = Join-Path $PSScriptRoot '..' '..' 'ch04-first-app' 'load-env.ps1'
 & $loadEnv -Require @('WardGeneral__Server', 'WardGeneral__Database') -Quiet
+if (-not $Rg) { $Rg = $env:RG ?? 'rg-collierhealth' }
 if (-not $Server) { $Server = $env:WardGeneral__Server }
 if (-not $Database) { $Database = $env:WardGeneral__Database }
 if ([string]::IsNullOrWhiteSpace($Server) -or $Server -match '<[^>]*>') {

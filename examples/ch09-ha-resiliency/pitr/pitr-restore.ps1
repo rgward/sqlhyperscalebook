@@ -32,7 +32,7 @@
 param(
   [Parameter(Mandatory)]
   [DateTimeOffset] $RestorePointUtc,
-  [string] $ResourceGroup = ($env:RG ?? 'rg-collierhealth'),
+  [string] $ResourceGroup,
   [string] $Server,
   [string] $Database,
   [string] $RestoredDatabase,
@@ -47,6 +47,7 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $loadEnv = Join-Path $PSScriptRoot '..' '..' 'ch04-first-app' 'load-env.ps1'
 if (Test-Path $loadEnv) { & $loadEnv -Optional -Quiet }
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 
 if (-not $Server) { $Server = $env:WardGeneral__Server }
 if (-not $Database) { $Database = $env:WardGeneral__Database ?? 'wardgeneral' }

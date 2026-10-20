@@ -12,7 +12,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [string] $ResourceGroup = ($env:RG ?? 'rg-collierhealth'),
+    [string] $ResourceGroup,
     [string] $SourceServer,
     [string] $Database,
     [string] $TargetServer,
@@ -26,6 +26,7 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $loadEnv = Join-Path $PSScriptRoot '..' '..' 'ch04-first-app' 'load-env.ps1'
 if (Test-Path $loadEnv) { & $loadEnv -Optional -Quiet }
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 
 if (-not $SourceServer) { $SourceServer = $env:WardGeneral__Server }
 if (-not $Database) { $Database = $env:WardGeneral__Database ?? 'wardgeneral' }
