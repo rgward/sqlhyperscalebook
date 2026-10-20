@@ -34,6 +34,11 @@
 .PARAMETER Apply
     Create the role assignment if it is missing.
 
+.PARAMETER Quiet
+    Report only through the exit code: 0 when you have access, 1 when the role
+    is missing. Problems that stop the check (no endpoint, not signed in) still
+    throw. Used by the app's run preflight when the AiAgent flag is on.
+
 .EXAMPLE
     ./grant-model-access.ps1
     Report whether you can call the agent's model.
@@ -45,11 +50,16 @@
 [CmdletBinding()]
 param(
     [string] $Endpoint,
-    [switch] $Apply
+    [switch] $Apply,
+    [switch] $Quiet
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+function Say([string] $Text, [string] $Color = 'Gray') {
+    if (-not $Quiet) { Write-Host $Text -ForegroundColor $Color }
+}
 
 $roleName   = 'Cognitive Services OpenAI User'
 $chatAction = 'Microsoft.CognitiveServices/accounts/OpenAI/deployments/chat/completions/action'
@@ -85,35 +95,35 @@ if ([string]::IsNullOrWhiteSpace($resourceId)) {
     throw "No Foundry account named '$accountName' in subscription '$($account.name)'. Check the endpoint, or select the subscription that holds it (az account set)."
 }
 
-Write-Host 'Chapter 6 agent model access' -ForegroundColor Cyan
-Write-Host "  subscription : $($account.name)"
-Write-Host "  account      : $accountName"
-Write-Host "  signed in as : $($me.upn)"
-Write-Host ''
+Say 'Chapter 6 agent model access' Cyan
+Say "  subscription : $($account.name)"
+Say "  account      : $accountName"
+Say "  signed in as : $($me.upn)"
+Say ''
 
 # Any role that allows chat completions counts - assigned directly, through a
 # group, or inherited from the resource group or subscription.
-$roles = @(az role assignment list --assignee $me.id --scope $resourceId --include-inherited --include-groups --query '[].roleDefinitionName' -o tsv) |
-    Where-Object { $_ } | Sort-Object -Unique
+$roles = @(@(az role assignment list --assignee $me.id --scope $resourceId --include-inherited --include-groups --query '[].roleDefinitionName' -o tsv) |
+    Where-Object { $_ } | Sort-Object -Unique)
 $granting = @(foreach ($role in $roles) {
     $dataActions = @(az role definition list --name $role --query '[0].permissions[].dataActions[]' -o tsv)
     if (@($dataActions | Where-Object { $chatAction -like $_ }).Count -gt 0) { $role }
 })
 
 if ($granting.Count -gt 0) {
-    Write-Host "OK: you can call the agent's model through: $($granting -join ', ')." -ForegroundColor Green
-    return
+    Say "OK: you can call the agent's model through: $($granting -join ', ')." Green
+    exit 0
 }
 
-Write-Host "MISSING: none of your roles on '$accountName' allows chat completions." -ForegroundColor Yellow
+Say "MISSING: none of your roles on '$accountName' allows chat completions." Yellow
 if ($roles.Count -gt 0) {
-    Write-Host "  Roles you have there: $($roles -join ', ') (no data actions for the model)." -ForegroundColor DarkGray
+    Say "  Roles you have there: $($roles -join ', ') (no data actions for the model)." DarkGray
 }
-Write-Host "  Proposed: assign '$roleName' to $($me.upn) on $accountName." -ForegroundColor Yellow
+Say "  Proposed: assign '$roleName' to $($me.upn) on $accountName." Yellow
 
 if (-not $Apply) {
-    Write-Host ''
-    Write-Host 'Preview only. Re-run with -Apply to create the assignment.' -ForegroundColor Yellow
+    Say ''
+    Say 'Preview only. Re-run with -Apply to create the assignment.' Yellow
     exit 1
 }
 

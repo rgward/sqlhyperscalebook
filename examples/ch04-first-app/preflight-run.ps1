@@ -12,6 +12,9 @@
       3. Database        reachable, Chapter 2 schema + data  (failure)
       4. SQL MCP         Chapter 6 endpoint serving its tools (failure, and only
                          when the AiAgent feature flag is on)
+      5. Model access    your identity can call the agent's Foundry model
+                         (failure if the role is missing, warning if it can't be
+                         checked; only when the AiAgent feature flag is on)
 
     Why these are failures rather than warnings: the app authenticates with
     DefaultAzureCredential, which uses the same sign-in as the Azure CLI.
@@ -318,6 +321,38 @@ else {
                 $warnings++
             }
         }
+    }
+}
+
+# -- 5. Agent model access --------------------------------------------------
+# The agent calls the gpt-5 deployment as the signed-in user. Owner and
+# Contributor carry no data actions, so without a role such as Cognitive
+# Services OpenAI User the chat panel opens and its first model call fails.
+if ($agentOn) {
+    $grant = Join-Path $root '..' 'ch06-agentic-ai' 'grant-model-access.ps1'
+    if (-not (Test-Path $grant)) {
+        Write-Check warn 'Agent model access' "check script not found at $grant"
+        $warnings++
+    }
+    else {
+        try {
+            & $grant -Quiet
+            if ($LASTEXITCODE -eq 0) {
+                Write-Check pass 'Agent model access' 'your identity can call the Foundry model'
+            }
+            else {
+                Write-Check fail 'Agent model access' 'your identity has no role that can call the agent''s Foundry model'
+                Write-Host '        Preview the fix, then apply it (needs rights to assign roles):' -ForegroundColor Yellow
+                Write-Host '          ./examples/ch06-agentic-ai/grant-model-access.ps1' -ForegroundColor DarkGray
+                Write-Host '          ./examples/ch06-agentic-ai/grant-model-access.ps1 -Apply' -ForegroundColor DarkGray
+                $failures++
+            }
+        }
+        catch {
+            Write-Check warn 'Agent model access' "could not check: $($_.Exception.Message)"
+            $warnings++
+        }
+        $global:LASTEXITCODE = 0
     }
 }
 
