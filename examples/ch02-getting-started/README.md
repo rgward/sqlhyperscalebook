@@ -1,5 +1,8 @@
 # Chapter 2 — Getting Started
 
+> **Figures:** this chapter's book figures are in [`figures/ch02-getting-started/`](../../figures/ch02-getting-started/),
+> listed with their captions in the [root README](../../README.md#chapter-2).
+
 Provision an Azure SQL **Hyperscale** database, connect to it, build the
 through-line schema, and seed it with fully synthetic data. This is the database
 every later chapter builds on: the **Ward General Hospital** database

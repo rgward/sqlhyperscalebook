@@ -1,5 +1,8 @@
 # Chapter 9 — High Availability and Resiliency in Hyperscale
 
+> **Figures:** this chapter's book figures are in [`figures/ch09-ha-resiliency/`](../../figures/ch09-ha-resiliency/),
+> listed with their captions in the [root README](../../README.md#chapter-9).
+
 Chapter 9 has three guided examples. The first shows what the Ward General
 application's existing retry policy does while Azure SQL fails the database
 over. The second uses point-in-time restore to create a current, lower-compute

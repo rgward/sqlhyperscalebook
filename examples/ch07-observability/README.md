@@ -1,5 +1,8 @@
 # Chapter 7 — Observability, Monitoring, and Troubleshooting
 
+> **Figures:** this chapter's book figures are in [`figures/ch07-observability/`](../../figures/ch07-observability/),
+> listed with their captions in the [root README](../../README.md#chapter-7).
+
 Chapter 7 packages three bounded example surfaces with matching skills:
 performance, availability, and engine events. Storage administration is not a
 separate topic.

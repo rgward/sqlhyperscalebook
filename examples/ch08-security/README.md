@@ -1,5 +1,8 @@
 # Chapter 8 — Securing Data in the Cloud with Hyperscale
 
+> **Figures:** this chapter's book figures are in [`figures/ch08-security/`](../../figures/ch08-security/),
+> listed with their captions in the [root README](../../README.md#chapter-8).
+
 Chapter 8 has one primary guided example: secure the existing Ward General
 application with Row-Level Security. It also has an optional Azure SQL Database
 auditing companion investigation that captures a bounded interval of
