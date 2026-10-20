@@ -168,7 +168,11 @@ Execution 2: SortWarning=False; SpillLevel=none; Grant=993.34 MB; Used=392.55 MB
 ```
 
 The exact grants and timings vary with service objective and current load. The
-required transition is:
+summary lines also start with each execution's `Elapsed` and `CPU` milliseconds
+from the actual plan's `QueryTimeStats`. After the two lines, the runner prints
+the percent change from execution 1 to execution 2 (the book reports about 40%
+faster) and the `sys.query_store_plan_feedback` feature and state, which should
+show memory grant feedback as `FEEDBACK_VALID`. The required transition is:
 
 - execution 1 has a Sort warning and `SpillToTempDb`;
 - execution 2 has no Sort warning;
@@ -182,7 +186,8 @@ The run directory should contain:
 | --- | --- |
 | `execution-1.sqlplan` | Actual plan with the Sort spill warning. |
 | `execution-2.sqlplan` | Actual plan after MGF adjusts the grant. |
-| `plan-summary.csv` | Extracted warning, spill, grant, feedback, and row-count attributes. |
+| `plan-summary.csv` | Extracted warning, spill, grant, feedback, row-count, elapsed, and CPU attributes. |
+| `query-store-feedback.csv` | Feature and state of each `sys.query_store_plan_feedback` row, read before cleanup. |
 | `run-output.txt` | Eight-execution DMV results and Query Store feedback records. |
 
 ### Open the captured plans in SSMS

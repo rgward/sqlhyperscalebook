@@ -9,6 +9,8 @@ Follow `examples/ch10-performance/03-tune-grown-data/README.md`.
 
 ## Boundaries
 
+- Preview each sequence and obtain explicit approval in chat before running it
+  with `-Execute`; both create and drop demo-owned objects.
 - Use Query Store and actual plans from Chapter 7; do not re-teach the toolkit.
 - The JSON-index and memory grant feedback sequences are independent of Demo 2
   growth and modify no existing Ward General rows.
@@ -48,13 +50,20 @@ Follow `examples/ch10-performance/03-tune-grown-data/README.md`.
 
 ## Memory grant feedback workflow
 
-1. Run `memory-grant-feedback/run-demo.ps1` to preview the target.
-2. Run `memory-grant-feedback/run-demo.ps1 -Execute`. It performs setup,
-  captures actual plans for executions 1 and 2, executes all eight calls,
-  summarizes plan and Query Store feedback evidence, and always cleans up.
-3. Use the generated `plan-summary.csv`, `execution-1.sqlplan`, and
-  `execution-2.sqlplan` under `memory-grant-feedback/results/runs/`. Confirm
-  execution 1 has `SpillToTempDb` and execution 2 has no Sort warning.
+1. Run `memory-grant-feedback/run-demo.ps1` to preview the target. Explain that
+  `-Execute` creates and populates a five-million-row demo table, runs the
+  query eight times, and then drops the demo objects. Obtain explicit approval
+  in chat before continuing.
+2. After approval, run `memory-grant-feedback/run-demo.ps1 -Execute`. It
+  performs setup, captures actual plans for executions 1 and 2, executes all
+  eight calls, summarizes plan and Query Store feedback evidence, and always
+  cleans up.
+3. Use the console summary, `plan-summary.csv`, `query-store-feedback.csv`,
+  `execution-1.sqlplan`, and `execution-2.sqlplan` under
+  `memory-grant-feedback/results/runs/`. Report each execution's elapsed and
+  CPU time, the printed percent change from execution 1 to 2, and the Query
+  Store feedback feature and state. Confirm execution 1 has `SpillToTempDb`
+  and execution 2 has no Sort warning.
 4. If the reader wants graphical proof, have them open each `.sqlplan` through
   SSMS **File > Open > File**. On execution 1, inspect the Sort warning and
   spill level 1; on execution 2, confirm the warning is absent. On each root

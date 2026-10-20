@@ -24,6 +24,15 @@ From this folder (the scripts find their files from their own location):
 executions 1 and 2, writes `plan-summary.csv`, reports Query Store feedback, and
 always runs cleanup. Evidence goes under `results/runs/<UTC timestamp>/`.
 
+The console summary shows, for executions 1 and 2, the elapsed and CPU time
+from each actual plan's `QueryTimeStats`, the sort spill, and the granted and
+used memory. It then prints how much faster (or slower) execution 2 was than
+execution 1. The book reports about 40% faster; your numbers will vary. Finally
+it prints each `sys.query_store_plan_feedback` row's feature and state, which
+should show memory grant feedback as `FEEDBACK_VALID`. The same rows are saved
+to `query-store-feedback.csv`. Grant, spill, and elapsed time for all eight
+executions are in `run-output.txt`.
+
 ## Run the scripts yourself
 
 Run them in order, in the MSSQL extension, SSMS, or `sqlcmd`:

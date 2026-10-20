@@ -205,6 +205,23 @@ workload, calculated from phase-specific Query Store execution-count deltas.
 `summary.json` also retains execution counts plus average CPU and duration for
 diagnosis.
 
+The book says the report captures throughput, latency, Query Store
+CPU/duration, resource pressure, waits, RBPEX, and network drift. The HTML
+report draws throughput, client latency, peak CPU, and a phase table with
+worker pressure, failures, and network drift. The rest of that evidence is in
+the same run folder:
+
+| Evidence | Where to find it |
+| --- | --- |
+| Query Store CPU and duration per procedure | `summary.json` → `ProcedureServerExecution` (`AverageCpuMs`, `AverageDurationMs`) |
+| Resource pressure (CPU, data I/O, log write, workers, sessions) | `summary.json` / `summary.csv` → `Peak*Percent` |
+| Waits (`PAGEIOLATCH_SH`, `WRITELOG`, `RBIO_RG_*`) | `summary.json` / `summary.csv` → `*WaitDeltaMs` |
+| RBPEX cache hit ratio | `server-<slo>-before.txt` and `server-<slo>-after.txt` (raw `measure.sql` output) |
+| Network drift | `network-<slo>-before.json`, `network-<slo>-after.json`, and the report's phase table |
+
+`measure.sql` reads `sys.dm_db_wait_stats`, the database-scoped equivalent of
+`sys.dm_os_wait_stats` in Azure SQL Database.
+
 Standalone preflight and workload runs use `results/preflight/` and
 `results/standalone/`. If any workload or scale fails, the script stops and
 preserves the partial run folder; it does not skip ahead or automatically scale

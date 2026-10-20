@@ -76,7 +76,7 @@ Per demo:
 | Demo | Also needs |
 | --- | --- |
 | [1. Scale compute](01-scale-compute/) | **sqlsim** from [aka.ms/sqlsimtools](https://aka.ms/sqlsimtools), with `SQLSIM` set to `sqlsim.exe` ([how](01-scale-compute/README.md#install-sqlsim)), and **ODBC Driver 18 for SQL Server**. A steady network path — the run measures latency from your machine. |
-| [2. Grow data](02-grow-data/) | The `HS_Gen5_40` state Demo 1 leaves, plus sqlsim and ODBC 18 as above, with `SQLSIM` set where this new process can see it. Adds roughly 12 GB of billed storage per interval. |
+| [2. Grow data](02-grow-data/) | The `HS_Gen5_40` state Demo 1 leaves, plus sqlsim and ODBC 18 as above. The runner reuses `SQLSIM` (or `-SqlsimPath`) and asks for the path once if this new process can't see it. Adds roughly 12 GB of billed storage per interval. |
 | [3. Tune](03-tune-grown-data/) | Database compatibility level 160 or higher (Chapter 2 deploys 170) for memory grant feedback. `CREATE JSON INDEX` availability in Azure SQL Database — check the current documentation; the JSON index build is offline for its demo table. |
 
 ## Reader-run exercises
@@ -115,7 +115,8 @@ Other things that keep billing after this chapter:
 - **Storage from Demo 2.** Each five-minute interval adds roughly 12 GB of
   clinical history, and allocated storage grows in 10 GB steps. Hyperscale bills
   allocated storage; the runner never deletes generated data or shrinks files.
-  Only repeat the interval when you want more data.
+  Only repeat the interval when you want more data. `DBCC SHRINKFILE` is
+  supported on Hyperscale but releases only free space, not the added rows.
 - **A Chapter 9 geo-secondary, if you kept it.** It bills separately and is not
   scaled with the primary. Remove it with Chapter 9's `cleanup-geo-replica.ps1`
   if you no longer need it.

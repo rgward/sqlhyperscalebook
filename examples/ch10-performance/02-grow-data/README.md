@@ -53,6 +53,13 @@ The runner requires the `HS_Gen5_40` state left by Demo 1. It launches sqlsim
 with `growth-workload.json` and samples the database from a separate connection
 every 15 seconds. The reader does not need a second terminal.
 
+It uses the same `sqlsim.exe` as Demo 1: `-SqlsimPath` if passed, otherwise
+`SQLSIM`. Demo 1's preflight sets `SQLSIM` only for its own PowerShell process,
+so if it isn't set where this runner starts, the runner asks for the path once,
+the same way Demo 1 did. To avoid the prompt in every new terminal, set
+`SQLSIM` at user scope as described in
+[Install sqlsim](../01-scale-compute/README.md#install-sqlsim).
+
 Every run is retained beneath `results/runs/<UTC-run-id>/`. The directory is
 gitignored and contains raw workload output, before/after snapshots, individual
 timeline samples, run metadata, and the three report formats.
@@ -69,9 +76,21 @@ The HTML report shows:
 - CPU, data I/O, log utilization, and cumulative log bytes over time;
 - workload completion status and whether log governance appeared.
 
+> **Book note:** The book says the sampling connection reads
+> `sys.dm_os_wait_stats`. The scripts read `sys.dm_db_wait_stats`, its
+> database-scoped equivalent in Azure SQL Database, so the `RBIO_RG_*` and
+> `WRITELOG` figures belong to `wardgeneral` alone. The wait types are the same.
+
 The workload is append-only. Repeating the command adds another five-minute
 growth interval; the runner never deletes generated clinical history or
 shrinks files.
+
+> **Reclaiming space.** As the book notes, Hyperscale supports
+> `DBCC SHRINKDATABASE` and `DBCC SHRINKFILE`, including
+> `WITH WAIT_AT_LOW_PRIORITY`. Shrinking only releases free space, though, and
+> the rows this demo adds stay in Ward General, so a shrink alone reclaims
+> little. To stop all storage charges, delete the database as described in the
+> Chapter 2 README.
 
 > **Cost.** Demo 2 runs at `HS_Gen5_40` from Demo 1, and every interval adds
 > roughly 12 GB of billed storage. When you finish Chapter 10, scale back to

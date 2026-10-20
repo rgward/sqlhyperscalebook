@@ -26,7 +26,10 @@ That README is the reader-facing source of truth.
 ## Current workflow
 
 1. Run `run-demo.ps1` without `-Execute` to show the exact database, current
-  reserved size, SLO, workload duration, and sample interval.
+  reserved size, SLO, workload duration, and sample interval. If the reader
+  already gave the `sqlsim.exe` path for Demo 1 in this conversation, pass it
+  with `-SqlsimPath` (or set `$env:SQLSIM` in the same command) instead of
+  asking again. Otherwise let the script's one-time prompt ask for it.
 2. Obtain explicit approval before rerunning the same command with `-Execute`;
   the operation appends billable data and has no automatic cleanup.
 3. Let the runner launch the workload and capture 15-second samples from a
@@ -36,7 +39,9 @@ That README is the reader-facing source of truth.
 5. Use the post-chart wait panel to report the `RBIO_RG_*` wait-type count,
   task count, total duration, dominant measured wait, and `WRITELOG` duration.
 6. Interpret the actual constraint; do not infer a log-rate limit from growth
-  volume alone. Leave the grown database ready for Demo 3.
+  volume alone. Leave the grown database ready for Demo 3. If the reader asks
+  about reclaiming space, explain that `DBCC SHRINKFILE` releases only free
+  space and the added rows remain; do not run a shrink or delete data.
 
 Stop when approval is absent, the starting SLO is not `HS_Gen5_40`, the
 workload fails, or live results contradict the planned narrative. Preserve a
