@@ -215,6 +215,35 @@ MSSQL extension, SSMS, or `sqlcmd` — so leave it in place and run each file wh
 Read-only diagnostic queries, cleanup scripts, and the sqlsim workload
 statements create nothing, so they don't carry it.
 
+## Working with Copilot
+
+The guided path runs through GitHub Copilot in VS Code. A few things behave in
+ways that surprise first-time readers:
+
+- **Copilot may edit scripts in your clone.** If you ask it to adapt something,
+  such as a different region or compute model, it can change a script or SQL
+  file to do it. That's expected and it's your copy. Use `git status` and
+  `git diff` to see what changed, and `git restore <file>` to put a file back.
+  Please don't open pull requests from those local adaptations; if you find a
+  real problem in an example, [open an issue](https://github.com/rgward/sqlhyperscalebook/issues)
+  instead.
+- **Approving actions.** Before Copilot runs a command or tool, VS Code asks
+  you to approve it. You can approve a single use, or grant approval for the
+  session, the workspace, or all future uses. The permissions picker in the
+  chat input also offers **Allow all**. Approving each step is the strict
+  choice; allowing more saves clicks when you trust what it's doing. Avoid
+  **Allow all** and **Autopilot** for these examples: the skills ask for your
+  approval in chat before creating billable Azure resources, and Autopilot can
+  answer those questions on its own. See
+  [Manage approvals and permissions](https://code.visualstudio.com/docs/agents/run/approvals).
+- **Chat or terminal?** Answer the skills' questions in chat; to accept a
+  default, reply **ok**. Only a few steps need you in the terminal: signing in
+  with `az login` and typing the masked SQL admin password during the
+  Chapter 2 deploy. Your password never goes into chat.
+- **Where output appears.** Short commands show their output in the chat.
+  Long-running ones, like the Ward General app, run in a terminal Copilot
+  opens; look for it in the **Terminal** panel.
+
 ## Figures
 
 Every captioned figure in the book is published here, under `figures/<chapter>/`,
