@@ -78,38 +78,57 @@ and application, SQL, or MCP caller.
 
 ## Prerequisites
 
-Install these before running the guided deploy:
+You don't need every tool on day one. Install the **required** set before the
+Chapter 2 deploy, and add the rest when a chapter asks for it. Each chapter's
+README lists its exact prerequisites.
 
-### Editor + AI
+### Required to start (Chapter 2)
 
 - **VS Code** (current build).
 - **GitHub Copilot** + **GitHub Copilot Chat** extensions, with **agent mode**, and a Copilot subscription. Skills are an agent-mode feature and are auto-discovered from this repo's `.github/skills/` the moment you open the folder.
+- **PowerShell 7+ (`pwsh`)**. It isn't installed with Windows, which ships Windows PowerShell 5.1, and the scripts need PowerShell 7 features. Install it separately and set `pwsh` as your default integrated terminal.
+- **Azure CLI 2.60+** (`az`), signed in with `az login`.
+- **MSSQL extension for VS Code** (`ms-mssql.mssql`), the book's primary database client. It runs inside VS Code; the book uses it to connect with Microsoft Entra auth and run `connect-and-verify.sql`.
+- An **Azure subscription** with rights to create a logical server and database (Contributor or a SQL-specific role). A Hyperscale database **bills from creation**, so mind the meter. To follow the early chapters for free instead, see [Using the free Azure SQL Database offer](examples/ch02-getting-started/README.md#using-the-free-azure-sql-database-offer-instead).
+- A **Microsoft Entra** account. You become the server's Entra admin, so no SQL password is needed to connect.
 
-### Shells and CLIs
+### Needed in later chapters
 
-- **PowerShell 7+ (`pwsh`)** — required. The scripts use PowerShell 7 features, so Windows PowerShell 5.1 won't work. Set `pwsh` as your default integrated terminal.
-- **Azure CLI 2.60+** (`az`) — signed in with `az login`.
-
-### Database client
-
-- **MSSQL extension for VS Code** (`ms-mssql.mssql`) — the book's primary client; used to connect (Microsoft Entra auth) and run `connect-and-verify.sql`.
-
-### Azure account
-
-- An **Azure subscription** with rights to create a logical server + database (Contributor or a SQL-specific role). A Hyperscale database **bills from creation** — mind the meter. To follow the early chapters for free instead, see [Using the free Azure SQL Database offer](examples/ch02-getting-started/README.md#using-the-free-azure-sql-database-offer-instead).
-- A **Microsoft Entra** account — you become the server's Entra admin (no SQL password needed to connect).
+| Tool | First needed | Used for |
+| --- | --- | --- |
+| **go-sqlcmd** (the new Go-based `sqlcmd`, not the legacy ODBC one) | Chapter 4 | Preflight checks and the script-driven SQL in Chapters 4–10 |
+| **.NET 10 SDK** and a trusted **HTTPS dev certificate** (`dotnet dev-certs https --trust`) | Chapter 4 | Building and running the Ward General app |
+| **Data API builder (DAB) CLI 2.0+** | Chapter 6 | The SQL MCP server the agent calls |
+| **ODBC Driver 18 for SQL Server** and **sqlsim** ([aka.ms/sqlsimtools](https://aka.ms/sqlsimtools)) | Chapter 10 | The workload demos |
 
 ### Optional
 
-- **Azure MCP Server** (`ms-azuretools.vscode-azure-mcp-server`, preview) — lets Copilot drive `az` as structured tools. Not required: the skill runs `az` through the built-in terminal tool.
+- **Git.** Cloning is the easiest way to get the examples and pick up updates, and VS Code's source control features need Git installed. You can also use **Code → Download ZIP** on GitHub and open the extracted folder instead.
+- **SQL Server Management Studio (SSMS).** An alternative client the book also shows. It runs on Windows only; on macOS or Linux, use VS Code with the MSSQL extension.
+- **Azure MCP Server** (`ms-azuretools.vscode-azure-mcp-server`, preview). It lets Copilot drive `az` as structured tools. Not required: the skill runs `az` through the built-in terminal tool.
 
 > **What "tools" does the skill use?** Mostly the **built-in terminal tool** that ships with Copilot agent mode — it runs `az` and the PowerShell script. Azure MCP is an optional add-on; the MSSQL extension is a client *you* drive, not an agent tool.
 
+### Which operating systems?
+
+| Tool | Windows | macOS | Linux |
+| --- | :---: | :---: | :---: |
+| VS Code, GitHub Copilot, MSSQL extension | ✓ | ✓ | ✓ |
+| PowerShell 7, Azure CLI | ✓ | ✓ | ✓ |
+| go-sqlcmd | ✓ | ✓ | ✓ |
+| .NET 10 SDK, DAB CLI | ✓ | ✓ | ✓ |
+| ODBC Driver 18 for SQL Server | ✓ | ✓ | ✓ |
+| SSMS (optional) | ✓ | — | — |
+| sqlsim and the Chapter 10 workload demos | ✓ | — | — |
+
+The scripts were written and validated on Windows. Chapter 4 fixed the
+macOS/Linux path handling in its own scripts; a few scripts in later chapters
+still assume Windows paths.
 ## Using the examples
 
 Two ways, depending on how hands-on you want to be:
 
-**Guided (recommended).** Clone via **`aka.ms/sqlhyperscalebook`**, open the
+**Guided (recommended).** Clone via **`aka.ms/sqlhyperscalebook`** (or download the ZIP), open the
 folder in **VS Code** with GitHub Copilot, and ask Copilot to *"deploy my
 Hyperscale database."* It discovers the `deploy-hyperscale` skill in
 `.github/skills/`, walks you through the key create-time decisions (region,
