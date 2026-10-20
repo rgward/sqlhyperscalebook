@@ -120,6 +120,47 @@ geo-failover promotes it. Replication is asynchronous with respect to commit,
 so the primary does not wait for the geo-secondary before acknowledging a
 transaction.
 
+## Supplement: a planned geo-failover, step by step
+
+This diagram is a repository supplement to the book's *The Failover Process*
+section for standalone geo-replication. It is not a book figure, and it follows
+the book's steps without adding any. The scripts in this folder **do not**
+perform a failover.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor You
+    participant App as Ward General app
+    participant P as Primary<br/>(source region)
+    participant S as Geo-secondary<br/>(target region)
+    You->>S: Initiate a planned failover against the secondary
+    P->>S: Azure synchronizes the replication link (no data loss)
+    P--xApp: Existing connections are terminated
+    S->>S: The geo-secondary becomes the new primary
+    S->>P: The old primary becomes a geo-secondary and catches up
+    You->>App: Reconfigure the app to the new primary's logical-server endpoint
+    You->>S: Validate writes, replication direction, security, firewall rules, and app health
+    You->>P: Later, perform another planned failover to fail back
+```
+
+Ways to initiate the failover, as listed in the book: PowerShell
+`Set-AzSqlDatabaseSecondary`, `az sql db replica set-primary`, T-SQL
+`ALTER DATABASE [database] FAILOVER` on the geo-replica, the Azure portal's
+**Failover** option, or the REST APIs.
+
+- **Forced failover** follows the same steps without step 2, because the
+  primary isn't synchronized first (for example, PowerShell
+  `-AllowDataLoss`). You might not fail back until the original primary is
+  running again.
+- **Failover group:** applications that connect through the listener name are
+  redirected to the new primary automatically (after a retry), so step 6 isn't
+  needed.
+
+> **If you try a failover on this example's replica,** fail back before running
+> cleanup. `cleanup-geo-replica.ps1` deletes the database on the target server,
+> which would be your primary after a failover.
+
 ## Clean Up
 
 Preview cleanup only after geo-replication testing is complete:

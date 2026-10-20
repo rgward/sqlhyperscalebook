@@ -142,6 +142,33 @@ The control-plane script triggers one manual database failover separately
 from the probe. The measured interruption is an observation from that run, not
 a promised recovery-time objective.
 
+## Supplement: what happens inside Hyperscale during this failover
+
+This diagram is a repository supplement to the book's *Caching and Replicas*
+section. It is not a book figure, and it follows the book's description without
+adding to it.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Probe as Retry probe
+    participant HA as HA secondary
+    participant Cache as Buffer pool and RBPEX
+    participant PS as Page servers
+    Note over HA: Before the failover, it continuously receives<br/>and applies log records
+    HA->>HA: Promoted to the new primary (no database pages are copied)
+    Probe->>HA: Requests resume after the failover
+    HA->>Cache: Check the buffer pool, then the local RBPEX, for each page
+    HA->>PS: Not cached? Fetch the page with GetPage@LSN
+    PS-->>HA: Page returned (cold-cache reads can be slower at first)
+    Note over HA,PS: Continuous priming shares which pages are hot,<br/>so replicas fetch them through this same path
+```
+
+Without an HA replica (or with the only one offline), the cache warms the same
+way, but Azure must first start another primary compute. That's why the book
+notes the failover would take longer and the client retry logic is more likely
+to be needed.
+
 ## Boundaries
 
 - Do not change the HA replica count or zone-redundancy setting.
