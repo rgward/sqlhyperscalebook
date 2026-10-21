@@ -188,6 +188,7 @@ if ($env:AI_RESOURCE) {
 if (-not $env:AI_LOCATION) { $env:AI_LOCATION = $env:LOC }
 if (-not $env:GATEWAY_LOCATION) { $env:GATEWAY_LOCATION = $env:AI_LOCATION }
 if (-not $env:PUBLISHER_EMAIL) { $env:PUBLISHER_EMAIL = 'booktest@example.com' }
+if (-not $env:CS_SKU) { $env:CS_SKU = 'F0' }
 $env:TAGS = 'environment=sandbox application=ward-general-ehr criticality=low dataClassification=nonproduction booktest=true'
 $env:BOOKTEST_EVIDENCE = $OutputDirectory
 $env:BOOKTEST_NO_GATEWAY = if ($NoGateway) { '1' } else { '0' }

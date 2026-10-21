@@ -184,7 +184,7 @@ Describe 'Local port helpers (Chapters 4 and 8)' -Tag 'Offline' {
 Describe 'check-ai-env.ps1 (Chapter 5)' -Tag 'Offline' {
     BeforeAll {
         $s = 'examples/ch05-ai-ready-sql/check-ai-env.ps1'
-        function Invoke-Check([System.Collections.IDictionary] $Extra = [ordered]@{}, [hashtable] $Environment = @{}) {
+        function Invoke-Check([System.Collections.IDictionary] $Extra = [ordered]@{}, [hashtable] $Environment = @{}, [switch] $WithGateway) {
             $file = Join-Path (New-TestScratch 'ch05') 'ch05.env'
             @('RG=rg-collierhealth', 'SRV=collierhealth-test', 'AI_RESOURCE=collierhealth-ai',
                 'WardGeneral__Server=collierhealth-test.database.windows.net', 'WardGeneral__Database=wardgeneral') | Set-Content $file
@@ -200,10 +200,31 @@ Describe 'check-ai-env.ps1 (Chapter 5)' -Tag 'Offline' {
                     @('^cognitiveservices account show', 'EXIT:3|'),
                     @('checkDomainAvailability', '{"isSubdomainAvailable":true}')
                 )) { if (-not $rules.Contains($pair[0])) { $rules[$pair[0]] = $pair[1] } }
-            $env = @{ AI_LOCATION = $null; GATEWAY_LOCATION = $null; APIM_NAME = $null; CS_RESOURCE = $null; SUBSCRIPTION_ID = $null }
+            $env = @{ AI_LOCATION = $null; GATEWAY_LOCATION = $null; APIM_NAME = $null; CS_RESOURCE = $null; SUBSCRIPTION_ID = $null; CS_SKU = $null; PUBLISHER_EMAIL = 'a@example.com' }
             foreach ($k in $Environment.Keys) { $env[$k] = $Environment[$k] }
-            Invoke-Book $s "-NoGateway -Path '$file'" -Az $rules -Environment $env
+            $gateway = if ($WithGateway) { '' } else { '-NoGateway ' }
+            Invoke-Book $s "$gateway-Path '$file'" -Az $rules -Environment $env
         }
+    }
+
+    It 'stops when the subscription''s one free Content Safety account is in use' {
+        $r = Invoke-Check -WithGateway -Extra ([ordered]@{
+                '^cognitiveservices account list --query' = "collierhealth-contentsafety`trg-collierhealth`tF0"
+                '^apim show'                              = ''
+            })
+        $r.ExitCode | Should -Be 1
+        $r.Text | Should -Match 'Content Safety\s+collierhealth-ai-contentsafety\s+FREE TIER IN USE'
+        $r.Text | Should -Match "'collierhealth-contentsafety' in resource group 'rg-collierhealth'"
+        $r.Text | Should -Match 'Set CS_SKU=S0'
+    }
+
+    It 'plans an S0 Content Safety account when CS_SKU=S0, even with the free tier in use' {
+        $r = Invoke-Check -WithGateway -Environment @{ CS_SKU = 'S0' } -Extra ([ordered]@{
+                '^cognitiveservices account list --query' = "collierhealth-contentsafety`trg-collierhealth`tF0"
+                '^apim show'                              = ''
+            })
+        $r.ExitCode | Should -Be 0 -Because $r.Text
+        $r.Text | Should -Match 'Content Safety\s+collierhealth-ai-contentsafety\s+WILL BE CREATED \(S0\)'
     }
 
     It 'plans a new Foundry account in the SQL server''s region by default' {
@@ -238,5 +259,42 @@ Describe 'check-ai-env.ps1 (Chapter 5)' -Tag 'Offline' {
         $posts.Count | Should -Be 1
         $posts[0] | Should -Match 'checkDomainAvailability'
         $r.AzCalls -join "`n" | Should -Not -Match '(^|\n)\S+( \S+)* (create|update|delete)( |$)'
+    }
+}
+
+Describe 'add-content-safety.ps1 (Chapter 5)' -Tag 'Offline' {
+    BeforeAll {
+        $s = 'examples/ch05-ai-ready-sql/add-content-safety.ps1'
+        $args5 = '-ResourceGroup rg-collierhealth-test -ApimName collierhealth-test-ai-gateway -CsResourceName collierhealth-test-ai-contentsafety -SqlServerName collierhealth-test -SubscriptionId 00000000-0000-0000-0000-000000000000'
+        $rules = [ordered]@{
+            '^cognitiveservices account show .*--query name' = ''
+            '^cognitiveservices account list'                = '[{"name":"collierhealth-contentsafety","resourceGroup":"rg-collierhealth","sku":"F0"}]'
+        }
+    }
+
+    It 'stops before creating anything when the free tier is already in use' {
+        $r = Invoke-Book $s $args5 -Az $rules -Environment @{ CS_SKU = $null }
+        $r.ExitCode | Should -Be 1
+        $r.Text | Should -Match "one free \(F0\) Content Safety account is already in use: 'collierhealth-contentsafety' in resource group 'rg-collierhealth'"
+        $r.Text | Should -Match 'set CS_SKU=S0'
+        $r.AzCalls -join "`n" | Should -Not -Match 'account create'
+    }
+
+    It 'creates an S0 account when CS_SKU=S0' {
+        $r = Invoke-Book $s $args5 -Az $rules -Environment @{ CS_SKU = 'S0' }
+        @($r.AzCalls | Where-Object { $_ -match '^cognitiveservices account create' }) | Should -HaveCount 1
+        ($r.AzCalls | Where-Object { $_ -match '^cognitiveservices account create' }) | Should -Match '--sku S0'
+    }
+
+    It 'shows the Azure CLI''s reason when the create fails' {
+        $failing = [ordered]@{
+            '^cognitiveservices account show .*--query name' = ''
+            '^cognitiveservices account list'                = '[]'
+            '^cognitiveservices account create'              = 'EXIT:1|'
+        }
+        $r = Invoke-Book $s $args5 -Az $failing -Environment @{ CS_SKU = $null }
+        $r.ExitCode | Should -Be 1
+        $r.Text | Should -Match 'ERROR creating Content Safety resource:'
+        $r.Text | Should -Match 'fake az exit 1'
     }
 }

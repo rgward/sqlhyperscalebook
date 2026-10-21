@@ -295,7 +295,7 @@ stop it:
 | 2 (optional) | `wardgeneral-research` named replica, serverless | Always, at least its minimum vCores | Delete the named replica |
 | 5 | Microsoft Foundry model deployments (`gpt-5`, embeddings) | Per token used | [`reset-ai-azure.ps1`](examples/ch05-ai-ready-sql/reset-ai-azure.ps1) |
 | 5 | API Management StandardV2 gateway | **Always** while it exists; `-NoGateway` skips it | `reset-ai-azure.ps1` |
-| 5 | Content Safety (with the gateway) | Free F0 tier by default | `reset-ai-azure.ps1` |
+| 5 | Content Safety (with the gateway) | Free F0 tier by default (one per subscription); per transaction with `CS_SKU=S0` | `reset-ai-azure.ps1` |
 | 7 (optional) | Log Analytics workspace for AzureSQLErrors | Per GB ingested and retained | `teardown-azuresqlerrors.ps1` |
 | 8 (optional) | Log Analytics workspace for auditing | Per GB ingested and retained | `teardown-auditing.ps1` |
 | 8 (optional) | Key Vault for TDE with a customer-managed key | Per key operation; purge protection keeps it for its retention period | No automated teardown; see the [TDE README](examples/ch08-security/tde/README.md) |

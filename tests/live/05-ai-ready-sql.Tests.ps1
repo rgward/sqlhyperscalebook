@@ -105,6 +105,9 @@ Describe 'Chapter 5 - AI in the database' -Tag 'Ch05' {
         if ($ctx.NoGateway) { Set-ItResult -Skipped -Because 'the gateway was not deployed (-NoGateway)' }
         $r = Invoke-BookSql -File "$ch/11-prompt-injection-proof.sql" -Name 'ch05/11-prompt-injection-proof' -TimeoutMinutes 15
         $r.ExitCode | Should -Be 0
+        # Grade on the message, not the status code (Chapter 5 README): a 400 from
+        # the model's own Prompt Shields means the gateway policy never ran.
+        $r.Text | Should -Match 'Request failed content safety check'
     }
 }
 
