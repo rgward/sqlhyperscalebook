@@ -298,3 +298,35 @@ Describe 'add-content-safety.ps1 (Chapter 5)' -Tag 'Offline' {
         $r.Text | Should -Match 'fake az exit 1'
     }
 }
+Describe 'query-audit.ps1 (Chapter 8)' -Tag 'Offline' {
+    BeforeAll {
+        $s = 'examples/ch08-security/auditing/query-audit.ps1'
+        $rules = [ordered]@{
+            '^monitor log-analytics workspace list' = '{"id":"/w","name":"wardgeneral-ch08-audit","customerId":"c","tags":{"hyperscalebook":"ch08-auditing"}}'
+        }
+        function New-RestFailure([string] $Body) {
+            @"
+function global:Invoke-RestMethod {
+    `$record = [Management.Automation.ErrorRecord]::new([Exception]::new('Response status code does not indicate success: 400 (Bad Request).'), 'HttpError', 'InvalidOperation', `$null)
+    `$record.ErrorDetails = [Management.Automation.ErrorDetails]::new('$($Body.Replace("'", "''"))')
+    throw `$record
+}
+"@
+        }
+        $window = "-StartUtc '2026-01-01T00:00:00Z' -EndUtc '2026-01-01T01:00:00Z'"
+    }
+
+    It 'explains a new workspace that has no audit columns yet, instead of failing with 400' {
+        $body = '{"error":{"code":"BadArgumentError","innererror":{"code":"SemanticError","innererror":{"code":"SEM0100","message":"''where'' operator: Failed to resolve column or scalar expression named ''event_time_t''"}}}}'
+        $r = Invoke-Book $s $window -Az $rules -Prelude (New-RestFailure $body)
+        $r.ExitCode | Should -Be 0 -Because $r.Text
+        $r.Text | Should -Match "No audit records have reached workspace 'wardgeneral-ch08-audit' yet"
+        $r.Text | Should -Match 'up to 90 minutes'
+    }
+
+    It 'shows Log Analytics'' reason for any other rejected query' {
+        $r = Invoke-Book $s $window -Az $rules -Prelude (New-RestFailure '{"error":{"code":"BadArgumentError","message":"Syntax error"}}')
+        $r.ExitCode | Should -Not -Be 0
+        $r.Text | Should -Match 'Log Analytics rejected the audit query: .*Syntax error'
+    }
+}

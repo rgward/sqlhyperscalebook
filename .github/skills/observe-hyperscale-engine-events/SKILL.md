@@ -94,6 +94,12 @@ severity 16 and the workflow uses an Azure connection to `wardgeneral`. If it
 does not appear, investigate ingestion delay, diagnostic routing, and telemetry
 loss; do not infer an undocumented error-number allowlist.
 
+A diagnostic setting created in this session can take up to 90 minutes to
+start sending events, and an error raised before routing starts is never
+retained. If setup just ran and the query returns no rows, say so, and offer to
+raise error 50001 again after 10–15 minutes and re-query. Don't report the
+route as broken until a fresh error, raised well after setup, is still missing.
+
 When the reader asks specifically for an object-not-found test, run
 `azuresqlerrors/generate-object-not-found.sql` exactly once instead. Its
 deliberately misspelled `clinical.Observaton` reference raises system error 208,

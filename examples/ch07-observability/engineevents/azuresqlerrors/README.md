@@ -50,6 +50,13 @@ deletion is recoverable unless `-PermanentlyDelete` is explicitly supplied.
    the telemetry path can throttle. No rows does not prove that the application
    saw no errors.
 
+   > **Just ran setup?** A new diagnostic setting can take
+   > [up to 90 minutes](https://learn.microsoft.com/azure/azure-monitor/essentials/diagnostic-settings#time-before-telemetry-gets-to-destination)
+   > to start sending events, and an error raised before routing starts is
+   > never retained. If the query returns no rows, wait 10–15 minutes, run
+   > `generate-azuresqlerror.sql` again, and re-query. Once rows arrive, later
+   > errors appear within minutes.
+
 4. Preview and approve teardown when the retained evidence is no longer needed:
 
    ```powershell

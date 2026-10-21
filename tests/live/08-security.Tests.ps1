@@ -104,11 +104,17 @@ Describe 'Chapter 8 - auditing' -Tag 'Ch08', 'LogAnalytics' {
         (Get-BookHttp "$($ctx.AppUrl)/chart/$($script:encounterId)" -TimeoutSeconds 120).StatusCode | Should -Be 200
     }
 
-    It 'finds the app activity in the audit log (query-audit.ps1, waits for delivery)' {
-        $found = Wait-BookCondition -Because 'audit rows to arrive (delivery is asynchronous)' -TimeoutSeconds 2400 -IntervalSeconds 120 -Condition {
+    It 'finds the app activity in the audit log (query-audit.ps1, waits for routing and delivery)' {
+        # A new audit destination can take up to 90 minutes to start receiving
+        # events, and activity before then is never retained: open a chart each poll.
+        $script:auditPoll = 0
+        $found = Wait-BookCondition -Because 'audit rows to arrive (routing start + asynchronous delivery)' -TimeoutSeconds 6000 -IntervalSeconds 300 -Condition {
+            $script:auditPoll++
+            $null = Get-BookHttp "$($ctx.AppUrl)/chart/$($script:encounterId)" -TimeoutSeconds 120
             $end = [DateTime]::UtcNow.ToString('o')
             $start = $script:auditStart.ToString('o')
-            $r = Invoke-BookScript -Script "$ch/auditing/query-audit.ps1" -Arguments "-StartUtc '$start' -EndUtc '$end'" -Name 'ch08/query-audit' -TimeoutMinutes 10
+            $r = Invoke-BookScript -Script "$ch/auditing/query-audit.ps1" -Arguments "-StartUtc '$start' -EndUtc '$end'" -Name "ch08/query-audit-$($script:auditPoll)" -TimeoutMinutes 10
+            $r.ExitCode | Should -Be 0 -Because "query-audit.ps1 must not fail while waiting for the first audit record ($($r.LogPath))"
             $r.Text -match 'Returned [1-9]\d* audit row'
         }
         $found | Should -BeTrue

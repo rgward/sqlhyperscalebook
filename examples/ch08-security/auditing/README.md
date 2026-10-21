@@ -105,7 +105,14 @@ documented `AzureDiagnostics` mapping still does not provide a separate
 The query filters to the application's connection name, `wardgeneral-app`.
 Audit delivery is asynchronous. If no rows have arrived, wait a few minutes and
 rerun the same fixed interval; do not widen the interval or generate replacement
-activity. In the returned rows, find successful `wardgeneral-app` activity for
+activity. The one exception is a brand-new audit destination: it can take
+[up to 90 minutes](https://learn.microsoft.com/azure/azure-monitor/essentials/diagnostic-settings#time-before-telemetry-gets-to-destination)
+to start receiving events, and activity before then is never retained. Until
+the first record arrives, `query-audit.ps1` says *No audit records have reached
+workspace … yet*. If that persists for 15 minutes after setup, record a new UTC
+start time, open a chart again, and query the new interval.
+
+In the returned rows, find successful `wardgeneral-app` activity for
 the unit-board query against `ops.vBedCensus` and a chart request involving
 `clinical.GetPatientChart` or `clinical.GetPatientChartByBed`. When Row-Level
 Security is enabled, also find the preceding batch that invokes
