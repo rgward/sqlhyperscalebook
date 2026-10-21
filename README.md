@@ -199,9 +199,8 @@ README lists its exact prerequisites.
 | SSMS (optional) | ✓ | — | — |
 | sqlsim and the Chapter 10 workload demos | ✓ | — | — |
 
-The scripts are developed and validated on Windows. Chapter 4's scripts also
-handle macOS and Linux paths; some scripts in later chapters still assume
-Windows paths.
+The scripts are written for Windows, macOS, and Linux, and are validated on
+Windows. The Chapter 10 sqlsim workload demos run on Windows only.
 
 ## Using the examples
 

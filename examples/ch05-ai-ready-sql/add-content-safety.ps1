@@ -54,9 +54,9 @@ function Invoke-ApimRest {
     $url = "$baseUrl/$Path`?api-version=$apiVersion"
     if ($Body) {
         $bodyJson = $Body | ConvertTo-Json -Depth 10 -Compress
-        $bodyFile = Join-Path $env:TEMP 'apim-rest-body.json'
+        $bodyFile = Join-Path ([IO.Path]::GetTempPath()) 'apim-rest-body.json'
         [System.IO.File]::WriteAllText($bodyFile, $bodyJson, [System.Text.UTF8Encoding]::new($false))
-        $outFile = Join-Path $env:TEMP 'apim-rest-out.json'
+        $outFile = Join-Path ([IO.Path]::GetTempPath()) 'apim-rest-out.json'
         az rest --method $Method --url $url --body "@$bodyFile" --output-file $outFile 2>$null
         Remove-Item $bodyFile -Force -ErrorAction SilentlyContinue
     } else {
