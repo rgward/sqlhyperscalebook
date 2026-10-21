@@ -1,115 +1,193 @@
-# Azure SQL Hyperscale Unveiled — Book Examples
+<div align="center">
 
-Companion code for the Apress book **Azure SQL Hyperscale Unveiled** by
-**Bob Ward**. Every hands-on example in the book lives here, organized by chapter.
+# Azure SQL Hyperscale Unveiled
 
-> **Short link:** this repo is referenced throughout the book as
-> **`aka.ms/sqlhyperscalebook`**. Follow that link to reach the repo, then clone
-> the URL shown by GitHub's **Code** button (or `gh repo clone`).
+**The Cloud SQL AI Database for Everyone**
 
-**The e-book is now available.** This repository contains the companion examples
-for Chapters 2 through 10 and architecture figures. Follow each chapter's README
-for its prerequisites, exact run order, re-run rules, and cleanup instructions.
+Companion examples for the Apress book by **Bob Ward**
+
+[![Repository checks](https://github.com/rgward/sqlhyperscalebook/actions/workflows/repository-checks.yml/badge.svg)](https://github.com/rgward/sqlhyperscalebook/actions/workflows/repository-checks.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Azure SQL Hyperscale](https://img.shields.io/badge/Azure%20SQL-Hyperscale-0078D4.svg)](https://aka.ms/sqlhyperscale)
+[![PowerShell 7+](https://img.shields.io/badge/PowerShell-7%2B-5391FE.svg)](https://aka.ms/powershell)
+[![.NET 10](https://img.shields.io/badge/.NET-10-512BD4.svg)](https://dotnet.microsoft.com/download)
+
+[Quick start](#quick-start) •
+[Chapter guide](#chapter-guide) •
+[Prerequisites](#prerequisites) •
+[Costs and cleanup](#costs-and-cleanup) •
+[Figures](figures/README.md)
+
+</div>
+
+---
+
+## About this repository
+
+This repository contains every hands-on example from *Azure SQL Hyperscale
+Unveiled*. Across nine chapters, the examples build one Azure SQL Hyperscale
+database and one application, then take them from provisioning and
+architecture through AI and agents to observability, security, resiliency, and
+performance. Each chapter folder has its own README with prerequisites, run
+order, re-run rules, and cleanup.
+
+GitHub Copilot **skills** in [`.github/skills/`](.github/skills/) can run each
+chapter's workflow for you. Open the repository in VS Code and use the prompts
+printed in the book.
+
+- **Book:** *Azure SQL Hyperscale Unveiled: The Cloud SQL AI Database for Everyone*
+- **Author:** Bob Ward, with a foreword by Priya Sathy
+- **Publisher:** [Apress](https://link.springer.com/book/10.1007/979-8-8688-3467-7)
+- **ISBN:** 979-8-8688-3466-0 (print) · 979-8-8688-3467-7 (eBook)
+- **Short link:** [aka.ms/sqlhyperscalebook](https://aka.ms/sqlhyperscalebook)
+
+The short link points to the author's repository,
+[rgward/sqlhyperscalebook](https://github.com/rgward/sqlhyperscalebook), where
+updates land first. The book's front matter also lists the Apress source-code
+repository, [Apress/Inside-Azure-SQL-Hyperscale](https://github.com/Apress/Inside-Azure-SQL-Hyperscale),
+which carries the same examples.
+
+## Contents
+
+- [Quick start](#quick-start)
+- [The scenario](#the-scenario)
+- [Chapter guide](#chapter-guide)
+- [Repository layout](#repository-layout)
+- [Prerequisites](#prerequisites)
+- [Using the examples](#using-the-examples)
+- [Costs and cleanup](#costs-and-cleanup)
+- [Conventions](#conventions)
+- [Figures](#figures)
+- [Links from the book](#links-from-the-book)
+- [Support and contributing](#support-and-contributing)
+- [License](#license)
+
+## Quick start
+
+1. **Install the prerequisites** for Chapter 2. See [Prerequisites](#prerequisites).
+2. **Get the code** and open the repository root in VS Code:
+
+   ```powershell
+   git clone https://github.com/rgward/sqlhyperscalebook.git
+   code sqlhyperscalebook
+   ```
+
+   You can also use **Code → Download ZIP** on GitHub. Open the repository
+   root, not a chapter folder, so VS Code discovers the Copilot skills.
+3. **Deploy the database.** In Copilot Chat, switch to agent mode and ask:
+   *"Deploy my Hyperscale database."* The `deploy-hyperscale` skill walks you
+   through each create-time decision and asks for approval before it creates
+   anything.
+4. **Continue chapter by chapter** with the [chapter guide](#chapter-guide).
+
+> [!WARNING]
+> A Hyperscale database bills from the moment it's created, and there is no
+> free Hyperscale tier. Review [Costs and cleanup](#costs-and-cleanup) before
+> you deploy.
 
 ## The scenario
 
-The book runs one continuous scenario. **Collier Health** is a (fictional) health
-system — the Azure SQL *logical server*, `collierhealth`. **Ward General Hospital**
-is its flagship hospital — the Hyperscale *database*, `wardgeneral`. The story
-grows from one hospital to a national health system, which is what motivates each
-Hyperscale capability as the book advances.
+The book follows one continuous story. A fictional health system grows from
+one hospital to a national network, and each stage motivates the next
+Hyperscale capability.
 
-**All data is synthetic. There is no real patient data (PHI) anywhere in this
-repository — ever.** The dataset was **generated with AI assistance** and, while
-plausible, **may not be a fully accurate representation of real medical, clinical,
-laboratory, or billing data**. It is provided for **educational and illustrative
-purposes only** and must **not** be used for clinical, diagnostic, or any
-real-world healthcare decision-making.
+| In the story | In Azure |
+| --- | --- |
+| **Collier Health**, a fictional health system | The Azure SQL logical server, `collierhealth` |
+| **Ward General Hospital**, its flagship hospital | The Hyperscale database, `wardgeneral` |
+| Ward General's patient research | The optional named replica, `wardgeneral-research` |
 
-## Layout
-
-```text
-.github/skills/            Copilot skills — open this repo in VS Code and Copilot can
-                           run them for you (e.g. "deploy my Hyperscale database")
-examples/ch02-getting-started/  Getting started: provision, connect, build the schema, seed
-examples/ch03-architecture/     Architecture: read-only DMV scripts that make the
-                           Hyperscale tiers visible on the database from Chapter 2
-examples/ch04-first-app/        The first app: a Blazor patient chart over the
-                           Chapter 2 database, and the one connection it makes
-examples/ch05-ai-ready-sql/     AI-ready SQL: embeddings, a vector index, in-engine
-                           AI assistance and vector search — plus the APIM AI
-                           gateway the engine calls through
-examples/ch06-agentic-ai/       Agentic AI: a two-turn shift handoff over seven
-                           bounded SQL MCP tools and an approval-gated write
-examples/ch07-observability/    Observability: performance, availability, engine
-                           events, retained errors, and connection history
-examples/ch08-security/         Security: Row-Level Security in Ward General and
-                           an optional bounded Azure SQL auditing investigation
-examples/ch09-ha-resiliency/    Resiliency: observe application retry during a
-                           manual failover, create a verified PITR test copy,
-                           and deploy a cross-region Hyperscale geo-secondary
-examples/ch10-performance/      Performance: scale compute under load, grow the
-                           existing database, then demonstrate JSON indexing
-                           and memory grant feedback
-figures/                   Every book figure by chapter, plus the SVG diagram sources
-```
+> [!IMPORTANT]
+> **All data is synthetic. There is no real patient data (PHI) anywhere in this
+> repository.** The dataset was generated with AI assistance and, while
+> plausible, may not accurately represent real medical, clinical, laboratory,
+> or billing data. It is provided for educational and illustrative purposes
+> only and must not be used for clinical, diagnostic, or any real-world
+> healthcare decision-making.
 
 ## Chapter guide
 
-| Chapter | Examples |
-| --- | --- |
-| 2 | [Getting started](examples/ch02-getting-started/README.md) |
-| 3 | [Hyperscale architecture](examples/ch03-architecture/README.md) |
-| 4 | [Your first application](examples/ch04-first-app/README.md) |
-| 5 | [AI-ready SQL](examples/ch05-ai-ready-sql/README.md) |
-| 6 | [Agentic AI](examples/ch06-agentic-ai/README.md) |
-| 7 | [Observability](examples/ch07-observability/README.md) |
-| 8 | [Security](examples/ch08-security/README.md) |
-| 9 | [High availability and resiliency](examples/ch09-ha-resiliency/README.md) |
-| 10 | [Scale and tune](examples/ch10-performance/README.md) |
-
-Each chapter's scripts live under `examples/`; the Copilot **skills** that
-orchestrate them live under `.github/skills/` so VS Code discovers them the
-moment you open the repo.
+| Ch. | Book chapter | What you'll do | Examples |
+| :---: | --- | --- | --- |
+| 1 | Is It Hyper or Scale? Why Not Both? | The story behind Hyperscale | [Figures](figures/README.md#chapter-1) · [Links](#links-from-the-book) |
+| 2 | Getting Started with a Hyperscale Database for Workloads of Any Size | Provision Hyperscale, connect, create the schema, and load ~12 GB of synthetic data | [`ch02-getting-started`](examples/ch02-getting-started/README.md) |
+| 3 | Exploring the Architecture of Hyperscale | Make each Hyperscale tier visible with read-only DMV queries | [`ch03-architecture`](examples/ch03-architecture/README.md) |
+| 4 | Building Your First Hyperscale Application | Build and run the Ward General patient chart, a Blazor app | [`ch04-first-app`](examples/ch04-first-app/README.md) |
+| 5 | Making the Application AI-Ready | Embeddings, a DiskANN vector index, in-engine AI assistance, and an AI gateway | [`ch05-ai-ready-sql`](examples/ch05-ai-ready-sql/README.md) |
+| 6 | Agentic AI and Hyperscale Applications | A shift-handoff agent over seven SQL MCP tools, with an approval-gated write | [`ch06-agentic-ai`](examples/ch06-agentic-ai/README.md) |
+| 7 | Observability for Hyperscale | Investigate performance, availability, and engine events | [`ch07-observability`](examples/ch07-observability/README.md) |
+| 8 | Securing Data in the Cloud with Hyperscale | Row-Level Security in the app, auditing, and optional TDE with a customer-managed key | [`ch08-security`](examples/ch08-security/README.md) |
+| 9 | High Availability and Resiliency in Hyperscale | Retry through a failover, restore to a point in time, and add a cross-region geo-replica | [`ch09-ha-resiliency`](examples/ch09-ha-resiliency/README.md) |
+| 10 | Turbocharging and Optimizing Performance in Hyperscale | Scale compute under load, grow the data, and tune with JSON indexes and memory grant feedback | [`ch10-performance`](examples/ch10-performance/README.md) |
+| 11 | Azure Is the Best Cloud for SQL | Migration and the wider Azure data platform | [Figures](figures/README.md#chapter-11) · [Links](#links-from-the-book) |
 
 The [database object catalog](examples/ch06-agentic-ai/OBJECT-CATALOG.md) maps
 every reader-deployed object through Chapter 7 to its owning chapter, purpose,
-and application, SQL, or MCP caller.
+and caller.
+
+## Repository layout
+
+```text
+.
+├── .github/
+│   ├── skills/                 GitHub Copilot skills, one per guided workflow
+│   └── workflows/              Repository checks
+├── examples/
+│   ├── ch02-getting-started/   Provision, connect, create the schema, seed the data
+│   ├── ch03-architecture/      Read-only DMV scripts for each Hyperscale tier
+│   ├── ch04-first-app/         The Ward General app, shared by Chapters 4–10
+│   ├── ch05-ai-ready-sql/      Embeddings, vector search, AI assistance, AI gateway
+│   ├── ch06-agentic-ai/        The shift-handoff agent, DAB, and the SQL MCP server
+│   ├── ch07-observability/     Performance, availability, and engine events
+│   ├── ch08-security/          Row-Level Security, auditing, and TDE
+│   ├── ch09-ha-resiliency/     Failover, point-in-time restore, and geo-replication
+│   └── ch10-performance/       Compute scaling, data growth, and tuning
+├── figures/                    Every book figure by chapter, plus SVG sources
+├── tools/                      Repository validation
+├── CONTRIBUTING.md
+├── SECURITY.md
+└── LICENSE
+```
 
 ## Prerequisites
 
 You don't need every tool on day one. Install the **required** set before the
-Chapter 2 deploy, and add the rest when a chapter asks for it. Each chapter's
+Chapter 2 deploy and add the rest when a chapter asks for it. Each chapter's
 README lists its exact prerequisites.
 
 ### Required to start (Chapter 2)
 
-- **VS Code** (current build).
-- **GitHub Copilot** + **GitHub Copilot Chat** extensions, with **agent mode**, and a Copilot subscription. Skills are an agent-mode feature and are auto-discovered from this repo's `.github/skills/` the moment you open the folder.
-- **PowerShell 7+ (`pwsh`)**. It isn't installed with Windows, which ships Windows PowerShell 5.1, and the scripts need PowerShell 7 features. Install it separately and set `pwsh` as your default integrated terminal.
-- **Azure CLI 2.60+** (`az`), signed in with `az login`.
-- **MSSQL extension for VS Code** (`ms-mssql.mssql`), the book's primary database client. It runs inside VS Code; the book uses it to connect with Microsoft Entra auth and run `connect-and-verify.sql`.
-- An **Azure subscription** with rights to create a logical server and database (Contributor or a SQL-specific role). A Hyperscale database **bills from creation**, so mind the meter. To follow the early chapters for free instead, see [Using the free Azure SQL Database offer](examples/ch02-getting-started/README.md#using-the-free-azure-sql-database-offer-instead).
-- A **Microsoft Entra** account. You become the server's Entra admin, so no SQL password is needed to connect.
+| Requirement | Notes |
+| --- | --- |
+| **VS Code** | Current build. |
+| **GitHub Copilot** and **GitHub Copilot Chat** | Agent mode and a Copilot subscription. Skills are an agent-mode feature, discovered automatically from `.github/skills/` when you open the repository. |
+| **PowerShell 7+** (`pwsh`) | Not installed with Windows, which ships Windows PowerShell 5.1. Install it separately and set `pwsh` as your default integrated terminal. |
+| **Azure CLI 2.60+** (`az`) | Signed in with `az login`. |
+| **MSSQL extension for VS Code** (`ms-mssql.mssql`) | The book's primary database client. It runs inside VS Code. |
+| **Azure subscription** | Rights to create a logical server and database (Contributor or a SQL-specific role). To follow the early chapters for free, see [Using the free Azure SQL Database offer](examples/ch02-getting-started/README.md#using-the-free-azure-sql-database-offer-instead). |
+| **Microsoft Entra account** | You become the server's Entra admin, so no SQL password is needed to connect. |
 
 ### Needed in later chapters
 
 | Tool | First needed | Used for |
-| --- | --- | --- |
-| **go-sqlcmd** (the new Go-based `sqlcmd`, not the legacy ODBC one) | Chapter 4 | Preflight checks and the script-driven SQL in Chapters 4–10 |
-| **.NET 10 SDK** and a trusted **HTTPS dev certificate** (`dotnet dev-certs https --trust`) | Chapter 4 | Building and running the Ward General app |
-| **Data API builder (DAB) CLI 2.0+** | Chapter 6 | The SQL MCP server the agent calls |
-| **ODBC Driver 18 for SQL Server** and **sqlsim** ([aka.ms/sqlsimtools](https://aka.ms/sqlsimtools)) | Chapter 10 | The workload demos |
+| --- | :---: | --- |
+| **go-sqlcmd** (the Go-based `sqlcmd`, not the legacy ODBC one) | 4 | Preflight checks and script-driven SQL in Chapters 4–10 |
+| **.NET 10 SDK** and a trusted **HTTPS dev certificate** (`dotnet dev-certs https --trust`) | 4 | Building and running the Ward General app |
+| **Data API builder (DAB) CLI 2.0+** | 6 | The SQL MCP server the agent calls |
+| **ODBC Driver 18 for SQL Server** and **sqlsim** ([aka.ms/sqlsimtools](https://aka.ms/sqlsimtools)) | 10 | The workload demos |
 
 ### Optional
 
-- **Git.** Cloning is the easiest way to get the examples and pick up updates, and VS Code's source control features need Git installed. You can also use **Code → Download ZIP** on GitHub and open the extracted folder instead.
-- **SQL Server Management Studio (SSMS).** An alternative client the book also shows. It runs on Windows only; on macOS or Linux, use VS Code with the MSSQL extension.
-- **Azure MCP Server** (`ms-azuretools.vscode-azure-mcp-server`, preview). It lets Copilot drive `az` as structured tools. Not required: the skill runs `az` through the built-in terminal tool.
+- **Git.** The easiest way to get the examples and pick up updates; VS Code's
+  source control features need it. **Code → Download ZIP** works too.
+- **SQL Server Management Studio (SSMS).** An alternative client the book also
+  shows. It runs on Windows only; on macOS or Linux, use VS Code with the MSSQL
+  extension.
+- **Azure MCP Server** (`ms-azuretools.vscode-azure-mcp-server`, preview). Lets
+  Copilot drive `az` as structured tools. Not required: the skills run `az`
+  through Copilot's built-in terminal tool.
 
-> **What "tools" does the skill use?** Mostly the **built-in terminal tool** that ships with Copilot agent mode — it runs `az` and the PowerShell script. Azure MCP is an optional add-on; the MSSQL extension is a client *you* drive, not an agent tool.
-
-### Which operating systems?
+### Supported operating systems
 
 | Tool | Windows | macOS | Linux |
 | --- | :---: | :---: | :---: |
@@ -121,55 +199,97 @@ README lists its exact prerequisites.
 | SSMS (optional) | ✓ | — | — |
 | sqlsim and the Chapter 10 workload demos | ✓ | — | — |
 
-The scripts were written and validated on Windows. Chapter 4 fixed the
-macOS/Linux path handling in its own scripts; a few scripts in later chapters
-still assume Windows paths.
+The scripts are developed and validated on Windows. Chapter 4's scripts also
+handle macOS and Linux paths; some scripts in later chapters still assume
+Windows paths.
+
 ## Using the examples
 
-Two ways, depending on how hands-on you want to be:
+### Guided, with GitHub Copilot (recommended)
 
-**Guided (recommended).** Clone via **`aka.ms/sqlhyperscalebook`** (or download the ZIP), open the
-folder in **VS Code** with GitHub Copilot, and ask Copilot to *"deploy my
-Hyperscale database."* It discovers the `deploy-hyperscale` skill in
-`.github/skills/`, walks you through the key create-time decisions (region,
-server name, redundancy, auth, size), and runs the deployment.
+Open the repository root in VS Code, switch Copilot Chat to agent mode, and use
+the prompts printed in the book, for example *"Deploy my Hyperscale
+database."* Copilot loads the matching skill from `.github/skills/`, explains
+each decision, and asks for approval before it creates or changes Azure
+resources. Each chapter README lists its book prompts.
 
-**By hand.** Open the chapter folder under `examples/` and run the PowerShell
-scripts yourself in **PowerShell 7** — `./provision-hyperscale.ps1` (set any
-overrides as `$env:*` first), optionally `./add-replicas.ps1` to add the
-`wardgeneral-research` named replica (used from Chapter 5), then
-run `01-schemas.sql` … `05-seed.sql` via the MSSQL extension or `sqlcmd`.
+<details>
+<summary><b>Copilot skills by chapter</b></summary>
 
-Either way, **scripts never hard-code secrets** — they read them from
-environment variables or prompt you.
+| Chapter | Skill | What it does |
+| :---: | --- | --- |
+| 2 | `deploy-hyperscale` | Interview-driven deploy of the logical server and `wardgeneral` |
+| 2 | `verify-deployment` | Summarize the deployment from the Azure Activity Log |
+| 4 | `wardgeneral-app` | Build, configure, and run the Ward General app |
+| 5 | `ai-ready-app` | Deploy the AI resources and the AI-ready SQL objects |
+| 6 | `wardgeneral-agent` | Add the shift-handoff agent, DAB, and the SQL MCP server |
+| 7 | `observe-hyperscale-performance` | Run the performance investigation |
+| 7 | `observe-hyperscale-availability` | Run the availability investigation |
+| 7 | `observe-hyperscale-engine-events` | Inspect engine events, errors, and connections |
+| 8 | `secure-hyperscale` | Enable Row-Level Security in the app; optional TDE with a customer-managed key |
+| 8 | `audit-wardgeneral` | Audit app activity and find it in Log Analytics |
+| 9 | `test-hyperscale-failover` | Observe application retry during a manual failover |
+| 9 | `recover-wardgeneral-pitr` | Create and verify a point-in-time restore test copy |
+| 9 | `deploy-wardgeneral-geo-replica` | Create and verify a cross-region geo-replica |
+| 10 | `scale-wardgeneral-compute` | Run the workload at 8, 16, and 40 vCores |
+| 10 | `grow-wardgeneral-database` | Drive write growth and find the constraint |
+| 10 | `tune-wardgeneral-data` | JSON indexing, memory grant feedback, and index evaluation |
+| 10 | `scale-and-tune-wardgeneral` | Run all three Chapter 10 demos in order |
 
-### Cost, safety, and local configuration
+</details>
 
-- **Dev/test only.** These are educational examples, not a production deployment
-  template. Never point a load generator at a production database.
-- **There is no free Hyperscale tier.** The database bills from creation;
-  replicas, AI services, and other resources can add charges. Review the
-  chapter's cost notes before creating resources and its cleanup instructions
-  when you finish. Stopping the local application does not stop Azure billing.
-- Keep your resource names in the chapter's local environment file, copied
-  from its template. Environment files, development settings, build output,
-  and generated Chapter 10 evidence are git-ignored. Never commit passwords,
-  access tokens, connection strings, or your own deployment details.
-- Some examples use preview features. Check the chapter's feature notes and
-  current Microsoft documentation before running them; availability and
-  behavior can change independently of the book.
+### By hand
 
-### What the whole book costs to run
+Every skill runs scripts you can run yourself. Open the chapter folder under
+`examples/` and follow its README in **PowerShell 7**. For Chapter 2, that's
+`./provision-hyperscale.ps1` (set any overrides as `$env:*` first),
+optionally `./add-replicas.ps1` for the `wardgeneral-research` named replica,
+then `01-schemas.sql` through `05-seed.sql` in the MSSQL extension or `sqlcmd`.
+Scripts never hard-code secrets; they read them from environment variables or
+prompt you.
 
-The repo doesn't print dollar figures: prices vary by region and change over
-time. Instead, here is everything the examples can create that bills, when it
-appears, and how to stop it. For live numbers, run Chapter 2's
-[`estimate-cost.ps1`](examples/ch02-getting-started/estimate-cost.ps1) (it reads
-the public Azure Retail Prices API) or use the
+### Working with Copilot
+
+- **Copilot may edit scripts in your clone.** If you ask it to adapt
+  something, such as a different region or compute model, it can change a
+  script or SQL file to do it. That's expected, and it's your copy. Use
+  `git status` and `git diff` to see what changed, and `git restore <file>` to
+  put a file back. Please don't open pull requests from local adaptations; if
+  you find a real problem in an example,
+  [open an issue](https://github.com/rgward/sqlhyperscalebook/issues).
+- **Approving actions.** Before Copilot runs a command or tool, VS Code asks
+  for approval. You can approve a single use, or grant approval for the
+  session, the workspace, or all future uses. Approving each step is the
+  strict choice; allowing more saves clicks when you trust what it's doing.
+  Avoid **Allow all** and **Autopilot** for these examples: the skills ask for
+  your approval in chat before creating billable Azure resources, and Autopilot
+  can answer those questions on its own. See
+  [Manage approvals and permissions](https://code.visualstudio.com/docs/agents/run/approvals).
+- **Chat or terminal?** Answer the skills' questions in chat; to accept a
+  default, reply **ok**. Only a few steps need the terminal: signing in with
+  `az login`, and typing the masked SQL admin password during the Chapter 2
+  deploy. Your password never goes into chat.
+- **Where output appears.** Short commands show their output in chat.
+  Long-running processes, such as the Ward General app, run in a terminal
+  Copilot opens; look for it in the **Terminal** panel.
+
+## Costs and cleanup
+
+> [!WARNING]
+> There is no free Hyperscale tier. The database bills from creation, and
+> replicas, AI services, and other resources add charges. Stopping the local
+> application does not stop Azure billing.
+
+The repository doesn't print prices, because they vary by region and change
+over time. For live numbers, run Chapter 2's
+[`estimate-cost.ps1`](examples/ch02-getting-started/estimate-cost.ps1), which
+reads the public Azure Retail Prices API, or use the
 [Azure pricing calculator](https://azure.microsoft.com/pricing/calculator/).
+This table lists everything the examples can create that bills, and how to
+stop it:
 
 | Chapter | What bills | When it bills | How to stop it |
-| --- | --- | --- | --- |
+| :---: | --- | --- | --- |
 | 2 | `wardgeneral`: Hyperscale `HS_Gen5_8` primary **and** its HA replica, plus storage and backup storage | **Always**, from creation | Delete it; see [Chapter 2 cost and cleanup](examples/ch02-getting-started/README.md#cost-and-cleanup) |
 | 2 (optional) | `wardgeneral-research` named replica, serverless | Always, at least its minimum vCores | Delete the named replica |
 | 5 | Microsoft Foundry model deployments (`gpt-5`, embeddings) | Per token used | [`reset-ai-azure.ps1`](examples/ch05-ai-ready-sql/reset-ai-azure.ps1) |
@@ -178,7 +298,7 @@ the public Azure Retail Prices API) or use the
 | 7 (optional) | Log Analytics workspace for AzureSQLErrors | Per GB ingested and retained | `teardown-azuresqlerrors.ps1` |
 | 8 (optional) | Log Analytics workspace for auditing | Per GB ingested and retained | `teardown-auditing.ps1` |
 | 8 (optional) | Key Vault for TDE with a customer-managed key | Per key operation; purge protection keeps it for its retention period | No automated teardown; see the [TDE README](examples/ch08-security/tde/README.md) |
-| 9 | PITR test copy, serverless | Storage always; compute unless paused | `cleanup-pitr.ps1` |
+| 9 | Point-in-time restore test copy, serverless | Storage always; compute unless paused | `cleanup-pitr.ps1` |
 | 9 (optional) | Geo-replica logical server and database, same size as the primary | **Always** | `cleanup-geo-replica.ps1` |
 | 10 | `wardgeneral` scaled to 16, then 40 vCores (the HA replica too), and about 12 GB more storage per growth interval | **Always**, at the larger size until you scale back | `scale-compute.ps1 -TargetServiceObjective HS_Gen5_8`; see [Chapter 10 cost and cleanup](examples/ch10-performance/README.md#cost-and-cleanup--scale-back-when-you-finish) |
 
@@ -187,45 +307,59 @@ charges of their own beyond the model calls above.
 
 **Free trial or Visual Studio subscription?** Monthly credits differ by
 subscription, so check yours against the estimate. The **Always** rows use
-credit fastest, so delete or scale back between sessions rather than leaving
-them running. These subscriptions have a
-[spending limit](https://learn.microsoft.com/azure/cost-management-billing/manage/spending-limit)
+credit fastest, so delete or scale back between sessions. These subscriptions
+have a [spending limit](https://learn.microsoft.com/azure/cost-management-billing/manage/spending-limit)
 on by default: when the credit runs out, Azure disables the deployed services
-for the rest of the billing period. There's no free Hyperscale tier, but the
+for the rest of the billing period. The
 [free Azure SQL Database offer](examples/ch02-getting-started/README.md#using-the-free-azure-sql-database-offer-instead)
 covers the SQL and application work in the early chapters.
 
-### Running the SQL scripts (and re-running them)
+### Safety and local configuration
+
+- **Dev/test only.** These are educational examples, not a production
+  deployment template. Never point a load generator at a production database.
+- **Your names stay local.** Keep resource names in each chapter's local
+  environment file, copied from its template. Environment files, development
+  settings, build output, and generated Chapter 10 evidence are git-ignored.
+  Never commit passwords, access tokens, connection strings, or your own
+  deployment details.
+- **Preview features.** Some examples use preview features. Check the chapter's
+  notes and current Microsoft documentation before running them; availability
+  and behavior can change independently of the book.
+
+## Conventions
+
+### Running and re-running the Chapter 2 schema scripts
 
 Run the five schema scripts **in order once**, then verify:
 
 | Step | Script | What it does |
-| --- | --- | --- |
+| :---: | --- | --- |
 | 1 | `01-schemas.sql` | Creates the `clinical` and `ops` schemas. |
-| 2 | `02-tables.sql` | Creates all 16 tables (keys, FKs, constraints, `json` columns). |
+| 2 | `02-tables.sql` | Creates all 16 tables (keys, foreign keys, constraints, `json` columns). |
 | 3 | `03-views.sql` | Creates the `vPatientChart` chart views. |
-| 4 | `04-procedures.sql` | Creates the read/write procedures (admit, discharge, record vitals…). |
-| 5 | `05-seed.sql` | Seeds the database to roughly **12 GB** of fully synthetic data. Runs ~5–15 min (log-rate gated). |
-| ✓ | `verify-data.sql` | Read-only PASS/FAIL check. You want it to end with **`ALL CHECKS PASSED`**. |
+| 4 | `04-procedures.sql` | Creates the read and write procedures (admit, discharge, record vitals, and more). |
+| 5 | `05-seed.sql` | Seeds roughly **12 GB** of fully synthetic data. Runs ~5–15 minutes (log-rate gated). |
+| ✓ | `verify-data.sql` | Read-only PASS/FAIL check. It should end with **`ALL CHECKS PASSED`**. |
 
 **You never drop the database to start over.** Each script is safe to re-run,
 but they differ in what they discard:
 
 - `01` is a guarded no-op on re-run.
-- **`02` drops and recreates the tables — this discards all data.** Re-run it
-  only when you've changed the schema.
-- `03` and `04` use `CREATE OR ALTER` — they redefine in place and touch no data.
-- **`05` truncates and reseeds — it reloads the data without changing the
-  schema.** This is the quick "give me fresh data" path.
+- **`02` drops and recreates the tables, discarding all data.** Re-run it only
+  after a schema change.
+- `03` and `04` use `CREATE OR ALTER`; they redefine in place and touch no data.
+- **`05` truncates and reseeds.** It reloads the data without changing the
+  schema.
 
-So: to reload just the data, re-run **`05` alone**; to rebuild after a schema
-change, re-run **`02`→`05`**. Dropping the *database* is never necessary and
-would needlessly discard your compute shape, HA replica, and firewall rules.
+To reload only the data, re-run **`05`**. To rebuild after a schema change,
+re-run **`02` through `05`**. Dropping the database is never necessary and
+would discard your compute shape, HA replica, and firewall rules.
 
-### Why the schema scripts start with `SET` options
+### Why schema scripts start with `SET` options
 
-Every `.sql` file that creates or alters schema objects — tables, views,
-procedures, functions, indexes — opens with the same seven-line block:
+Every `.sql` file that creates or alters schema objects (tables, views,
+procedures, functions, indexes) opens with the same seven lines:
 
 ```sql
 SET QUOTED_IDENTIFIER ON;
@@ -237,224 +371,51 @@ SET ANSI_WARNINGS ON;
 SET NUMERIC_ROUNDABORT OFF;
 ```
 
-Those seven are the **exact settings SQL Server requires** to create a filtered
-index, indexed view, computed-column index, or JSON index — if any one is wrong,
-the `CREATE` fails with **Msg 1934**. `02-tables.sql` needs them for its filtered
-unique index on `Encounter`, and `QUOTED_IDENTIFIER` / `ANSI_NULLS` are recorded
-on the object at creation, so they also apply to later work (like the JSON index
-added in a later chapter).
+These are the settings SQL Server requires to create a filtered index, indexed
+view, computed-column index, or JSON index; if any one is wrong, the `CREATE`
+fails with **Msg 1934**. `QUOTED_IDENTIFIER` and `ANSI_NULLS` are also recorded
+on each object when it's created, so they affect later work such as the JSON
+index in a later chapter.
 
-The preamble is in each of those files for portability: **SSMS** already defaults most
-of these ON, but **`sqlcmd` defaults `QUOTED_IDENTIFIER` and `ARITHABORT` OFF**.
-With the preamble, the scripts behave identically whether you run them from the
-MSSQL extension, SSMS, or `sqlcmd` — so leave it in place and run each file whole.
-Read-only diagnostic queries, cleanup scripts, and the sqlsim workload
+SSMS defaults most of these on, but **`sqlcmd` defaults `QUOTED_IDENTIFIER` and
+`ARITHABORT` off**. With the preamble, each script behaves the same in the
+MSSQL extension, SSMS, or `sqlcmd`, so leave it in place and run each file
+whole. Read-only diagnostic queries, cleanup scripts, and sqlsim workload
 statements create nothing, so they don't carry it.
-
-## Working with Copilot
-
-The guided path runs through GitHub Copilot in VS Code. A few things behave in
-ways that surprise first-time readers:
-
-- **Copilot may edit scripts in your clone.** If you ask it to adapt something,
-  such as a different region or compute model, it can change a script or SQL
-  file to do it. That's expected and it's your copy. Use `git status` and
-  `git diff` to see what changed, and `git restore <file>` to put a file back.
-  Please don't open pull requests from those local adaptations; if you find a
-  real problem in an example, [open an issue](https://github.com/rgward/sqlhyperscalebook/issues)
-  instead.
-- **Approving actions.** Before Copilot runs a command or tool, VS Code asks
-  you to approve it. You can approve a single use, or grant approval for the
-  session, the workspace, or all future uses. The permissions picker in the
-  chat input also offers **Allow all**. Approving each step is the strict
-  choice; allowing more saves clicks when you trust what it's doing. Avoid
-  **Allow all** and **Autopilot** for these examples: the skills ask for your
-  approval in chat before creating billable Azure resources, and Autopilot can
-  answer those questions on its own. See
-  [Manage approvals and permissions](https://code.visualstudio.com/docs/agents/run/approvals).
-- **Chat or terminal?** Answer the skills' questions in chat; to accept a
-  default, reply **ok**. Only a few steps need you in the terminal: signing in
-  with `az login` and typing the masked SQL admin password during the
-  Chapter 2 deploy. Your password never goes into chat.
-- **Where output appears.** Short commands show their output in the chat.
-  Long-running ones, like the Ward General app, run in a terminal Copilot
-  opens; look for it in the **Terminal** panel.
 
 ## Figures
 
-Every captioned figure in the book is published here, under `figures/<chapter>/`,
-named by its book number — `ch02-fig-06-…` is Figure 2-6. Some printed figures
-are hard to read at book size; open the file here to zoom in.
+Every captioned figure in the book is published, by chapter, in
+[`figures/`](figures/README.md), along with editable SVG sources for the
+architecture diagrams. Many printed figures are hard to read at book size;
+open them here to zoom in.
 
-![The road to Azure SQL Hyperscale](figures/ch01-introduction/ch01-figure-01-timeline.svg)
-
-### Chapter 1
-
-| Figure | Caption |
-| --- | --- |
-| [1-1](figures/ch01-introduction/ch01-fig-01-the-road-to-azure-sql-hyperscale.png) | The road to Azure SQL Hyperscale |
-| [1-2](figures/ch01-introduction/ch01-fig-02-hyperscale-is-built-for-mission-critical-applications.png) | Hyperscale is built for mission-critical applications |
-
-### Chapter 2
-
-| Figure | Caption |
-| --- | --- |
-| [2-1](figures/ch02-getting-started/ch02-fig-01-azure-sql-in-the-azure-portal.png) | Azure SQL in the Azure portal |
-| [2-2](figures/ch02-getting-started/ch02-fig-02-creating-a-hyperscale-database-in-the-azure-portal.png) | Creating a Hyperscale database in the Azure portal |
-| [2-3](figures/ch02-getting-started/ch02-fig-03-files-and-scripts-in-vs-code-to-deploy-hyperscale.png) | Files and scripts in VS Code to deploy Hyperscale |
-| [2-4](figures/ch02-getting-started/ch02-fig-04-using-ai-assistance-to-make-decisions-like-zone-redundancy.png) | Using AI assistance to make decisions like Zone Redundancy |
-| [2-5](figures/ch02-getting-started/ch02-fig-05-confirming-choices-before-deploy.png) | Confirming choices before deploy |
-| [2-6](figures/ch02-getting-started/ch02-fig-06-hyperscale-deployment-confirmation.png) | Hyperscale deployment confirmation |
-| [2-7](figures/ch02-getting-started/ch02-fig-07-connecting-with-the-mssql-extension.png) | Connecting with the MSSQL extension |
-| [2-8](figures/ch02-getting-started/ch02-fig-08-the-azure-activity-log-for-the-hyperscale-deployment.png) | The Azure Activity log for the Hyperscale deployment |
-| [2-9](figures/ch02-getting-started/ch02-fig-09-using-ssms-with-azure-sql-hyperscale.png) | Using SSMS with Azure SQL Hyperscale |
-| [2-10](figures/ch02-getting-started/ch02-fig-10-using-ghcp-with-your-schema.png) | Using GHCP with your schema |
-| [2-11](figures/ch02-getting-started/ch02-fig-11-using-ghcp-with-ssms-to-explore-data.png) | Using GHCP with SSMS to explore data |
-
-### Chapter 3
-
-| Figure | Caption |
-| --- | --- |
-| [3-1](figures/ch03-architecture/ch03-fig-01-the-socrates-architecture.png) | The Socrates architecture |
-| [3-2](figures/ch03-architecture/ch03-fig-02-the-modern-azure-sql-hyperscale-architecture.png) | The modern Azure SQL Hyperscale architecture |
-| [3-3](figures/ch03-architecture/ch03-fig-03-looking-at-hyperscale-tiers.png) | Looking at Hyperscale tiers |
-| [3-4](figures/ch03-architecture/ch03-fig-04-the-primary-compute-in-hyperscale.png) | The Primary Compute in Hyperscale |
-| [3-5](figures/ch03-architecture/ch03-fig-05-limits-for-hyperscale-primary-compute.png) | Limits for Hyperscale Primary Compute |
-| [3-6](figures/ch03-architecture/ch03-fig-06-tempdb-files-on-primary-compute.png) | Tempdb files on Primary Compute |
-| [3-7](figures/ch03-architecture/ch03-fig-07-the-log-service.png) | The Log Service |
-| [3-8](figures/ch03-architecture/ch03-fig-08-page-servers.png) | Page Servers |
-| [3-9](figures/ch03-architecture/ch03-fig-09-data-file-storage-in-hyperscale.png) | Data file storage in Hyperscale |
-| [3-10](figures/ch03-architecture/ch03-fig-10-hyperscale-replicas.png) | Hyperscale replicas |
-| [3-11](figures/ch03-architecture/ch03-fig-11-list-of-hyperscale-replicas.png) | List of Hyperscale replicas |
-| [3-12](figures/ch03-architecture/ch03-fig-12-end-to-end-flows-in-hyperscale.png) | End-to-end flows in Hyperscale |
-
-### Chapter 4
-
-| Figure | Caption |
-| --- | --- |
-| [4-1](figures/ch04-first-app/ch04-fig-01-the-digital-chart-application.png) | The digital chart application |
-| [4-2](figures/ch04-first-app/ch04-fig-02-top-of-patient-digital-chart.png) | Top of patient digital chart |
-| [4-3](figures/ch04-first-app/ch04-fig-03-bottom-of-the-patient-chart.png) | Bottom of the patient chart |
-| [4-4](figures/ch04-first-app/ch04-fig-04-application-architecture.png) | Application architecture |
-| [4-5](figures/ch04-first-app/ch04-fig-05-application-source-code-in-the-github-repo-for-the-book.png) | Application source code in the GitHub repo for the book |
-| [4-6](figures/ch04-first-app/ch04-fig-06-building-the-application-with-github-copilot-in-vs-code.png) | Building the application with GitHub Copilot in VS Code |
-| [4-7](figures/ch04-first-app/ch04-fig-07-how-to-chat-with-your-schema-with-github-copilot.png) | How to chat with your schema with GitHub Copilot |
-| [4-8](figures/ch04-first-app/ch04-fig-08-from-the-note-using-regex.png) | From the note using RegEx |
-
-### Chapter 5
-
-| Figure | Caption |
-| --- | --- |
-| [5-1](figures/ch05-ai-ready-sql/ch05-fig-01-patient-research-in-the-application-using-vector-search.png) | Patient Research in the application using vector search |
-| [5-2](figures/ch05-ai-ready-sql/ch05-fig-02-clinical-assistance-in-the-digital-chart.png) | Clinical Assistance in the digital chart |
-| [5-3](figures/ch05-ai-ready-sql/ch05-fig-03-application-architecture-with-ai.png) | Application architecture with AI |
-| [5-4](figures/ch05-ai-ready-sql/ch05-fig-04-the-hyperscale-vector-architecture.png) | The Hyperscale vector architecture |
-| [5-5](figures/ch05-ai-ready-sql/ch05-fig-05-hyperscale-agentic-rag.png) | Hyperscale Agentic RAG |
-
-### Chapter 6
-
-| Figure | Caption |
-| --- | --- |
-| [6-1](figures/ch06-agentic-ai/ch06-fig-01-llms-and-tools.svg) | LLMs and tools |
-| 6-2 | The Model Context Protocol (MCP) — [PNG](figures/ch06-agentic-ai/ch06-fig-02-the-model-context-protocol-mcp.png) · [SVG](figures/ch06-agentic-ai/ch06-fig-02-the-model-context-protocol-mcp.svg) |
-| [6-3](figures/ch06-agentic-ai/ch06-fig-03-data-api-builder-dab.png) | Data API Builder (DAB) |
-| [6-4](figures/ch06-agentic-ai/ch06-fig-04-using-the-sql-mcp-server-with-dab.png) | Using the SQL MCP Server with DAB |
-| [6-5](figures/ch06-agentic-ai/ch06-fig-05-the-ward-general-digital-chart-application-with-ai-agents.png) | The Ward General digital chart application with AI agents |
-| [6-6](figures/ch06-agentic-ai/ch06-fig-06-the-agent-chat-feature.png) | The Agent chat feature |
-| [6-7](figures/ch06-agentic-ai/ch06-fig-07-the-agent-side-chat-interface.png) | The Agent side chat interface |
-| [6-8](figures/ch06-agentic-ai/ch06-fig-08-shift-handoff-candidates.png) | Shift handoff candidates |
-| [6-9](figures/ch06-agentic-ai/ch06-fig-09-shift-handoff-approval.png) | Shift handoff approval |
-| [6-10](figures/ch06-agentic-ai/ch06-fig-10-shift-handoff-recommendations.png) | Shift handoff recommendations |
-| [6-11](figures/ch06-agentic-ai/ch06-fig-11-the-agent-flow.png) | The Agent flow |
-
-### Chapter 7
-
-| Figure | Caption |
-| --- | --- |
-| [7-1](figures/ch07-observability/ch07-fig-01-azure-monitor-metrics-in-the-portal-for-hyperscale.png) | Azure Monitor metrics in the portal for Hyperscale |
-| [7-2](figures/ch07-observability/ch07-fig-02-cpu-spike-for-hyperscale.png) | CPU spike for Hyperscale |
-| [7-3](figures/ch07-observability/ch07-fig-03-an-azure-copilot-prompt-for-availability.png) | An Azure Copilot prompt for availability |
-| [7-4](figures/ch07-observability/ch07-fig-04-watching-live-data-with-xevent.png) | Watching live data with XEvent |
-
-### Chapter 8
-
-| Figure | Caption |
-| --- | --- |
-| [8-1](figures/ch08-security/ch08-fig-01-the-wardgeneral-digital-chart-application-with-extra-security.svg) | The WardGeneral digital chart application with extra security |
-| [8-2](figures/ch08-security/ch08-fig-02-choosing-a-provider-in-the-digital-chart-application.png) | Choosing a provider in the digital chart application |
-| [8-3](figures/ch08-security/ch08-fig-03-shift-handoff-with-rls-applied.png) | Shift handoff with RLS applied |
-| [8-4](figures/ch08-security/ch08-fig-04-a-private-link-for-hyperscale.png) | A private link for Hyperscale |
-| [8-5](figures/ch08-security/ch08-fig-05-the-flow-of-always-encrypted.png) | The flow of Always Encrypted |
-| [8-6](figures/ch08-security/ch08-fig-06-microsoft-defender-for-cloud.png) | Microsoft Defender for Cloud |
-
-### Chapter 9
-
-| Figure | Caption |
-| --- | --- |
-| [9-1](figures/ch09-ha-resiliency/ch09-fig-01-the-hyperscale-ha-architecture.svg) | The Hyperscale HA architecture |
-| [9-2](figures/ch09-ha-resiliency/ch09-fig-02-the-hyperscale-zone-redundancy-architecture.svg) | The Hyperscale Zone Redundancy architecture |
-| [9-3](figures/ch09-ha-resiliency/ch09-fig-03-hyperscale-geo-replication-architecture.svg) | Hyperscale Geo-Replication architecture |
-| [9-4](figures/ch09-ha-resiliency/ch09-fig-04-the-hyperscale-failover-group-architecture.svg) | The Hyperscale Failover Group architecture |
-| [9-5](figures/ch09-ha-resiliency/ch09-fig-05-a-hyperscale-geo-replica.png) | A Hyperscale Geo-Replica |
-
-### Chapter 10
-
-| Figure | Caption |
-| --- | --- |
-| [10-1](figures/ch10-performance/ch10-fig-01-scaling-the-compute-of-the-wardgeneral-database.png) | Scaling the compute of the wardgeneral database |
-| [10-2](figures/ch10-performance/ch10-fig-02-hands-free-data-growth-and-io-for-hyperscale.png) | Hands-free data growth and IO for Hyperscale |
-| [10-3](figures/ch10-performance/ch10-fig-03-the-hyperscale-elastic-pool-architecture.svg) | The Hyperscale Elastic Pool architecture |
-| [10-4](figures/ch10-performance/ch10-fig-04-json-index-seek-in-hyperscale.png) | JSON index seek in Hyperscale |
-| [10-5](figures/ch10-performance/ch10-fig-05-tempdb-spill-due-to-underestimated-memory-grant.png) | Tempdb spill due to underestimated memory grant |
-| [10-6](figures/ch10-performance/ch10-fig-06-automatic-index-compaction-in-hyperscale.png) | Automatic Index Compaction in Hyperscale |
-
-### Chapter 11
-
-| Figure | Caption |
-| --- | --- |
-| [11-1](figures/ch11-azure-best-cloud/ch11-fig-01-why-azure-is-the-best-cloud-for-hyperscale.svg) | Why Azure is the best cloud for Hyperscale |
-| [11-2](figures/ch11-azure-best-cloud/ch11-fig-02-the-azure-ai-plane-microsoft-foundry.png) | The Azure AI Plane, Microsoft Foundry |
-| [11-3](figures/ch11-azure-best-cloud/ch11-fig-03-using-skills-to-migrate-to-hyperscale-with-dms.svg) | Using skills to migrate to Hyperscale with DMS |
-
-### Diagram sources (SVG)
-
-The architecture diagrams are also published as **SVG** — the source several of
-the printed figures were drawn from. They stay crisp at any zoom, and you can open
-one and adapt it. Source file names use working numbers; the **Book figure**
-column gives the number printed in the book.
-
-| Chapter | Figure | Book figure | What it shows |
-| --- | --- | --- | --- |
-| 1 | [Timeline](figures/ch01-introduction/ch01-figure-01-timeline.svg) | 1-1 | How Hyperscale got here, from SQL Azure to GA. |
-| 3 | [Architecture](figures/ch03-architecture/ch03-figure-01-architecture.svg) | 3-2 | The master figure: all four tiers and the paths between them. |
-| 3 | [Primary compute](figures/ch03-architecture/ch03-figure-primary-compute.svg) | 3-4 | The primary replica and its local RBPEX cache. |
-| 3 | [Log service](figures/ch03-architecture/ch03-figure-02-log-service.svg) | 3-7 | XLOG — the landing zone, the log broker, and who consumes the log. |
-| 3 | [Page servers](figures/ch03-architecture/ch03-figure-page-server.svg) | 3-8 | The 128 GB slices and the `GetPage@LSN` path. |
-| 3 | [File and storage](figures/ch03-architecture/ch03-figure-file-storage.svg) | 3-9 | The durable tier, and why you pay on actual allocation. |
-| 3 | [Replicas](figures/ch03-architecture/ch03-figure-replicas.svg) | 3-10 | HA replicas, named replicas, and what attaches to what. |
-| 3 | [Transaction flow](figures/ch03-architecture/ch03-figure-transaction-flow.svg) | 3-12 | One commit, followed across every tier. |
-| 4 | [Application architecture](figures/ch04-first-app/ch04-figure-01-application-architecture-wide.svg) | 4-4 | The Ward General app, and the one connection it makes. |
-| 5 | [Application architecture](figures/ch05-ai-ready-sql/ch05-figure-01-application-architecture.svg) | 5-3 | The same app once the engine itself calls out to models. |
-| 6 | [Application architecture](figures/ch06-agentic-ai/ch06-figure-01-application-architecture.svg) | 6-5 | The same app once an agent, DAB and the SQL MCP server join it. |
-| 6 | [Agent prompt flows](figures/ch06-agentic-ai/ch06-figure-02-agent-prompt-flows.svg) | 6-11 | How a shift handoff moves through the agent, the model, DAB, and SQL. |
-| 8 | [Security architecture](figures/ch08-security/ch08-figure-01-application-architecture.svg) | 8-1 | The same app with provider context, Row-Level Security, and the production Private Link path. |
-
-Chapters 4, 5, 6 and 8 are drawn on **one shared grid** on purpose. Put them
-side by side and the layout does not move — only what has been added to it.
+<p align="center">
+  <a href="figures/README.md#chapter-3">
+    <img src="figures/ch03-architecture/ch03-figure-01-architecture.svg" alt="Azure SQL Hyperscale architecture (Figure 3-2)" width="900">
+  </a>
+  <br>
+  <sub>Figure 3-2. The modern Azure SQL Hyperscale architecture</sub>
+</p>
 
 ## Links from the book
 
-Each chapter README under `examples/` ends with a **Links from the book** list:
-every web link printed in that chapter, in order, so you can click instead of
-typing. Chapters 1 and 11 have no example folder, so their links are here.
+Each chapter README under `examples/` ends with a **Links from the book**
+list: every web link printed in that chapter, in order, so you can click
+instead of typing. Chapters 1 and 11 have no example folder, so their links are
+here.
 
-### Chapter 1 links
+<details>
+<summary><b>Chapter 1 links</b></summary>
 
 - Socrates research paper (the architecture behind Hyperscale) — <https://aka.ms/socratespaper>
 - Azure SQL Database resource limits — <https://aka.ms/sqldbresourcelimits>
 - Azure SQL service level agreement (SLA) — <https://aka.ms/azuresqlsla>
 
-### Chapter 11 links
+</details>
+
+<details>
+<summary><b>Chapter 11 links</b></summary>
 
 - Microsoft Foundry — <https://ai.azure.com>
 - Foundry Agent Service — <https://learn.microsoft.com/azure/foundry/agents/overview>
@@ -477,14 +438,21 @@ typing. Chapters 1 and 11 have no example folder, so their links are here.
 - Azure SQL blog — <https://aka.ms/azuresqlblog>
 - Azure SQL dev blog — <https://devblogs.microsoft.com/azure-sql>
 
+</details>
+
+## Support and contributing
+
+- **Questions, problems, and errata:**
+  [open an issue](https://github.com/rgward/sqlhyperscalebook/issues) with the
+  chapter, script, expected behavior, and sanitized error output. Don't include
+  credentials, subscription details, or local environment files.
+- **Discussion:** share your experience with the book and examples in
+  [Discussions](https://github.com/rgward/sqlhyperscalebook/discussions).
+- **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md) for validation
+  commands and guidelines.
+- **Security:** see [SECURITY.md](SECURITY.md) to report a vulnerability
+  privately.
+
 ## License
 
 The examples are licensed under the [MIT License](LICENSE).
-
-## Questions, errata, and contributions
-
-For example-code problems or book errata, [open an issue](https://github.com/rgward/sqlhyperscalebook/issues)
-with the chapter, script, expected behavior, and sanitized error output.
-Do not include credentials, subscription details, or local environment files.
-See [CONTRIBUTING.md](CONTRIBUTING.md) for validation commands and contribution
-guidelines, and [SECURITY.md](SECURITY.md) for private vulnerability reporting.

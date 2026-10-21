@@ -1,7 +1,7 @@
 # Chapter 6 — Build the agentic Ward General workflow
 
 > **Figures:** this chapter's book figures are in [`figures/ch06-agentic-ai/`](../../figures/ch06-agentic-ai/),
-> listed with their captions in the [root README](../../README.md#chapter-6).
+> listed with their captions in the [figures index](../../figures/README.md#chapter-6).
 
 Chapter 6 evolves the Ward General application from Chapter 4. It does not
 create a second application.
