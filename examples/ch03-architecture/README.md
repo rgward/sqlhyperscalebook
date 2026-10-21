@@ -17,7 +17,7 @@ transaction flows across them, on the live **Ward General Hospital** database
 The chapter's other figures — primary compute, the log service, page servers,
 file and storage, replicas, and one transaction followed across every tier —
 are in [`figures/ch03-architecture/`](../../figures/ch03-architecture/),
-listed with their captions in the [root README](../../README.md#chapter-3).
+listed with their captions in the [figures index](../../figures/README.md#chapter-3).
 
 ## What this is — and isn't
 

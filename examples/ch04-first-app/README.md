@@ -1,7 +1,7 @@
 # Chapter 4 — Your First App
 
 > **Figures:** this chapter's book figures are in [`figures/ch04-first-app/`](../../figures/ch04-first-app/),
-> listed with their captions in the [root README](../../README.md#chapter-4).
+> listed with their captions in the [figures index](../../figures/README.md#chapter-4).
 
 Build a real application on the database you provisioned in Chapter 2. **Ward
 General Hospital** is a bedside chart: a unit board of occupied beds, a patient

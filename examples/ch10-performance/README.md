@@ -1,7 +1,7 @@
 # Chapter 10 — Scale and Tune Ward General
 
 > **Figures:** this chapter's book figures are in [`figures/ch10-performance/`](../../figures/ch10-performance/),
-> listed with their captions in the [root README](../../README.md#chapter-10).
+> listed with their captions in the [figures index](../../figures/README.md#chapter-10).
 
 Chapter 10 continues the same Ward General system built in Chapters 2 through
 9. It does not deploy a replacement database or introduce a disconnected
