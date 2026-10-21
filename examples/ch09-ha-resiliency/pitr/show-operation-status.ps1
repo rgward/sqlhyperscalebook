@@ -37,7 +37,7 @@ if ($RestoredDatabase -notmatch '^wardgeneral-pitr-') {
 $sqlcmdPath = @(
     $SqlCmd,
     $env:SQLCMD,
-    (Join-Path $env:LOCALAPPDATA 'Programs\sqlcmd\sqlcmd.exe'),
+    $(if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'Programs\sqlcmd\sqlcmd.exe' }),
     'C:\Program Files\SqlCmd\sqlcmd.exe',
     (Get-Command sqlcmd -ErrorAction SilentlyContinue).Source
 ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1

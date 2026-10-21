@@ -81,11 +81,11 @@ function Invoke-ApimRest {
     $url = "$baseUrl/$Path`?api-version=$apiVersion"
     if ($Body) {
         $bodyJson = $Body | ConvertTo-Json -Depth 10 -Compress
-        $bodyFile = Join-Path $env:TEMP 'apim-rest-body.json'
+        $bodyFile = Join-Path ([IO.Path]::GetTempPath()) 'apim-rest-body.json'
         # Write without BOM — az rest chokes on BOM in responses that carry policy XML.
         [System.IO.File]::WriteAllText($bodyFile, $bodyJson, [System.Text.UTF8Encoding]::new($false))
         if ($OutputFile) {
-            $outFile = Join-Path $env:TEMP 'apim-rest-out.json'
+            $outFile = Join-Path ([IO.Path]::GetTempPath()) 'apim-rest-out.json'
             az rest --method $Method --url $url --body "@$bodyFile" --output-file $outFile 2>$null
             $result = [System.IO.File]::ReadAllText($outFile, [System.Text.UTF8Encoding]::new($false))
         } else {
@@ -94,7 +94,7 @@ function Invoke-ApimRest {
         Remove-Item $bodyFile -Force -ErrorAction SilentlyContinue
     } else {
         if ($OutputFile) {
-            $outFile = Join-Path $env:TEMP 'apim-rest-out.json'
+            $outFile = Join-Path ([IO.Path]::GetTempPath()) 'apim-rest-out.json'
             az rest --method $Method --url $url --output-file $outFile 2>$null
             $result = [System.IO.File]::ReadAllText($outFile, [System.Text.UTF8Encoding]::new($false))
         } else {
@@ -191,7 +191,7 @@ if ($existing -eq 'Succeeded') {
         properties = @{ publisherEmail = $PublisherEmail; publisherName = $PublisherName }
     }
     $bodyJson = $createBody | ConvertTo-Json -Depth 5 -Compress
-    $bodyFile = Join-Path $env:TEMP 'apim-create.json'
+    $bodyFile = Join-Path ([IO.Path]::GetTempPath()) 'apim-create.json'
     [System.IO.File]::WriteAllText($bodyFile, $bodyJson, [System.Text.UTF8Encoding]::new($false))
     az rest --method PUT --url "$baseUrl`?api-version=$apiVersion" --body "@$bodyFile" --output none
     Remove-Item $bodyFile -Force -ErrorAction SilentlyContinue

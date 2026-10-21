@@ -38,29 +38,47 @@ $isGoSqlcmd = {
 $sqlcmdPath = @(
     $SqlCmd,
     $env:SQLCMD,
-    (Join-Path $env:LOCALAPPDATA 'Programs\sqlcmd\sqlcmd.exe'),
+    $(if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'Programs\sqlcmd\sqlcmd.exe' }),
     'C:\Program Files\SqlCmd\sqlcmd.exe',
     (Get-Command sqlcmd -ErrorAction SilentlyContinue).Source
 ) | Where-Object { $_ -and (Test-Path $_) -and (& $isGoSqlcmd $_) } |
     Select-Object -First 1
 if (-not $sqlcmdPath) { throw 'The new Go-based sqlcmd was not found.' }
 
+# Process IDs listening on a port. Get-NetTCPConnection is Windows-only, so
+# macOS and Linux use lsof, as examples/ch04-first-app/shutdown.ps1 does.
+function Get-PortOwnerId([int] $Port) {
+    if ($IsWindows) {
+        Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue |
+            ForEach-Object { $_.OwningProcess }
+        return
+    }
+    if (-not (Get-Command lsof -ErrorAction SilentlyContinue)) { return }
+    & lsof -nP -t -iTCP:$Port -sTCP:LISTEN 2>$null | ForEach-Object { [int]$_ }
+}
+
+# A process's full command line. Win32_Process is Windows-only; ps elsewhere.
+function Get-ProcessCommandLine([int] $ProcessId) {
+    if ($IsWindows) {
+        return (Get-CimInstance Win32_Process -Filter "ProcessId=$ProcessId" `
+            -ErrorAction SilentlyContinue).CommandLine
+    }
+    (& ps -o command= -p $ProcessId 2>$null | Out-String).Trim()
+}
+
 $appListeners = @(foreach ($port in $AppPorts) {
-    Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue |
-        Select-Object -First 1
+    Get-PortOwnerId $port | Select-Object -First 1
 })
 $recognizedAppListeners = @($appListeners | Where-Object {
-    $process = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+    $process = Get-Process -Id $_ -ErrorAction SilentlyContinue
     $process -and $process.ProcessName -in @('WardGeneral.Web', 'dotnet')
 })
 
-$dabListener = Get-NetTCPConnection -State Listen -LocalPort $DabPort `
-    -ErrorAction SilentlyContinue | Select-Object -First 1
+$dabListener = Get-PortOwnerId $DabPort | Select-Object -First 1
 $recognizedDabListener = $null
 if ($dabListener) {
-    $process = Get-Process -Id $dabListener.OwningProcess -ErrorAction SilentlyContinue
-    $commandLine = (Get-CimInstance Win32_Process `
-        -Filter "ProcessId=$($dabListener.OwningProcess)" -ErrorAction SilentlyContinue).CommandLine
+    $process = Get-Process -Id $dabListener -ErrorAction SilentlyContinue
+    $commandLine = Get-ProcessCommandLine $dabListener
     if ($process -and ($process.ProcessName -ieq 'dab' -or
         $commandLine -match '(?i)(Microsoft\.DataApiBuilder|\bdab(?:\.exe)?\s+start\b)')) {
         $recognizedDabListener = $dabListener
