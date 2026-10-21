@@ -22,9 +22,9 @@ duplicate those details here.
 If a stage stops or remains design-only, report that state and do not advance
 automatically.
 
-Demo 3 currently runs the JSON-index and memory grant feedback sequences.
-Observation tuning remains deferred; report that boundary rather than treating
-it as a third runnable sequence.
+Demo 3 runs the JSON-index and memory grant feedback sequences. The
+`observation-index/` evaluation of the Chapter 7 `ValueNumeric` recommendation
+is a repository supplement; run it only when the reader asks for it.
 
 ## Shared guardrails
 

@@ -134,7 +134,7 @@ To stop all charges, delete the resources as described in the Chapter 2 README.
 | --- | --- |
 | 1 | Orchestrated `HS_Gen5_8 → HS_Gen5_16 → HS_Gen5_40` progression, with one explicit approval covering both displayed scale changes, passwordless `sqlsim` load at each size, and focused measurements. |
 | 2 | **Complete.** Live-validated on `wardgeneral` at `HS_Gen5_40`: one five-minute interval added 12.065 GB, grew allocated data files automatically from 20 GB to 40 GB, reached 70.35 MiB/s peak actual log throughput, and completed 687 transactions without failure. |
-| 3 | JSON-index path complete: 5,000,005-row live validation reduced logical reads from 162,050 to 24. Query-feedback path complete: in the canonical run, MGF eliminated a 390.50 MB spill and cut elapsed time by 52% on execution 2; CE feedback did not intervene. Both paths have verified cleanup; Observation tuning remains deferred. |
+| 3 | JSON-index path complete: 5,000,005-row live validation reduced logical reads from 162,050 to 24. Query-feedback path complete: in the canonical run, MGF eliminated a 390.50 MB spill and cut elapsed time by 52% on execution 2; CE feedback did not intervene. Both paths have verified cleanup. The `observation-index/` supplement evaluates the Chapter 7 `ValueNumeric` recommendation (logic verified on a scaled-down LocalDB copy; not yet run live on Hyperscale). |
 
 ## Sources
 

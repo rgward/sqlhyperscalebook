@@ -1,6 +1,6 @@
 ---
 name: tune-wardgeneral-data
-description: 'Run the implemented parts of Chapter 10 Demo 3: JSON indexing and memory grant feedback on Ward General. USE WHEN the reader says "Run the Chapter 10 JSON index demo", "Run the Chapter 10 memory grant feedback demo" (the book''s prompts; run only the named sequence), "run Chapter 10 Demo 3", "demo JSON indexing", "run the JSON index demo", "show memory grant feedback", or "run the MGF demo". Owns the self-contained LabResultArchive JSON-index sequence and the self-contained row-mode memory grant feedback scenario; Observation tuning is deferred. The JSON index build is offline and requires explicit acknowledgment. Do not scale compute, grow the database, or add named replicas.'
+description: 'Run Chapter 10 Demo 3 on Ward General: JSON indexing, memory grant feedback, and (repository supplement) the evaluation of the Chapter 7 ValueNumeric index. USE WHEN the reader says "Run the Chapter 10 JSON index demo", "Run the Chapter 10 memory grant feedback demo" (the book''s prompts; run only the named sequence), "run Chapter 10 Demo 3", "demo JSON indexing", "run the JSON index demo", "show memory grant feedback", "run the MGF demo", "Evaluate the Chapter 7 ValueNumeric index", or "evaluate the Observation index". Owns the self-contained LabResultArchive JSON-index sequence, the self-contained row-mode memory grant feedback scenario, and the observation-index evaluation on clinical.Observation (rolled-back write measurement, index dropped afterwards). The JSON index build is offline and requires explicit acknowledgment; the observation index build requires explicit approval. Do not scale compute, grow the database, or add named replicas.'
 ---
 
 # Tune Ward General
@@ -89,6 +89,28 @@ Follow `examples/ch10-performance/03-tune-grown-data/README.md`.
   reader is finished or before repeating setup. The PowerShell runner already
   invokes this cleanup in `finally`.
 
-Observation tuning remains supporting work until its scripts are implemented.
-Do not fabricate those results or treat a missing-index recommendation as an
-instruction to create an index.
+## Observation-index evaluation (repository supplement)
+
+Run this only when the reader asks for it ("Evaluate the Chapter 7
+ValueNumeric index"). It closes the Chapter 7 forward reference: the book says
+Chapter 10 evaluates that missing-index recommendation, and this example is
+where the repository does it. Say that it is a supplement, not a book example.
+
+1. Run `observation-index/run-demo.ps1` to preview. Explain that `-Execute`
+  builds `IX_Observation_ValueNumeric_Ch10` ONLINE on the ~108-million-row
+  `clinical.Observation` (minutes, extra billed storage while it exists),
+  measures the Chapter 7 query and 500 `RecordVitals` inserts before and
+  after (the inserts are rolled back, so no rows persist), and drops the index
+  at the end. Obtain explicit approval before continuing.
+2. After approval, run `observation-index/run-demo.ps1 -Execute`. Pass
+  `-KeepIndex` only if the reader explicitly wants to keep it.
+3. Report the before/after table (logical reads, CPU, elapsed, log bytes per
+  new row, insert time), the index size beside the table size, the build time,
+  and whether the query used the index. Present it as a trade-off: read
+  savings against extra log per insert and extra storage. Don't declare the
+  index the right design; that depends on how often the query runs relative to
+  the vitals write rate.
+4. Note that dropping the index frees pages but Hyperscale allocated storage
+  doesn't shrink on its own.
+
+Do not fabricate results. Report what the runner measured on this database.

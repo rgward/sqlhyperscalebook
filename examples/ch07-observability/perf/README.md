@@ -202,6 +202,12 @@ measurements to evaluate possible solutions and their performance, storage,
 and write-cost tradeoffs; it does not assume that the raw missing-index
 recommendation is automatically the right design.
 
+> **Where that evaluation lives.** The final Chapter 10 doesn't include it, so
+> the repository adds it as a supplement:
+> [`ch10-performance/03-tune-grown-data/observation-index/`](../../ch10-performance/03-tune-grown-data/observation-index/).
+> It builds the recommended index online, measures the read benefit, write
+> cost, and storage, then drops the index.
+
 ## What repeatable means
 
 The investigation and its evidence chain are repeatable:

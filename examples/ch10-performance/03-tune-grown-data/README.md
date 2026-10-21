@@ -20,8 +20,13 @@ growth:
   eight executions of the same cached Sort over `clinical.ShiftReportArchive`,
   with Query Store attribution for every feedback feature that intervenes.
 
-Observation tuning remains deferred. It will use measured plans, duration,
-I/O, and storage rather than accepting an index recommendation blindly.
+A third example is a repository supplement that isn't in the book:
+
+- [`observation-index/`](observation-index/) evaluates the `ValueNumeric`
+  missing-index recommendation from Chapter 7's performance investigation on
+  `clinical.Observation`: read benefit, write cost (measured in a rolled-back
+  transaction), storage, and build time. It drops the index when it finishes.
+  Ask: **Evaluate the Chapter 7 ValueNumeric index.**
 
 When checked on September 11, 2026, the `CREATE JSON INDEX` reference labeled
 the feature preview and listed SQL Server 2025. The syntax has been
