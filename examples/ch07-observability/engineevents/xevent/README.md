@@ -23,6 +23,13 @@ database deadlocks, and client attentions in a volatile ring buffer.
 3. Run `read-xevent-health.sql` against `wardgeneral` to inspect target counts,
    drops, truncation, and captured rows.
 
+   **Optional — watch it live in SSMS** (the book's Figure 7-4). In Object
+   Explorer, connect to the logical server and expand **wardgeneral** →
+   **Extended Events** → **Sessions**. Right-click `wardgeneral_health` and
+   choose **Watch Live Data**. Then run `test-xevent-health.sql` in another
+   query window: error 208 appears in the live grid as it happens. Close the
+   grid when you're done; the session keeps running.
+
 4. Leave the session running for the lab. To remove it, preview and approve the
    teardown:
 

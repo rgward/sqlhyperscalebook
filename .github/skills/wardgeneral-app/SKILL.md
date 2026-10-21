@@ -8,12 +8,16 @@ description: >-
   app with a feature flag", "flip a feature flag", "build the Ward General app",
   "run the Ward General app", "Run Ward General Hospital app", "start the Ward
   General Hospital app", "start the hospital app", "get the chart app running",
-  "build the Chapter 4 app", or wants to point the app at the wardgeneral
+  "build the Chapter 4 app", "Build and run the Ward General Hospital app
+  against my Hyperscale database", "Run the Ward General Hospital app. My logical
+  server is …", or wants to point the app at the wardgeneral
   Hyperscale database and see the patient chart in a browser. ALSO USE WHEN they
   say "configure the app", "point the app at my database", "set up ch04.env",
   "where do I put my server name", or "the app can't find my server" — their
-  values live in ch04.env, which they fill in once from ch04.env.template; never
-  interview them for a server name and never go discovering one (step 1).
+  values live in ch04.env, which they fill in once from ch04.env.template. If
+  their prompt already names the server (the book's prompts do), write that into
+  ch04.env for them; otherwise never interview them for a server name and never
+  go discovering one (step 1).
   Covers: the example
   layout, configuring the passwordless (Microsoft Entra) connection, building with
   build.ps1, running with run.ps1, restarting with restart.ps1 -Enable to pick up
@@ -58,7 +62,7 @@ examples/ch04-first-app/
       Components/Pages/Chart.razor       the bedside patient chart
       appsettings.json                   shape only — Server ships EMPTY on purpose
       appsettings.Development.json       git-ignored: YOUR server / database go here
-  WardGeneral.slnx        solution (both projects)
+  WardGeneral.slnx        solution (Data, Web, and the Chapter 6 Agent project)
   ch04.env.template       the two values this chapter needs, as placeholders
   ch04.env                git-ignored: YOUR filled-in copy (create it, step 1)
   load-env.ps1            reads ch04.env into the environment
@@ -118,14 +122,15 @@ because it comes next in this file.
 |---|---|---|
 | **build** ("build the app", "compile it", "does it build") | step 3 only | `build.ps1`. **Do NOT run `run.ps1`.** Report the build result and stop. |
 | **run / start** ("run the app", "start the hospital app") | steps 1, 2, 4 | `run.ps1` |
-| **build and run** (both named) | steps 1, 2, 3, 4 | `run.ps1` |
+| **build and run** (both named) | steps 3, then 1, 2, 4 | `run.ps1` |
 | **restart / flip a flag** | step 5 | `restart.ps1` |
 | **rebuild from scratch** ("clean build", "rebuild it clean", "start the app over") | `shutdown.ps1`, then step 3 with `-Clean` | `build.ps1 -Clean` |
 | **stop** | — | `shutdown.ps1` |
 
 A build touches nothing in Azure: no sign-in, no subscription, no firewall rule,
 no database. So a build-only request does **not** need steps 1 and 2 either —
-don't ask the reader for a server name just to compile.
+don't ask the reader for a server name just to compile. For **build and run**,
+build first: a missing server name must not stop the build.
 
 ### 1 — Point the app at your database
 
@@ -135,6 +140,25 @@ don't ask the reader for a server name just to compile.
 interview them for it, and do not run `az sql server list` and guess which of the
 results they meant. Both put their environment somewhere it cannot be reviewed,
 corrected or reused — the chat window.
+
+**If the reader's own message already names the server** — the book's prompts
+do: *"My logical server is `<name>`.database.windows.net, database
+wardgeneral."* — that is the reader supplying the value, not you interviewing
+them. Put it in the file for them:
+
+1. If `examples/ch04-first-app/ch04.env` does not exist, copy
+   `ch04.env.template` to it.
+2. Set `WardGeneral__Server=` to the FQDN they gave (append
+   `.database.windows.net` if they gave the short name) and
+   `WardGeneral__Database=` to their database (default `wardgeneral`). Leave
+   every other line as it is.
+3. If `ch04.env` already holds a *different* filled-in server, don't overwrite
+   it silently — show both and ask which to keep.
+4. Tell the reader in one line what you wrote and where, so it's reviewable.
+
+Then run `load-env.ps1` as below and continue.
+
+Otherwise:
 
 ```powershell
 cd examples/ch04-first-app
@@ -227,8 +251,27 @@ stop. Starting the app unasked takes over a port and opens a browser they did no
 ask for.
 
 ### 4 — Run (and open the browser)
+
+**Firewall first, with the reader's consent in chat.** `run.ps1`'s preflight
+asks about a missing firewall rule with a terminal `Read-Host`, which an agent
+can't answer properly. Check it yourself first — this changes nothing:
+
 ```powershell
-./examples/ch04-first-app/run.ps1
+./examples/ch02-getting-started/preflight-firewall.ps1 -Server <short-server-name> -Yes -WhatIf
+```
+
+- `OK: … is already allowed` → continue.
+- `… is NOT allowed` → show the reader the **Proposed change** line and ask in
+  chat: *"Add this firewall rule for your IP?"* Only on an explicit yes, run it
+  again with `-Yes` (no `-WhatIf`). Never answer for them. On no, stop and say
+  the app can't connect until their IP is allowed.
+
+Then start the app, skipping the check you just did. `run.ps1` holds the
+terminal while the app runs, so start it as a **background** terminal and
+watch for the `Now listening on` line rather than waiting for it to exit:
+
+```powershell
+./examples/ch04-first-app/run.ps1 -SkipFirewall
 #   -OpenOnly   just open the browser (app already running)
 #   -NoBrowser  start without opening
 ```
@@ -244,17 +287,18 @@ deployed by that chapter. A locked panel is **greyed out, not hidden** — the
 reader can see what the app becomes and which chapter unlocks it. Turn one on
 and restart:
 ```powershell
-./examples/ch04-first-app/restart.ps1 -Enable AiAssistance              # Ch 5 · AI assistance card + Research page
-./examples/ch04-first-app/restart.ps1 -Enable AiAgent                   # Ch 6 · assistant chat icon (needs DAB)
-./examples/ch04-first-app/restart.ps1 -Enable RowLevelSecurity          # Ch 8 · "Viewing as" + RLS filtering
-./examples/ch04-first-app/restart.ps1 -Enable AiAssistance,AiAgent      # more than one
+./examples/ch04-first-app/restart.ps1 -Enable AiAssistance                           # Ch 5 · AI assistance card + Research page
+./examples/ch04-first-app/restart.ps1 -Enable AiAssistance,AiAgent                   # Ch 6 as the book runs it (needs DAB)
+./examples/ch04-first-app/restart.ps1 -Enable AiAssistance,AiAgent,RowLevelSecurity  # Ch 8 as the book runs it
+./examples/ch04-first-app/restart.ps1 -Enable AiAgent                                # a single flag on its own also works
 ./examples/ch04-first-app/restart.ps1                                   # back to defaults
 ```
 The backing SQL: `AiAssistance` needs `06-ai-embeddings.sql` +
 `07-vector-index.sql` + `08-ai-assistance.sql` + `09-research-vector-search.sql`
 from
-`examples/ch05-ai-ready-sql/` (the `wardgeneral-research` named replica the
-Research page reads already exists — Ch 3 provisions it); `AiAgent` needs DAB
+`examples/ch05-ai-ready-sql/` (and the `wardgeneral-research` named replica the
+Research page reads — the optional `examples/ch02-getting-started/add-replicas.ps1`
+step creates it; run it first if the reader skipped it); `AiAgent` needs DAB
 and the shared-app Chapter 6 evolution complete — use **wardgeneral-agent** to
 deploy its SQL/DAB contracts, rebuild the app, and start both MCP endpoints;
 `RowLevelSecurity` needs the security policy published and deployed with
@@ -298,17 +342,19 @@ app. It self-hides only if `clinical.vChartNoteSignals` hasn't been deployed.
 
 ## How the code maps to the book
 
-- **Passwordless auth (Chapter 8)** — `WardGeneralConnectionFactory` uses
+- **Passwordless auth (Chapter 4)** — `WardGeneralConnectionFactory` uses
   `ActiveDirectoryDefault`
   (managed identity in Azure, your dev sign-in locally). No login, no password.
-  The same one identity + **Row-Level Security** (off until step 5): the **Viewing
+  The same one identity + **Row-Level Security** (Chapter 8, off until step 5): the **Viewing
   as** selector writes the acting clinician into `SESSION_CONTEXT` (per-circuit
   `AccessContext`), and `security.EncounterAccessPolicy` on `clinical.Encounter`
   filters rows in the engine — the trusted-subsystem pattern. See
   `examples/ch08-security/rls/row-level-security.sql`.
-- **Resiliency and read scale-out (Chapter 9)** — `RetryPolicy` retries transient
-  faults; reads pass `ApplicationIntent=ReadOnly` to reach a secondary replica.
-- **Native `json` (Chapter 5)** — the chart's sections come back as native `json`,
+- **Resiliency (Chapters 4 and 9)** — `RetryPolicy` retries transient faults.
+  Connections use `ApplicationIntent=ReadWrite` on the primary; the HA replica is
+  kept for failover, not read scale-out. Read scale-out is the
+  `wardgeneral-research` named replica (Chapter 5's Research page).
+- **Native `json` (Chapter 4)** — the chart's sections come back as native `json`,
   parsed into typed models in `ChartModels.cs`.
 - **In-engine `REGEXP_*` (Chapter 4)** — the *From the note* card mines values out
   of note text in the engine rather than in C#.

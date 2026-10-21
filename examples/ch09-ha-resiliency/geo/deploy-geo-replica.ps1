@@ -3,20 +3,25 @@
     Preview or deploy the Ward General Hyperscale geo-replica.
 
 .DESCRIPTION
-    Creates a reader-named Entra-only logical server in East US 2 with a
-    system-assigned identity and the signed-in user's Entra identity as
+    Creates a reader-named Entra-only logical server in another Azure region
+    with a system-assigned identity and the signed-in user's Entra identity as
     administrator, then creates wardgeneral as a geo-secondary. The source
     database remains online and writable. Preview-only unless -Execute is
     supplied.
+
+    The target region defaults to the Azure paired region of the source
+    database's region (for example, Central US <-> East US 2). Pass
+    -TargetLocation to choose another region. The target must not be the
+    source's region: a same-region geo-secondary gives no regional protection.
 #>
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [string] $ResourceGroup = ($env:RG ?? 'rg-collierhealth'),
+    [string] $ResourceGroup,
     [string] $SourceServer,
     [string] $Database,
     [string] $TargetServer,
-    [string] $TargetLocation = 'eastus2',
+    [string] $TargetLocation,
     [switch] $Execute
 )
 
@@ -26,6 +31,7 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $loadEnv = Join-Path $PSScriptRoot '..' '..' 'ch04-first-app' 'load-env.ps1'
 if (Test-Path $loadEnv) { & $loadEnv -Optional -Quiet }
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 
 if (-not $SourceServer) { $SourceServer = $env:WardGeneral__Server }
 if (-not $Database) { $Database = $env:WardGeneral__Database ?? 'wardgeneral' }
@@ -39,9 +45,6 @@ if ([string]::IsNullOrWhiteSpace($TargetServer) -or $TargetServer -match '<[^>]*
 }
 if ($TargetServer -cnotmatch '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$') {
     throw "Target server '$TargetServer' must contain 1-63 lowercase letters, numbers, or hyphens; it cannot begin or end with a hyphen."
-}
-if ($TargetLocation -ne 'eastus2') {
-    throw "Target location '$TargetLocation' is outside this example. Use eastus2."
 }
 if ($SourceServer -eq $TargetServer) {
     throw 'The source and target logical servers must be different.'
@@ -62,6 +65,38 @@ $source = az sql db show `
     --output json | ConvertFrom-Json
 if ($source.edition -ne 'Hyperscale') {
     throw "Source database '$Database' is '$($source.edition)', not Hyperscale."
+}
+
+# Resolve the target region: the source region's Azure pair unless the reader
+# named one. A geo-secondary in the source's own region protects nothing.
+$sourceLocation = $source.location
+$targetLocationSource = 'reader-specified'
+if ([string]::IsNullOrWhiteSpace($TargetLocation)) {
+    $TargetLocation = @(az account list-locations `
+        --query "[?name=='$sourceLocation'].metadata.pairedRegion[].name" `
+        --output tsv) | Select-Object -First 1
+    $targetLocationSource = "Azure paired region of $sourceLocation"
+    if ([string]::IsNullOrWhiteSpace($TargetLocation)) {
+        throw "Region '$sourceLocation' has no Azure paired region. Pass -TargetLocation with another region that offers Hyperscale."
+    }
+}
+$TargetLocation = $TargetLocation.Trim().ToLowerInvariant()
+$knownRegions = @(az account list-locations --query '[].name' --output tsv)
+if ($TargetLocation -notin $knownRegions) {
+    throw "Target location '$TargetLocation' is not an Azure region name for this subscription (for example: eastus2, centralus)."
+}
+if ($TargetLocation -eq $sourceLocation) {
+    throw "Target location '$TargetLocation' is the source database's own region. A geo-replica must be in a different region; pass another -TargetLocation."
+}
+$targetSlo = @(az sql db list-editions `
+    --location $TargetLocation `
+    --edition Hyperscale `
+    --service-objective $source.currentServiceObjectiveName `
+    --available `
+    --query '[].supportedServiceLevelObjectives[].name' `
+    --output tsv)
+if ($targetSlo -notcontains $source.currentServiceObjectiveName) {
+    throw "Hyperscale '$($source.currentServiceObjectiveName)' is not available in '$TargetLocation' for this subscription. Pass a different -TargetLocation."
 }
 
 $sourceProtector = az sql server tde-key show `
@@ -151,7 +186,7 @@ Write-Host '--- Hyperscale geo-replica plan ---'
 Write-Host "Subscription       : $($account.name) ($($account.id))"
 Write-Host "Resource group     : $ResourceGroup"
 Write-Host "Source             : $Database @ $SourceServer ($($source.location))"
-Write-Host "Target server      : $TargetServer ($TargetLocation)"
+Write-Host "Target server      : $TargetServer ($TargetLocation; $targetLocationSource)"
 Write-Host "Target server state: $(if ($target) { 'exists and validated' } else { 'create new' })"
 Write-Host "Target identity    : system assigned"
 Write-Host "Target auth        : Microsoft Entra only"

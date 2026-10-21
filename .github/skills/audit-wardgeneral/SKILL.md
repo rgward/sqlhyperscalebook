@@ -1,12 +1,13 @@
 ---
 name: audit-wardgeneral
 description: >-
-   Capture and investigate Chapter 8 Ward General application activity with
-   Azure SQL Database auditing and Log Analytics. USE WHEN the reader says
-   "start the Ward General audit", "audit Ward General", "start SQL auditing",
-   "audit my app activity", "find my Ward General audit events", "show who
-   opened a patient chart", "query the SQL audit", "what did the app access",
-   or "tear down the Chapter 8 audit".
+  Capture and investigate Chapter 8 Ward General application activity with
+  Azure SQL Database auditing and Log Analytics. USE WHEN the reader says
+  "start the Ward General audit", "I opened a patient chart. Find my audit
+  activity." (both are the book's prompts), "audit Ward General", "start SQL auditing",
+  "audit my app activity", "find my Ward General audit events", "show who
+  opened a patient chart", "query the SQL audit", "what did the app access",
+  or "tear down the Chapter 8 audit".
   Runs a two-turn workflow: enable the guarded audit destination and record a
   UTC start time, let the reader use the app, then query and interpret that
   fixed interval. Do not use for Azure Activity Log, Extended Events,
@@ -59,9 +60,10 @@ When the reader asks to start or run the Ward General audit investigation:
    for the second turn; do not substitute a later time.
 6. Stop after auditing is ready. Do not start, restart, or otherwise manage
    Ward General from this skill.
-7. Tell the reader to run Ward General through the chapter workflow, open the
-   unit board, and then open one patient chart. End with the exact continuation
-   prompt: `I opened a patient chart. Find my audit activity.`
+7. Tell the reader to start Ward General with the book's prompt, **`Run the
+   Chapter 8 RLS app demo`**, open the unit board, and then open one patient
+   chart. End with the exact continuation prompt:
+   `I opened a patient chart. Find my audit activity.`
 
 ### Turn 2 — Find the activity
 
@@ -158,6 +160,13 @@ the matching app evidence, whether unit-board and patient-chart activity were
 both proved, whether a context-setter batch was correlated on the same session,
 and any delivery limitation. For teardown, report the audit policy and owned
 workspace removed.
+
+**Always end a setup or investigation report with the cost reminder** (never
+tear down on your own):
+
+> Auditing is still on for every database on `<server>`, sending to
+> `<workspace>` (billable ingestion, 30-day retention). When you're finished,
+> say **"Tear down the Chapter 8 audit."**
 
 ## Files
 

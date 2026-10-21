@@ -47,6 +47,7 @@ FROM sys.dm_io_virtual_file_stats(DB_ID(), 2);
 SELECT CONCAT(
     N'WAIT|', @SampleName, N'|', wait_type, N'|',
     waiting_tasks_count, N'|', wait_time_ms, N'|', signal_wait_time_ms)
+-- Database-scoped equivalent of sys.dm_os_wait_stats (the DMV the book names).
 FROM sys.dm_db_wait_stats
 WHERE wait_type = N'WRITELOG'
    OR wait_type = N'LOGBUFFER'

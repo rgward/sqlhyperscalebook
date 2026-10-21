@@ -4,8 +4,9 @@ description: >-
    Run the Chapter 9 Ward General PITR test-copy demonstration: capture the
    source database's current server UTC time, preview and explicitly approve a
    lower-compute Hyperscale serverless point-in-time restore, validate the
-   restored Ward General database without using the app, and perform guarded
-   cleanup. USE WHEN the reader says "run the Chapter 9 PITR demo", "create a
+   restored Ward General database without using the app, leave it for testing,
+   and perform guarded cleanup on a separate request. USE WHEN the reader says "Create a current Ward General test
+   database using PITR" (the book's prompt), "run the Chapter 9 PITR demo", "create a
    PITR test copy", "create a current Ward General test database", "test Ward
    General restore", or "clean up the Chapter 9 restored database". Do not
    alter source data or overwrite the source database.
@@ -42,15 +43,19 @@ separate billable Hyperscale serverless test database. It never overwrites
 
 ### Restore
 
-3. Choose a target beginning with `wardgeneral-pitr-` and run
-   `pitr-restore.ps1 -RestorePointUtc <value> -RestoredDatabase <name>` without
-   `-Execute`.
+3. Use the default target `wardgeneral-pitr-demo` (the name the book shows)
+   unless the reader asks for another name beginning with `wardgeneral-pitr-`.
+   Run `pitr-restore.ps1 -RestorePointUtc <value>` without `-Execute`. If the
+   target already exists from an earlier run, stop and offer the guarded
+   cleanup or a different name; never delete it as part of the restore.
 4. Explain that the operation creates a billable `HS_S_Gen5_8` Hyperscale
    serverless test database with a 1-vCore minimum. Show the source, target,
-   earliest restore point, exact selected point, and target compute. State that
-   Hyperscale serverless autoscales but does not auto-pause, and that this test
-   copy intentionally does not reproduce the source's compute or replica
-   topology.
+   earliest restore point, exact selected point, and target compute. Explain
+   that serverless compute autoscales between its minimum and maximum vCores
+   (Chapter 10's *Serverless* section covers it), that Hyperscale auto-pause
+   is a preview the restore doesn't configure so the copy shouldn't be assumed
+   to pause, and that this test copy intentionally does not reproduce the
+   source's compute or replica topology.
 5. Obtain explicit approval, then rerun the identical command with `-Execute`.
    It submits the restore asynchronously with `--no-wait`; do not treat command
    return as restore completion.
@@ -58,7 +63,7 @@ separate billable Hyperscale serverless test database. It never overwrites
    and instruct the reader to rerun that exact restore later. Do not substitute
    a relative minutes-ago estimate or poll.
 
-### Observe, verify, and clean up
+### Observe and verify
 
 7. Run `show-operation-status.ps1 -RestoredDatabase <name>` within
    approximately one hour of the restore. It connects to `master`, where the
@@ -78,17 +83,30 @@ separate billable Hyperscale serverless test database. It never overwrites
    can return a null `sourceDatabaseId` after PITR completes, so use the
    completed restore-operation row plus these data checks as the recovery
    evidence; reject a conflicting source ID if Azure does return one.
-9. Run `cleanup-pitr.ps1 -RestoredDatabase <name>` without `-Execute`. Show
-   the exact restored resource.
-10. Obtain explicit approval because cleanup deletes the restored database.
-11. Rerun cleanup with `-Execute`. Require `Deleted=<name>`.
+9. Stop here and give the required report. As the book does, leave the
+   restored database in place so the reader can connect to it with SSMS or
+   VS Code and test it. Remind them that it is billable while it exists
+   (storage always; compute unless the preview auto-pause has paused it) and
+   that cleanup is a separate request.
+
+### Clean up (only when the reader asks)
+
+Run this section only when the reader asks to clean up, for example "clean up
+the Chapter 9 restored database". Do not chain it to the restore.
+
+10. Run `cleanup-pitr.ps1 -RestoredDatabase <name>` without `-Execute`. Show
+    the exact restored resource.
+11. Obtain explicit approval because cleanup deletes the restored database.
+12. Rerun cleanup with `-Execute`. Require `Deleted=<name>`.
 
 ## Required report
 
 Report the source and target names, exact restore point, earliest
 available restore point, requested and resulting serverless configuration,
-submission duration, completed restore duration, operation-status row, Ward
-General verification result, and cleanup result.
+submission duration, completed restore duration, operation-status row, and Ward
+General verification result. State that the restored database is still
+running and billable, and give the cleanup prompt. When cleanup runs later,
+report its result.
 Distinguish a locally validated script from a completed live Azure recovery.
 
 ## Files

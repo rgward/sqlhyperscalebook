@@ -59,9 +59,11 @@ per database every 15 minutes.
 5. Immediately run `trigger-failover.ps1 -Execute` once. The approval applies
    only to the resource shown in the preview. Do not retry a rejected or
    throttled failover call automatically.
-6. Observe the existing probe. Preserve every `RETRY`, `RECOVERED`, and
-   `FAILED` row. A listed transient error can raise `RETRY`; an unlisted error
-   fails that operation. Do not start a second probe.
+6. Observe the existing probe. Preserve every `DELAYED`, `RETRY`, `RECOVERED`,
+   and `FAILED` row. A `DELAYED` row is a success that needed no retry but took
+   at least 1,000 ms; the gateway can absorb a failover that way without the
+   retry provider firing. A listed transient error can raise `RETRY`; an
+   unlisted error fails that operation. Do not start a second probe.
 7. Let the finite probe complete, or stop it only after successful requests
    have resumed and enough post-recovery rows exist to establish stability.
 8. Preserve the first and final probe UTC timestamps. Run
@@ -82,7 +84,9 @@ per database every 15 minutes.
 
 Report the exact database and resource ID, failover requested/accepted UTC,
 last successful request before retry activity, retry errors and delays, first
-recovered success, any exhausted operation, and the probe summary counts.
+recovered success, any delayed success, any exhausted operation, the probe
+summary counts, and the normal-request latency median, average, and 95th
+percentile with the maximum successful-request latency.
 Include Resource Health before and after the failover.
 Include Activity Log operation/status/correlation ID, post-failover replica
 synchronization evidence, and all returned Azure Monitor values or explicit

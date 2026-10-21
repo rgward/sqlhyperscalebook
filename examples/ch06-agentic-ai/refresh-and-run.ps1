@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Re-anchor the Chapter 6 shift window to now, then restart Ward General with
-    the AiAgent flag.
+    the Chapter 5 and Chapter 6 flags (AiAssistance, AiAgent).
 
 .DESCRIPTION
     The two commands a reader needs whenever they come back to Chapter 6 on a
@@ -14,16 +14,25 @@
     standing; it is rerunnable and recomputes an absolute delta, so running it
     twice in a row is a no-op the second time.
 
-    This does NOT start DAB. restart.ps1's pre-flight already refuses to start
-    the app when nothing answers on the MCP endpoint, and names run-dab.ps1.
+    This does NOT start DAB by default. restart.ps1's pre-flight already
+    refuses to start the app when nothing answers on the MCP endpoint, and
+    names run-dab.ps1. With -Detached it hands off to start-demo.ps1 instead,
+    which starts DAB too if it isn't running.
 
 .EXAMPLE
     ./refresh-and-run.ps1
-    Refresh the window, then start the app with AiAgent.
+    Refresh the window, then start the app with AiAssistance and AiAgent - the
+    Chapter 6 application as the book runs it.
 
 .EXAMPLE
-    ./refresh-and-run.ps1 -Enable AiAssistance,AiAgent
-    The whole application: Chapter 5's surface alongside Chapter 6's dock.
+    ./refresh-and-run.ps1 -Detached
+    Refresh the window, then start DAB (if needed) and the app as background
+    processes that outlive this terminal. Stop them with
+    examples/ch04-first-app/shutdown.ps1.
+
+.EXAMPLE
+    ./refresh-and-run.ps1 -Enable AiAgent
+    The agent dock only, without Chapter 5's AI card and Research page.
 
 .EXAMPLE
     ./refresh-and-run.ps1 -SkipRefresh
@@ -41,8 +50,9 @@ param(
     [string]$Database,
     [string]$SqlCmd,
     [ValidateSet('AiAssistance', 'AiAgent', 'RowLevelSecurity')]
-    [string[]]$Enable = @('AiAgent'),
+    [string[]]$Enable = @('AiAssistance', 'AiAgent'),
     [switch]$SkipRefresh,
+    [switch]$Detached,
     [switch]$NoBrowser,
     [switch]$SkipFirewall,
     [switch]$SkipPreflight
@@ -116,15 +126,26 @@ else {
     Write-Host "Skipping the refresh (-SkipRefresh)." -ForegroundColor DarkGray
 }
 
-$restart = Join-Path $here '..' 'ch04-first-app' 'restart.ps1'
+$appRoot = Join-Path $here '..' 'ch04-first-app'
+$startArgs = @{ Enable = $Enable }
+if ($Server)        { $startArgs.Server   = $Server }
+if ($Database)      { $startArgs.Database = $Database }
+if ($NoBrowser)     { $startArgs.NoBrowser = $true }
+if ($SkipFirewall)  { $startArgs.SkipFirewall = $true }
+if ($SkipPreflight) { $startArgs.SkipPreflight = $true }
+
+if ($Detached) {
+    # start-demo.ps1 leaves an already-healthy app alone, so stop only the app
+    # (not DAB on 5000) to make it pick up this flag list.
+    & (Join-Path $appRoot 'shutdown.ps1') -Ports @(7170, 5170)
+    Write-Host "Starting Ward General in the background with: $($Enable -join ', ')" -ForegroundColor Yellow
+    & (Join-Path $appRoot 'start-demo.ps1') @startArgs
+    return
+}
+
+$restart = Join-Path $appRoot 'restart.ps1'
 if (-not (Test-Path $restart)) { throw "Missing $restart" }
 
 Write-Host "Restarting Ward General with: $($Enable -join ', ')" -ForegroundColor Yellow
 Write-Host "(restart.ps1 may prompt to add or update the server firewall rule - answer it, or re-run with -SkipFirewall.)" -ForegroundColor DarkGray
-$restartArgs = @{ Enable = $Enable }
-if ($Server)        { $restartArgs.Server   = $Server }
-if ($Database)      { $restartArgs.Database = $Database }
-if ($NoBrowser)     { $restartArgs.NoBrowser = $true }
-if ($SkipFirewall)  { $restartArgs.SkipFirewall = $true }
-if ($SkipPreflight) { $restartArgs.SkipPreflight = $true }
-& $restart @restartArgs
+& $restart @startArgs

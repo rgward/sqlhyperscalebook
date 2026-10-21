@@ -125,8 +125,21 @@ param(
 $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
 
+# ch05.env is where the reader's names live. Parameter defaults are read before
+# it can load, so load it here and fill whatever is still empty. A value already
+# in the shell, or passed explicitly, wins.
+if (Test-Path (Join-Path $here 'ch05.env')) {
+    & (Join-Path $here 'load-env.ps1') -Require @() -Quiet
+    if (-not $SqlServerName)  { $SqlServerName  = $env:SRV }
+    if (-not $ResourceGroup)  { $ResourceGroup  = $env:RG }
+    if (-not $AiResourceName) { $AiResourceName = $env:AI_RESOURCE }
+    if (-not $SubscriptionId) { $SubscriptionId = $env:SUBSCRIPTION_ID }
+    if (-not $PublisherEmail) { $PublisherEmail = $env:PUBLISHER_EMAIL }
+    if (-not $CsResourceName) { $CsResourceName = $env:CS_RESOURCE }
+}
+
 if (-not $SqlServerName) {
-    throw 'SqlServerName is required -- pass -SqlServerName <short name of your logical server>, or set the SRV environment variable. It is the server whose managed identity gets the Cognitive Services OpenAI User role.'
+    throw 'SqlServerName is required -- pass -SqlServerName <short name of your logical server>, or set SRV in ch05.env. It is the server whose managed identity gets the Cognitive Services OpenAI User role.'
 }
 if (-not $ResourceGroup) {
     throw 'ResourceGroup is required -- pass -ResourceGroup <your resource group>, or set the RG environment variable. There is no default: a default resource group is always someone else''s.'
@@ -198,9 +211,11 @@ if (-not $NoGateway) {
 Write-Host '      Each file opens with a BEFORE YOU RUN block that says which.' -ForegroundColor Gray
 if ($NoGateway) {
     Write-Host ''
-    Write-Host '      You deployed WITHOUT the gateway, so also change @UseGateway''s default' -ForegroundColor Yellow
-    Write-Host '      in 08 from 1 to 0. The script says exactly where. Without that edit the' -ForegroundColor Yellow
-    Write-Host '      proc calls an APIM instance you do not have.' -ForegroundColor Yellow
+    Write-Host '      You deployed WITHOUT the gateway, so in 08 also:' -ForegroundColor Yellow
+    Write-Host '        - replace <your-apim> with no-gateway (literally), and' -ForegroundColor Yellow
+    Write-Host '        - change @UseGateway''s default from 1 to 0.' -ForegroundColor Yellow
+    Write-Host '      08''s BEFORE YOU RUN block says exactly where. Without these, 08 stops' -ForegroundColor Yellow
+    Write-Host '      at its placeholder check, or the proc calls an APIM you do not have.' -ForegroundColor Yellow
 }
 Write-Host ''
 Write-Host '   1. 06-ai-embeddings.sql           external model, vector table, the embeddings' -ForegroundColor White
@@ -223,12 +238,13 @@ Write-Host '      progress with verify-embeddings.sql and stop when MISSING=0.' 
 if ($NoGateway) {
     Write-Host ''
     Write-Host '      Changed your mind about the gateway later? Re-run this script without' -ForegroundColor Gray
-    Write-Host '      -NoGateway, put @UseGateway''s default in 08 back to 1, and re-run 08.' -ForegroundColor Gray
+    Write-Host '      -NoGateway, replace no-gateway in 08 with your APIM name, put' -ForegroundColor Gray
+    Write-Host '      @UseGateway''s default back to 1, and re-run 08.' -ForegroundColor Gray
     Write-Host '      It is CREATE OR ALTER, so nothing is lost.' -ForegroundColor Gray
 }
 Write-Host ''
-Write-Host ' Then put it on screen:' -ForegroundColor Cyan
-Write-Host '   ./run-ai-app.ps1 -Server <your-server>.database.windows.net -Database wardgeneral' -ForegroundColor White
+Write-Host ' Then put it on screen (reads the server from ch05.env):' -ForegroundColor Cyan
+Write-Host '   ./run-ai-app.ps1' -ForegroundColor White
 Write-Host ''
 Write-Host ' See README.md in this folder for the full run order and the re-run notes.' -ForegroundColor DarkGray
 Write-Host ''

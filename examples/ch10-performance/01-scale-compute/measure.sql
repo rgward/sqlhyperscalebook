@@ -34,6 +34,7 @@ SELECT TOP (20)
     waiting_tasks_count,
     wait_time_ms,
     signal_wait_time_ms
+-- Database-scoped equivalent of sys.dm_os_wait_stats (the DMV the book names).
 FROM sys.dm_db_wait_stats
 WHERE wait_type IN (N'PAGEIOLATCH_SH', N'PAGEIOLATCH_EX', N'WRITELOG')
    OR wait_type LIKE N'RBIO_RG[_]%'

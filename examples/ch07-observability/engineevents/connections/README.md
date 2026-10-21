@@ -48,6 +48,40 @@ same SQL file, invokes it with `-i`, and removes it in a `finally` block.
 Use `sys.database_connection_stats` first for the timeline, then correlate an
 interesting database and UTC interval with `sys.event_log` for detail.
 
+## Example output
+
+The values below are **illustrative and synthetic** — they show the shape of each
+result set so you know what to look for. Your rows, times, and counts will differ.
+
+`sys.event_log` (first result set; trimmed to the useful columns):
+
+```text
+database_name  start_time           end_time             event_category  event_type           event_subtype_desc   severity  event_count  description
+-------------  -------------------  -------------------  --------------  -------------------  -------------------  --------  -----------  --------------------------------------------
+wardgeneral    2026-10-20 14:35:00  2026-10-20 14:40:00  connectivity    connection_successful connection_successful 0         12           Connected successfully to database.
+master         2026-10-20 14:30:00  2026-10-20 14:35:00  connectivity    blocked_by_firewall  blocked_by_firewall  2         1            Client IP address is not authorized to access the server.
+wardgeneral    2026-10-20 14:20:00  2026-10-20 14:25:00  connectivity    connection_successful connection_successful 0         4            Connected successfully to database.
+```
+
+`sys.database_connection_stats` (second result set):
+
+```text
+database_name         start_time           end_time             success_count  total_failure_count  connection_failure_count
+--------------------  -------------------  -------------------  -------------  -------------------  ------------------------
+wardgeneral           2026-10-20 14:35:00  2026-10-20 14:40:00  12             0                    0
+wardgeneral-research  2026-10-20 14:35:00  2026-10-20 14:40:00  3              0                    0
+master                2026-10-20 14:30:00  2026-10-20 14:35:00  2              1                    1
+```
+
+What to notice:
+
+- Every row is a **five-minute UTC interval**, not an individual login.
+- Read-only connections routed to an **HA replica** are counted under
+  `wardgeneral`. A **named replica** on the same server, such as the optional
+  `wardgeneral-research`, appears as its own database.
+- A firewall block is attributed to the database the client asked for — often
+  `master` when the tool connects there first.
+
 ## File
 
 | File | Purpose |

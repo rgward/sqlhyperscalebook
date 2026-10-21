@@ -1,6 +1,6 @@
 ---
 name: tune-wardgeneral-data
-description: 'Run the implemented parts of Chapter 10 Demo 3: JSON indexing and memory grant feedback on Ward General. USE WHEN the reader says "run Chapter 10 Demo 3", "demo JSON indexing", "run the JSON index demo", "show memory grant feedback", or "run the MGF demo". Owns the self-contained LabResultArchive JSON-index sequence and the self-contained row-mode memory grant feedback scenario; Observation tuning is deferred. The JSON index build is offline and requires explicit acknowledgment. Do not scale compute, grow the database, or add named replicas.'
+description: 'Run Chapter 10 Demo 3 on Ward General: JSON indexing, memory grant feedback, and (repository supplement) the evaluation of the Chapter 7 ValueNumeric index. USE WHEN the reader says "Run the Chapter 10 JSON index demo", "Run the Chapter 10 memory grant feedback demo" (the book''s prompts; run only the named sequence), "run Chapter 10 Demo 3", "demo JSON indexing", "run the JSON index demo", "show memory grant feedback", "run the MGF demo", "Evaluate the Chapter 7 ValueNumeric index", or "evaluate the Observation index". Owns the self-contained LabResultArchive JSON-index sequence, the self-contained row-mode memory grant feedback scenario, and the observation-index evaluation on clinical.Observation (rolled-back write measurement, index dropped afterwards). The JSON index build is offline and requires explicit acknowledgment; the observation index build requires explicit approval. Do not scale compute, grow the database, or add named replicas.'
 ---
 
 # Tune Ward General
@@ -9,6 +9,8 @@ Follow `examples/ch10-performance/03-tune-grown-data/README.md`.
 
 ## Boundaries
 
+- Preview each sequence and obtain explicit approval in chat before running it
+  with `-Execute`; both create and drop demo-owned objects.
 - Use Query Store and actual plans from Chapter 7; do not re-teach the toolkit.
 - The JSON-index and memory grant feedback sequences are independent of Demo 2
   growth and modify no existing Ward General rows.
@@ -28,11 +30,14 @@ Follow `examples/ch10-performance/03-tune-grown-data/README.md`.
   boundary.
 2. Run `json-index/run-demo.ps1 -Execute` only after the reader accepts that
   boundary. It performs setup, captures `before-index.sqlplan`, builds the
-  offline index, captures `after-index.sqlplan`, summarizes both plans, and
-  always cleans up.
+  offline index, runs the indexed query twice and captures
+  `after-index-first-run.sqlplan` and `after-index.sqlplan` (warm), summarizes
+  all three, and always cleans up.
 3. Use `plan-summary.csv` to confirm the transition from a Clustered Index Scan
   over 5,000,005 rows to an Index Seek with `IndexKind="Json"` returning five
-  rows.
+  rows. Report logical reads, CPU ms, and elapsed ms for **Before index** and
+  **After index (warm)** — the book's comparison — and note the first indexed
+  run separately as including compilation. Say timings vary by environment.
 4. If the reader wants graphical proof, have them open each `.sqlplan` through
   SSMS **File > Open > File**. Compare the baseline scan on
   `PK_LabResultArchive` with the indexed seek on
@@ -45,13 +50,20 @@ Follow `examples/ch10-performance/03-tune-grown-data/README.md`.
 
 ## Memory grant feedback workflow
 
-1. Run `memory-grant-feedback/run-demo.ps1` to preview the target.
-2. Run `memory-grant-feedback/run-demo.ps1 -Execute`. It performs setup,
-  captures actual plans for executions 1 and 2, executes all eight calls,
-  summarizes plan and Query Store feedback evidence, and always cleans up.
-3. Use the generated `plan-summary.csv`, `execution-1.sqlplan`, and
-  `execution-2.sqlplan` under `memory-grant-feedback/results/runs/`. Confirm
-  execution 1 has `SpillToTempDb` and execution 2 has no Sort warning.
+1. Run `memory-grant-feedback/run-demo.ps1` to preview the target. Explain that
+  `-Execute` creates and populates a five-million-row demo table, runs the
+  query eight times, and then drops the demo objects. Obtain explicit approval
+  in chat before continuing.
+2. After approval, run `memory-grant-feedback/run-demo.ps1 -Execute`. It
+  performs setup, captures actual plans for executions 1 and 2, executes all
+  eight calls, summarizes plan and Query Store feedback evidence, and always
+  cleans up.
+3. Use the console summary, `plan-summary.csv`, `query-store-feedback.csv`,
+  `execution-1.sqlplan`, and `execution-2.sqlplan` under
+  `memory-grant-feedback/results/runs/`. Report each execution's elapsed and
+  CPU time, the printed percent change from execution 1 to 2, and the Query
+  Store feedback feature and state. Confirm execution 1 has `SpillToTempDb`
+  and execution 2 has no Sort warning.
 4. If the reader wants graphical proof, have them open each `.sqlplan` through
   SSMS **File > Open > File**. On execution 1, inspect the Sort warning and
   spill level 1; on execution 2, confirm the warning is absent. On each root
@@ -77,6 +89,28 @@ Follow `examples/ch10-performance/03-tune-grown-data/README.md`.
   reader is finished or before repeating setup. The PowerShell runner already
   invokes this cleanup in `finally`.
 
-Observation tuning remains supporting work until its scripts are implemented.
-Do not fabricate those results or treat a missing-index recommendation as an
-instruction to create an index.
+## Observation-index evaluation (repository supplement)
+
+Run this only when the reader asks for it ("Evaluate the Chapter 7
+ValueNumeric index"). It closes the Chapter 7 forward reference: the book says
+Chapter 10 evaluates that missing-index recommendation, and this example is
+where the repository does it. Say that it is a supplement, not a book example.
+
+1. Run `observation-index/run-demo.ps1` to preview. Explain that `-Execute`
+  builds `IX_Observation_ValueNumeric_Ch10` ONLINE on the ~108-million-row
+  `clinical.Observation` (minutes, extra billed storage while it exists),
+  measures the Chapter 7 query and 500 `RecordVitals` inserts before and
+  after (the inserts are rolled back, so no rows persist), and drops the index
+  at the end. Obtain explicit approval before continuing.
+2. After approval, run `observation-index/run-demo.ps1 -Execute`. Pass
+  `-KeepIndex` only if the reader explicitly wants to keep it.
+3. Report the before/after table (logical reads, CPU, elapsed, log bytes per
+  new row, insert time), the index size beside the table size, the build time,
+  and whether the query used the index. Present it as a trade-off: read
+  savings against extra log per insert and extra storage. Don't declare the
+  index the right design; that depends on how often the query runs relative to
+  the vitals write rate.
+4. Note that dropping the index frees pages but Hyperscale allocated storage
+  doesn't shrink on its own.
+
+Do not fabricate results. Report what the runner measured on this database.

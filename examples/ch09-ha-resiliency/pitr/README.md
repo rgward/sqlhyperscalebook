@@ -5,6 +5,9 @@ server-generated UTC time and restores that point into a lower-compute
 Hyperscale serverless database for isolated testing. The source database
 remains online and is not overwritten.
 
+Book prompt (VS Code Copilot Chat, `recover-wardgeneral-pitr` skill):
+**Create a current Ward General test database using PITR.**
+
 ## Files
 
 | File | Purpose |
@@ -37,9 +40,14 @@ Preview the billable restore using those exact values:
 
 ```powershell
 ./examples/ch09-ha-resiliency/pitr/pitr-restore.ps1 `
-   -RestorePointUtc '<RestorePointUtc>' `
-   -RestoredDatabase 'wardgeneral-pitr-demo'
+   -RestorePointUtc '<RestorePointUtc>'
 ```
+
+The restored database is named `wardgeneral-pitr-demo` by default, the name
+the book shows. To use another name, pass `-RestoredDatabase` with a name that
+starts with `wardgeneral-pitr-` and pass the same name to the later scripts.
+If `wardgeneral-pitr-demo` already exists from an earlier run, the preview
+stops; clean that copy up first or choose another name.
 
 After approval, rerun the same command with `-Execute`. It submits the restore
 with `--no-wait` so the management operation can be observed while it runs.
@@ -50,16 +58,22 @@ captured demo-start time; Azure does not expose the latest log backup point for
 the script to discover.
 
 The target defaults to `HS_S_Gen5_8` with a 1-vCore minimum, so it autoscales
-between 1 and 8 vCores. Hyperscale serverless does not auto-pause. This test
-copy intentionally does not reproduce the source database's provisioned
+between 1 and 8 vCores. **Serverless** means compute scales between a minimum
+and maximum vCore setting with demand and is billed per second; the book
+explains it in Chapter 10's *Serverless* section
+([Microsoft Learn](https://aka.ms/azuresqlserverless)). When the book was
+written, Hyperscale serverless couldn't auto-pause. Auto-pause is now in
+preview for Hyperscale (Microsoft Learn, accessed 2026-10-20), and the restore
+script doesn't configure it, so don't count on the copy pausing: check its
+auto-pause setting in the portal. Storage bills either way until cleanup. This
+test copy intentionally does not reproduce the source database's provisioned
 compute, HA replica count, zone redundancy, or named replicas. Those are
 target-resource choices rather than recovered database state.
 
 After submission, inspect its management-operation record:
 
 ```powershell
-./examples/ch09-ha-resiliency/pitr/show-operation-status.ps1 `
-   -RestoredDatabase 'wardgeneral-pitr-demo'
+./examples/ch09-ha-resiliency/pitr/show-operation-status.ps1
 ```
 
 Run this immediately after submitting the restore. The DMV is available only
@@ -75,8 +89,7 @@ helper, or place it behind a terminal timeout shorter than 65 minutes.
 Verify both sides:
 
 ```powershell
-./examples/ch09-ha-resiliency/pitr/verify-pitr.ps1 `
-   -RestoredDatabase 'wardgeneral-pitr-demo'
+./examples/ch09-ha-resiliency/pitr/verify-pitr.ps1
 ```
 
 The command passes only when Azure reports an online Hyperscale serverless
@@ -84,14 +97,19 @@ database and the existing Chapter 2 schema, volume, and coherence checks pass
 against it. Azure can return a null `sourceDatabaseId` after PITR completes;
 in that case the completed restore-operation row and the data checks are the
 recovery evidence. A conflicting non-null source ID still fails verification.
-Then preview cleanup:
+
+The restored database is now yours to test. Connect to `wardgeneral-pitr-demo`
+on the same logical server with SSMS or VS Code. It is billable while it
+exists; storage bills even if the preview auto-pause has paused its compute,
+and connecting resumes it. When you are done, preview cleanup:
 
 ```powershell
-./examples/ch09-ha-resiliency/pitr/cleanup-pitr.ps1 `
-   -RestoredDatabase 'wardgeneral-pitr-demo'
+./examples/ch09-ha-resiliency/pitr/cleanup-pitr.ps1
 ```
 
-After approval, rerun cleanup with `-Execute`.
+After approval, rerun cleanup with `-Execute`. In VS Code Chat, ask the skill
+to **clean up the Chapter 9 restored database**; it does not clean up as part
+of the restore.
 
 ## Boundaries
 
@@ -99,8 +117,9 @@ After approval, rerun cleanup with `-Execute`.
    data.
 - Restore and cleanup preview by default.
 - The restore creates a billable Hyperscale serverless database and requires
-   explicit approval. Serverless reduces idle compute to its configured floor;
-   it does not eliminate compute or storage charges.
+   explicit approval. Serverless reduces idle compute to its configured floor
+   (or pauses it, if the Hyperscale auto-pause preview is on); storage charges
+   continue until cleanup.
 - Cleanup accepts only restored database names beginning with
    `wardgeneral-pitr-`.
 - Preserve the exact `RestorePointUtc` for the entire workflow.

@@ -1,5 +1,8 @@
 # Chapter 6 — Build the agentic Ward General workflow
 
+> **Figures:** this chapter's book figures are in [`figures/ch06-agentic-ai/`](../../figures/ch06-agentic-ai/),
+> listed with their captions in the [root README](../../README.md#chapter-6).
+
 Chapter 6 evolves the Ward General application from Chapter 4. It does not
 create a second application.
 
@@ -148,15 +151,15 @@ Chapter 4's web and data projects are almost untouched:
 
 **In `src/WardGeneral.Web/`** — three small hooks and one new component:
 
-- `Program.cs` binds `AgentOptions` and registers `WardGeneralAgent` as a
-  singleton;
+- `Program.cs` binds `AgentOptions` and registers `WardGeneralAgent` as
+  scoped — one per user's Blazor session;
 - `Options/FeatureFlags.cs` gains `AiAgent`;
 - `appsettings.json` gains the `Agent` section, shipped with an empty endpoint;
 - `Components/Layout/AssistantDock.razor` is the dock itself — transcript,
   approval card, and trace panel.
 
-Nothing is eagerly constructed. `WardGeneralAgent` is a lazy singleton resolved
-only by the dock, and the dock renders only under `@if (Features.Value.AiAgent)`.
+Nothing is eagerly constructed. `WardGeneralAgent` is a lazily resolved scoped
+service, created only by the dock, and the dock renders only under `@if (Features.Value.AiAgent)`.
 With the flag off, no agent is built, no MCP connection is opened, and no skill
 is loaded — which is what lets you drop back to Chapter 4 without deleting code.
 
@@ -195,9 +198,11 @@ would forge authorship, and a nullable column would let the record claim nothing
 at all.
 
 The row is seeded by the Chapter 6 script rather than Chapter 2's, so Chapter 2's
-seed and its published row counts are unchanged. It holds no patients and carries
-no `EntraObjectId`, so Chapter 8's predicate matches nothing for it, and the
-"Viewing as" list — which loads attendings with active patients — never shows it.
+seed and its published row counts are unchanged. It is never the attending
+provider on an encounter, so Chapter 8's predicate — which compares
+`clinical.Encounter.AttendingProviderId` with the `ProviderId` in
+`SESSION_CONTEXT` — has no rows to grant it, and the "Viewing as" list — which
+loads attendings with active patients — never shows it.
 
 ### The Chapter 8 boundary
 
@@ -206,10 +211,12 @@ through the model. It runs DAB under one application identity and allows every
 synthetic patient to be read. Approval controls whether a proposed clinical
 write executes; it does not authenticate a clinician or authorize a row.
 
-Chapter 8 owns the replacement architecture: Entra authentication, trusted
-identity-to-provider mapping, DAB's session-context integration, and Row-Level
-Security. That is more than changing one argument, and Chapter 6 does not claim
-otherwise.
+Chapter 8 owns the replacement architecture. Its example builds DAB's
+session-context integration and Row-Level Security, and simulates the
+authenticated provider with the "Viewing as" selector. Entra authentication and
+a trusted identity-to-provider mapping are discussed in the chapter as the
+production design, not built in the example. That is more than changing one
+argument, and Chapter 6 does not claim otherwise.
 
 ### What this means when you run it
 
@@ -222,6 +229,11 @@ never sees a control that filters nothing.
 
 Turning on Chapter 8's `RowLevelSecurity` flag is outside this workflow. Chapter
 6 neither requires nor simulates a clinician selection.
+
+That is also why the approval card reads **"Attributed to nobody — signed in as
+Admin"** (as in the book's Figure 6-9): there is no acting clinician yet. It is
+not an error. When you approve, `clinical.SaveShiftHandoff` records the handoff
+under the **Ward General Assistant (system)** provider.
 
 ## One cumulative application
 
@@ -248,8 +260,12 @@ Complete Chapters 2 through 5 first. In particular, the reader needs:
 - the Chapter 4 application configured through its existing environment file;
 - the Chapter 5 AI resources and database objects, including the note embeddings
   and the vector index;
-- a **chat** model deployment on that same Foundry resource for the agent to
-  reason with — Chapter 5 only needed the embeddings deployment;
+- the `gpt-5` chat deployment Chapter 5 already created on that Foundry
+  resource — the agent reuses it; there is nothing new to deploy;
+- **Cognitive Services OpenAI User** for *your* identity on that Foundry
+  resource, because the agent calls the model as you —
+  `grant-model-access.ps1` checks and assigns it (see
+  [Configure](#configure--two-files-and-neither-one-travels));
 - .NET 10 and the DAB CLI, **version 2.0.0 or later**.
 - **go-sqlcmd** (`sqlcmd` v1.x) if you want `setup-dab.ps1` to deploy the SQL for
   you. Running the scripts yourself in the MSSQL extension or SSMS is equally
@@ -407,8 +423,20 @@ each other, which is not a completion task. `McpUrl` already points at 5000 in
 There is no key in either file. The application authenticates to both SQL and
 the model endpoint as *you*, through `DefaultAzureCredential`, so your identity
 needs a Foundry data-plane role such as **Cognitive Services OpenAI User** on
-that resource. An endpoint that resolves but returns 401 is nearly always a
-missing role assignment rather than a wrong URL.
+that resource. Owner and Contributor don't include one, and Chapter 5 granted it
+only to the SQL server's and gateway's managed identities — so most readers need
+to add it. Check, then grant:
+
+```powershell
+./examples/ch06-agentic-ai/grant-model-access.ps1          # read-only report
+./examples/ch06-agentic-ai/grant-model-access.ps1 -Apply   # assign it to you
+```
+
+`-Apply` assigns the role to the signed-in user on that one Foundry account. It
+needs Owner, User Access Administrator, or Role Based Access Control
+Administrator — the same rights Chapter 5's deploy needed — and can take a few
+minutes to take effect. An endpoint that resolves but returns 401 is nearly
+always this missing role rather than a wrong URL.
 
 If you would rather not create the Development file, `Agent__Endpoint` as an
 environment variable works too — environment variables outrank both JSON files.
@@ -437,6 +465,44 @@ tagged `ApplicationName=wardgeneral-research` so you can see it in
 The runtime Agent Skill tells the model how to perform the handoff workflow. It
 does not enforce authorization, approval, or idempotency — those live in the
 application, the framework, and the database.
+
+## Supplement: why Ward General has both a data layer and DAB
+
+This section is a repository supplement, not text from the book. Data API
+builder facts come from
+[What is Data API builder?](https://learn.microsoft.com/azure/data-api-builder/overview)
+(accessed 2026-10-20).
+
+Ward General reaches the same database through two paths:
+
+| Path | Code | What it calls |
+| --- | --- | --- |
+| Blazor UI | Chapter 4's [`WardGeneral.Data`](../ch04-first-app/src/WardGeneral.Data/) (ADO.NET, `Microsoft.Data.SqlClient`) | Stored procedures such as `clinical.GetPatientChart`, `clinical.SearchEncounters`, and `clinical.GenerateClinicalAssistance`, plus read-only queries over views such as `ops.vBedCensus` |
+| Chapter 6 agent | DAB, through [`dab-config.primary.json`](dab-config.primary.json) | Seven stored procedures published as custom MCP tools. `dml-tools` is off, so the model gets no generic table read/write tools. |
+
+Five of the agent's seven tools call procedures the UI also calls, so those
+business rules live once, in SQL.
+
+**Why not use DAB for everything?** You could. DAB is a configuration-based
+engine that, per Learn, "replaces most custom data APIs that perform generic
+CRUD" operations. From one JSON file it serves REST and GraphQL (and MCP from
+version 1.7) over tables, views, and stored procedures, with paging,
+filtering, and sorting. It supports Microsoft Entra ID, JWT, and App Service
+authentication, and it passes claims to the SQL session context, which is
+exactly how Chapter 8's secured DAB path feeds Row-Level Security.
+
+A hand-built data layer still makes sense when the application talks to SQL
+directly rather than through an HTTP API, and you want that connection code in
+your own process. Ward General keeps `WardGeneral.Data` for that reason, and
+later chapters build on it:
+
+- Chapter 8 sets `SESSION_CONTEXT` on each connection the UI opens.
+- Chapter 9's failover probe reuses its `Microsoft.Data.SqlClient` retry
+  policy.
+
+A reasonable rule of thumb: use DAB when the consumer is another service, an
+agent, or a front end that wants REST, GraphQL, or MCP. Keep your own data
+access when the app needs direct control over its SQL connections.
 
 ## The ordering plumbing — what exposing it would take
 
@@ -503,6 +569,12 @@ other is implemented.
 
 ## Evolution sequence
 
+The Chapter 6 code already ships in `examples/ch04-first-app/src/`. Steps 2 and
+5 describe how it was built — read them to understand the design; there is
+nothing to write. As a reader you build (step 1), deploy the SQL and start DAB
+(steps 3–4), build again (step 6), and run (step 7). The book's prompt *"build
+the Chapter 6 agent"* does exactly that.
+
 ### 1. Prove the shared-app baseline
 
 From the repository root:
@@ -535,8 +607,11 @@ Build immediately after this application change:
 
 ### 3. Add the SQL contracts
 
-The reader runs the Chapter 6 SQL themselves, in numeric order so the deployed
-contracts match the DAB configuration.
+`setup-dab.ps1` deploys these — it's what the skill runs for *"build the Chapter
+6 agent"*, and you can run it yourself (see
+[Publish the MCP endpoint](#4-publish-the-mcp-endpoint)). To run the T-SQL
+yourself instead, use `setup-dab.ps1 -SkipSql` and run them in this order, so
+the deployed contracts match the DAB configuration.
 
 | script | adds |
 |---|---|
@@ -686,11 +761,12 @@ Stop the app first — Windows holds the running app's assemblies open:
 
 For a durable local demo, use the Chapter 4 launcher. It starts and probes DAB
 when `AiAgent` is enabled, then starts the app; both processes survive terminal
-and VS Code closure and write logs under `%LOCALAPPDATA%\WardGeneral\logs`:
+and VS Code closure and write logs under `%LOCALAPPDATA%\WardGeneral\logs`. The
+book runs Chapter 6 with both Chapter 5's `AiAssistance` and `AiAgent`:
 
 ```powershell
-./examples/ch04-first-app/start-demo.ps1 -Enable AiAgent
 ./examples/ch04-first-app/start-demo.ps1 -Enable AiAssistance,AiAgent
+./examples/ch04-first-app/start-demo.ps1 -Enable AiAgent     # agent only
 ```
 
 Use the separate foreground commands below when debugging DAB startup:
@@ -698,12 +774,19 @@ Use the separate foreground commands below when debugging DAB startup:
 ```powershell
 ./examples/ch06-agentic-ai/run-dab.ps1        # terminal 1, port 5000
 ./examples/ch06-agentic-ai/probe-mcp.ps1      # terminal 2
-./examples/ch04-first-app/restart.ps1 -Enable AiAgent
+./examples/ch04-first-app/restart.ps1 -Enable AiAssistance,AiAgent
 ```
 
 **Coming back on a later day?** The shift window will have aged out, and the
 first turn will correctly report that nobody needs a handoff. Use the wrapper
-instead of the bare restart — it re-anchors the window, then starts the app:
+instead of the bare restart — it re-anchors the window, then starts the app.
+One command, with DAB and the app in the background:
+
+```powershell
+./examples/ch06-agentic-ai/refresh-and-run.ps1 -Detached
+```
+
+Or in two terminals, with the app in the foreground:
 
 ```powershell
 ./examples/ch06-agentic-ai/run-dab.ps1              # terminal 1, still required
@@ -711,11 +794,12 @@ instead of the bare restart — it re-anchors the window, then starts the app:
 ```
 
 `refresh-and-run.ps1` runs [`13-refresh-shift-window.sql`](13-refresh-shift-window.sql)
-and then hands off to `restart.ps1`. It takes the same `-Enable` list, so
-`-Enable AiAssistance,AiAgent` gives the whole application; `-SkipRefresh`
-restarts without touching data when the window was already refreshed today. It
-deliberately does **not** start DAB — the pre-flight below already catches that
-and names the script to run.
+and then hands off to `restart.ps1` (or, with `-Detached`, to `start-demo.ps1`,
+which also starts DAB if it isn't running). It defaults to `-Enable AiAssistance,AiAgent`,
+the whole application; pass `-Enable AiAgent` for the agent alone. `-SkipRefresh`
+restarts without touching data when the window was already refreshed today.
+Without `-Detached` it deliberately does **not** start DAB — the pre-flight below
+already catches that and names the script to run.
 
 **It can stop and wait for you.** `restart.ps1` checks the server firewall rule
 for this client's IP and **prompts for approval** before adding or updating it.
@@ -841,8 +925,10 @@ clone. Commit or stash your Chapter 6 work first so you do not lose it.
 
 ## Agent-driven workflow
 
-Ask Copilot to **build the Chapter 6 agent**, **evolve the Ward General app**,
-**set up the Chapter 6 SQL MCP tools**, or **run the app with AiAgent**. The
+Ask Copilot to **build the Chapter 6 agent** (the book's prompt) — it configures
+what's missing, runs `setup-dab.ps1` after telling you what it will do, builds,
+and starts DAB and the app with `AiAssistance` and `AiAgent`. You can also ask
+it to **set up the Chapter 6 SQL MCP tools** or **run the app with AiAgent**. The
 repository skill is:
 
 ```text
@@ -858,4 +944,19 @@ than treating the chat icon as proof.
 ./examples/ch04-first-app/shutdown.ps1
 ```
 
-Then Ctrl+C the DAB terminal.
+It stops the app and DAB, including the background processes `start-demo.ps1`
+and `refresh-and-run.ps1 -Detached` start. If you ran DAB in its own terminal,
+you can also Ctrl+C it there.
+
+## Links from the book
+
+Every web link printed in Chapter 6, in the order it appears, so you can click
+instead of typing it. Cross-references to other chapters and links to this
+repository are left out.
+
+- Model Context Protocol (MCP) — <https://modelcontextprotocol.io>
+- Data API builder (DAB) — <https://aka.ms/dab>
+- SQL MCP Server — <https://aka.ms/sqlmcpserver>
+- Microsoft Agent Framework — <https://github.com/microsoft/agent-framework>
+- Agent Skills specification — <https://agentskills.io/specification>
+- Agent skills in Microsoft Agent Framework (C#) — <https://learn.microsoft.com/agent-framework/agents/skills?pivots=programming-language-csharp#skill-structure>

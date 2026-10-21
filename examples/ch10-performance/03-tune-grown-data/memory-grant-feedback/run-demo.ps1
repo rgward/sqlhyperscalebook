@@ -124,6 +124,7 @@ try {
         }
 
         $memoryGrant = $statement.SelectSingleNode('sp:QueryPlan/sp:MemoryGrantInfo', $namespace)
+        $timeStats = $statement.SelectSingleNode('sp:QueryPlan/sp:QueryTimeStats', $namespace)
         $sort = $statement.SelectSingleNode(".//sp:RelOp[@PhysicalOp='Sort']", $namespace)
         $spill = $sort.SelectSingleNode('sp:Warnings/sp:SpillToTempDb', $namespace)
         $runtime = $sort.SelectSingleNode(
@@ -141,8 +142,30 @@ try {
             LastRequestedMemoryKB = Get-AttributeValue -Node $memoryGrant -Name 'LastRequestedMemory'
             MemoryGrantFeedback = Get-AttributeValue -Node $memoryGrant -Name 'IsMemoryGrantFeedbackAdjusted'
             ActualRows = Get-AttributeValue -Node $runtime -Name 'ActualRows'
+            ElapsedMs = Get-AttributeValue -Node $timeStats -Name 'ElapsedTime'
+            CpuMs = Get-AttributeValue -Node $timeStats -Name 'CpuTime'
         }
     }
+
+    # Query Store feedback must be read before cleanup removes the query.
+    $feedbackQuery = @"
+SET NOCOUNT ON;
+SELECT CONCAT(pf.feature_desc, N'|', pf.state_desc)
+FROM sys.query_store_query AS q
+JOIN sys.query_store_plan AS p ON p.query_id = q.query_id
+JOIN sys.query_store_plan_feedback AS pf ON pf.plan_id = p.plan_id
+WHERE q.object_id = OBJECT_ID(N'clinical.DemonstrateMemoryGrantFeedback')
+ORDER BY pf.create_time, pf.plan_feedback_id;
+"@
+    $feedbackRows = @(& $sqlcmd -S $Server -d $Database -G -b -W -h -1 -Q ($feedbackQuery -replace '\r?\n', ' ') |
+        Where-Object { $_ -match '\|' } |
+        ForEach-Object {
+            $parts = $_.Split('|')
+            [pscustomobject]@{ Feature = $parts[0].Trim(); State = $parts[1].Trim() }
+        })
+    if ($LASTEXITCODE -ne 0) { throw "sqlcmd failed reading Query Store feedback (exit code $LASTEXITCODE)." }
+    $feedbackPath = Join-Path $runDirectory 'query-store-feedback.csv'
+    $feedbackRows | Export-Csv -LiteralPath $feedbackPath -NoTypeInformation
 
     $summaryPath = Join-Path $runDirectory 'plan-summary.csv'
     $planEvidence | Export-Csv -LiteralPath $summaryPath -NoTypeInformation
@@ -150,14 +173,34 @@ try {
     Write-Host ''
     Write-Host 'Actual-plan evidence' -ForegroundColor Green
     foreach ($evidence in $planEvidence) {
-        Write-Host ("  Execution {0}: SortWarning={1}; SpillLevel={2}; Grant={3:N2} MB; Used={4:N2} MB; MGF={5}; ActualRows={6}" -f
+        Write-Host ("  Execution {0}: Elapsed={1} ms; CPU={2} ms; SortWarning={3}; SpillLevel={4}; Grant={5:N2} MB; Used={6:N2} MB; MGF={7}; ActualRows={8}" -f
             $evidence.Execution,
+            $(if ($evidence.ElapsedMs) { $evidence.ElapsedMs } else { 'n/a' }),
+            $(if ($evidence.CpuMs) { $evidence.CpuMs } else { 'n/a' }),
             $evidence.SortWarning,
             $(if ($evidence.SpillLevel) { $evidence.SpillLevel } else { 'none' }),
             ([double] $evidence.GrantedMemoryKB / 1024.0),
             ([double] $evidence.MaxUsedMemoryKB / 1024.0),
             $evidence.MemoryGrantFeedback,
             $evidence.ActualRows)
+    }
+
+    $first = [double] ($planEvidence[0].ElapsedMs ?? 0)
+    $second = [double] ($planEvidence[1].ElapsedMs ?? 0)
+    if ($first -gt 0 -and $second -gt 0) {
+        $change = 100.0 * ($first - $second) / $first
+        $direction = if ($change -ge 0) { 'faster' } else { 'slower' }
+        Write-Host ("  Execution 2 was {0:N0}% {1} than execution 1 ({2} ms -> {3} ms)." -f
+            [Math]::Abs($change), $direction, $first, $second)
+    }
+
+    Write-Host ''
+    Write-Host 'Query Store feedback (sys.query_store_plan_feedback)' -ForegroundColor Green
+    if ($feedbackRows.Count -eq 0) {
+        Write-Host '  No persisted feedback rows yet.'
+    }
+    foreach ($row in $feedbackRows) {
+        Write-Host ("  {0}: {1}" -f $row.Feature, $row.State)
     }
     Write-Host ("Results: {0}" -f $runDirectory)
 }

@@ -12,7 +12,7 @@
 param(
     [datetime] $StartUtc = [datetime]::UtcNow.AddMinutes(-30),
     [datetime] $EndUtc = [datetime]::UtcNow,
-    [string] $ResourceGroup = ($env:RG ?? 'rg-collierhealth'),
+    [string] $ResourceGroup,
     [string] $WorkspaceName,
     [string] $Server,
     [string] $Database,
@@ -28,6 +28,7 @@ $here = $PSScriptRoot
 
 $loadEnv = Join-Path $here '..' '..' 'ch04-first-app' 'load-env.ps1'
 if (Test-Path $loadEnv) { & $loadEnv -Optional -Quiet }
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 
 if (-not $Server) { $Server = $env:WardGeneral__Server }
 if (-not $Database) { $Database = $env:WardGeneral__Database ?? 'wardgeneral' }

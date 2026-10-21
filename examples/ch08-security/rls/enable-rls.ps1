@@ -5,7 +5,9 @@
 .DESCRIPTION
     Loads the Chapter 4 server and database configuration, resolves the new
     Go-based sqlcmd, and runs row-level-security.sql with Microsoft Entra
-    authentication. Restart the app separately with -Enable RowLevelSecurity.
+    authentication. Then run the app with all three flags the book uses
+    (AiAssistance, AiAgent, RowLevelSecurity) via 02-run-secured-dab.ps1 and
+    03-run-rls-app.ps1.
 #>
 #requires -Version 7.0
 [CmdletBinding()]
@@ -65,5 +67,6 @@ Write-Host ''
 if ($LASTEXITCODE -ne 0) { throw "sqlcmd exited with code $LASTEXITCODE." }
 
 Write-Host ''
-Write-Host 'RLS is installed. Restart Ward General with:' -ForegroundColor Green
-Write-Host '  ./examples/ch04-first-app/restart.ps1 -Enable RowLevelSecurity'
+Write-Host 'RLS is installed. Start secured DAB, then the app with all three flags:' -ForegroundColor Green
+Write-Host '  ./examples/ch08-security/rls/02-run-secured-dab.ps1'
+Write-Host '  ./examples/ch08-security/rls/03-run-rls-app.ps1   # AiAssistance, AiAgent, RowLevelSecurity'

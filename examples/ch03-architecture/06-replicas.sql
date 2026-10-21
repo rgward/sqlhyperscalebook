@@ -73,11 +73,12 @@ PRINT N'== 1. The replica inventory (primary + HA + named, all on shared storage
    rooted at THAT named replica, not at the primary — see WHERE TO RUN above.
 
    EXPECT A FLAT RESULT HERE. A named replica is created with NO HA replicas of
-   its own, so on the topology this chapter builds you will see the primary, its
-   HA replica, and the named replica — and the nested `+--` row under the named
-   replica will NOT appear. That is correct. The nesting has to be created
-   deliberately by adding an HA replica TO the named replica, and the script that
-   does it belongs to Ch 9, which owns HA operations. The self-join stays here
+   its own, so from the primary you will see the primary, its HA replica, and --
+   only if you ran Chapter 2's optional add-replicas.ps1 -- the named replica.
+   The nested `+--` row under the named replica will NOT appear. That is correct.
+   The nesting has to be created deliberately by adding an HA replica TO the named
+   replica; the book's Figure 3-11 shows it from the author's own test setup, and
+   no example in this repo creates it. The self-join stays here
    because the parentage is the architectural point either way: the column exists,
    and it tells you an HA replica attaches to a specific parent rather than to
    "the database". */

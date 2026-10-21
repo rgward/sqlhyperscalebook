@@ -12,6 +12,9 @@
       3. Database        reachable, Chapter 2 schema + data  (failure)
       4. SQL MCP         Chapter 6 endpoint serving its tools (failure, and only
                          when the AiAgent feature flag is on)
+      5. Model access    your identity can call the agent's Foundry model
+                         (failure if the role is missing, warning if it can't be
+                         checked; only when the AiAgent feature flag is on)
 
     Why these are failures rather than warnings: the app authenticates with
     DefaultAzureCredential, which uses the same sign-in as the Azure CLI.
@@ -172,7 +175,7 @@ else {
     }
     $sqlcmdPath = @(
         $env:SQLCMD,
-        (Join-Path $env:LOCALAPPDATA 'Programs\sqlcmd\sqlcmd.exe'),
+        $(if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'Programs\sqlcmd\sqlcmd.exe' }),
         'C:\Program Files\SqlCmd\sqlcmd.exe',
         (Get-Command sqlcmd -ErrorAction SilentlyContinue).Source
     ) | Where-Object { $_ -and (Test-Path $_) -and (& $isGoSqlcmd $_) } |
@@ -191,9 +194,26 @@ else {
             if ($LASTEXITCODE -ne 0) { throw "sqlcmd exited with code $LASTEXITCODE" }
             $row = [string] ($result | Where-Object { $_ -match '\|' } | Select-Object -Last 1)
             $values = $row.Split('|')
-            if ($values.Count -ne 2) { throw "unexpected database preflight output: $result" }
+            if ($values.Count -ne 3) { throw "unexpected database preflight output: $result" }
             $hasSchema = [int] $values[0].Trim() -eq 1
             $patients = [int] $values[1].Trim()
+            $hasRlsPolicy = [int] $values[2].Trim() -eq 1
+
+            # Chapter 8: the same flag chain the app reads (environment, then the JSON files).
+            $rlsFlagOn = $false
+            if ($env:RowLevelSecurity__Enabled) {
+                $rlsFlagOn = $env:RowLevelSecurity__Enabled -eq 'true'
+            }
+            else {
+                foreach ($f in 'appsettings.Development.json', 'appsettings.json') {
+                    $p = Join-Path $webDir $f
+                    if (Test-Path $p) {
+                        $settings = Get-Content $p -Raw | ConvertFrom-Json
+                        $rls = $settings.PSObject.Properties['RowLevelSecurity']
+                        if ($rls -and $null -ne $rls.Value.Enabled) { $rlsFlagOn = [bool]$rls.Value.Enabled; break }
+                    }
+                }
+            }
 
             if (-not $hasSchema) {
                 Write-Check fail 'Database' 'connected, but the Chapter 2 schema is missing - run the Chapter 2 schema scripts'
@@ -203,8 +223,14 @@ else {
                 Write-Check fail 'Database' 'schema is there but no patients - run the Chapter 2 seed script'
                 $failures++
             }
+            elseif ($rlsFlagOn -and -not $hasRlsPolicy) {
+                # Without the policy the app shows "RLS applied" but filters nothing.
+                Write-Check fail 'Database' 'RowLevelSecurity is on but security.EncounterAccessPolicy is missing or disabled - run examples/ch08-security/rls/01-setup-rls.ps1'
+                $failures++
+            }
             else {
-                Write-Check pass 'Database' "$Database on $Server - schema present, $patients patients"
+                $rlsNote = if ($rlsFlagOn) { ', RLS policy enabled' } else { '' }
+                Write-Check pass 'Database' "$Database on $Server - schema present, $patients patients$rlsNote"
             }
         }
         catch {
@@ -295,6 +321,38 @@ else {
                 $warnings++
             }
         }
+    }
+}
+
+# -- 5. Agent model access --------------------------------------------------
+# The agent calls the gpt-5 deployment as the signed-in user. Owner and
+# Contributor carry no data actions, so without a role such as Cognitive
+# Services OpenAI User the chat panel opens and its first model call fails.
+if ($agentOn) {
+    $grant = Join-Path $root '..' 'ch06-agentic-ai' 'grant-model-access.ps1'
+    if (-not (Test-Path $grant)) {
+        Write-Check warn 'Agent model access' "check script not found at $grant"
+        $warnings++
+    }
+    else {
+        try {
+            & $grant -Quiet
+            if ($LASTEXITCODE -eq 0) {
+                Write-Check pass 'Agent model access' 'your identity can call the Foundry model'
+            }
+            else {
+                Write-Check fail 'Agent model access' 'your identity has no role that can call the agent''s Foundry model'
+                Write-Host '        Preview the fix, then apply it (needs rights to assign roles):' -ForegroundColor Yellow
+                Write-Host '          ./examples/ch06-agentic-ai/grant-model-access.ps1' -ForegroundColor DarkGray
+                Write-Host '          ./examples/ch06-agentic-ai/grant-model-access.ps1 -Apply' -ForegroundColor DarkGray
+                $failures++
+            }
+        }
+        catch {
+            Write-Check warn 'Agent model access' "could not check: $($_.Exception.Message)"
+            $warnings++
+        }
+        $global:LASTEXITCODE = 0
     }
 }
 

@@ -13,10 +13,10 @@
    expect two different answers — that divergence IS the teaching point (and is
    exactly why continuous priming exists, Ch 3 §5/§9).
 
-   PERMISSIONS — admin, or VIEW DATABASE STATE. Query 2 also inspects OTHER
-   sessions, which needs server-level state; without it it returns zero rows and
-   no error -- which is ALSO the expected result on a quiet database, so the
-   permission failure is invisible. See README.md.
+   PERMISSIONS — admin, or VIEW DATABASE STATE. Query 2 reads sys.dm_exec_requests,
+   which shows only your own session without server-state visibility; then it
+   returns zero rows and no error -- which is ALSO the expected result on a quiet
+   database, so the difference is invisible. See README.md.
 
    Sources (accessed 2026-08-05; permissions verified 2026-08-10):
      [Microsoft Learn — Hyperscale performance diagnostics: virtual file stats and IO accounting]
@@ -101,6 +101,6 @@ SELECT
     SUBSTRING(t.text, 1, 80) AS sql_head
 FROM sys.dm_exec_requests AS r
 CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) AS t
-WHERE r.session_id <> @@SPID AND r.page_server_reads > 0
+WHERE r.page_server_reads > 0
 ORDER BY r.page_server_reads DESC;
 GO

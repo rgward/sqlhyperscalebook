@@ -1,6 +1,6 @@
 ---
 name: grow-wardgeneral-database
-description: 'Guide and run Chapter 10 Demo 2, driving the existing Ward General Hyperscale database with a five-minute 64-writer workload and identifying the actual write constraint from measured evidence. USE WHEN the reader says "run Chapter 10 Demo 2", "grow Ward General", "run the growth workload", "run another growth interval", "measure the Ward General write path", or "show automatic storage growth". Owns the numeric, JSON, and free-text growth path plus generated-log and resource evidence. Do not run compute Demo 1, change hardware families, tune indexes, or scale vector replicas.'
+description: 'Guide and run Chapter 10 Demo 2, driving the existing Ward General Hyperscale database with a five-minute 64-writer workload and identifying the actual write constraint from measured evidence. USE WHEN the reader says "Run Chapter 10 Demo 2: drive Ward General writes for five minutes and identify whether any constraints were observed in the measured evidence" (the book''s prompt), "run Chapter 10 Demo 2", "grow Ward General", "run the growth workload", "run another growth interval", "measure the Ward General write path", or "show automatic storage growth". Owns the numeric, JSON, and free-text growth path plus generated-log and resource evidence. Do not run compute Demo 1, change hardware families, tune indexes, or scale vector replicas.'
 ---
 
 # Grow Ward General and find the constraint
@@ -16,13 +16,20 @@ That README is the reader-facing source of truth.
 - Run exactly one 300-second sqlsim interval per execution. Readers may repeat
   the same interval when they want more data.
 - Keep the database at `HS_Gen5_40`; this demo does not change hardware.
+- If `run-demo.ps1` prints a geo-secondary WARNING, repeat it in the report. If
+  the run shows sustained `RBIO_RG_GEOREPLICA` waits, attribute the constraint
+  to the undersized geo-secondary, not to Hyperscale log governance, and point
+  to Chapter 9's `cleanup-geo-replica.ps1`. Don't remove it yourself.
 - Do not claim log governance unless `RBIO_RG_*` and the measured log-rate
   evidence support it.
 
 ## Current workflow
 
 1. Run `run-demo.ps1` without `-Execute` to show the exact database, current
-  reserved size, SLO, workload duration, and sample interval.
+  reserved size, SLO, workload duration, and sample interval. If the reader
+  already gave the `sqlsim.exe` path for Demo 1 in this conversation, pass it
+  with `-SqlsimPath` (or set `$env:SQLSIM` in the same command) instead of
+  asking again. Otherwise let the script's one-time prompt ask for it.
 2. Obtain explicit approval before rerunning the same command with `-Execute`;
   the operation appends billable data and has no automatic cleanup.
 3. Let the runner launch the workload and capture 15-second samples from a
@@ -32,7 +39,9 @@ That README is the reader-facing source of truth.
 5. Use the post-chart wait panel to report the `RBIO_RG_*` wait-type count,
   task count, total duration, dominant measured wait, and `WRITELOG` duration.
 6. Interpret the actual constraint; do not infer a log-rate limit from growth
-  volume alone. Leave the grown database ready for Demo 3.
+  volume alone. Leave the grown database ready for Demo 3. If the reader asks
+  about reclaiming space, explain that `DBCC SHRINKFILE` releases only free
+  space and the added rows remain; do not run a shrink or delete data.
 
 Stop when approval is absent, the starting SLO is not `HS_Gen5_40`, the
 workload fails, or live results contradict the planned narrative. Preserve a

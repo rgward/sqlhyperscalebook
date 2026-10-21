@@ -46,11 +46,15 @@ named with `collier`; per-hospital workload resources with `ward`.
   `$env:SRV`). Don't hard-code values into the scripts either way.
 - **Never hard-code secrets.** Passwords, tokens, and connection strings come
   from the environment or a prompt — never commit or embed them.
-- **Keep the `SET`-options preamble in every `.sql` file.** Each SQL script opens
-  with seven `SET` options (`QUOTED_IDENTIFIER`, `ANSI_NULLS`, `ARITHABORT`, …).
-  They're required for filtered / indexed-view / computed-column / JSON indexes —
-  strip them and `CREATE` fails with **Msg 1934**. Don't remove them, and run
-  each file whole.
+- **Keep the `SET`-options preamble in every `.sql` file that creates or alters
+  schema objects** (tables, views, procedures, functions, indexes). Those
+  scripts open with seven `SET` options (`QUOTED_IDENTIFIER`, `ANSI_NULLS`,
+  `ARITHABORT`, …). They're required for filtered / indexed-view /
+  computed-column / JSON indexes — strip them and `CREATE` fails with
+  **Msg 1934** — and `QUOTED_IDENTIFIER` / `ANSI_NULLS` are recorded on each
+  object. Don't remove them, add them to any new object-creating script, and run
+  each file whole. Read-only DMV queries, cleanup scripts, and sqlsim workload
+  statements don't need them; don't add them there.
 - **Procs-for-everything.** The schema exposes stored procedures for transactional
   and reusable operations. Call the procedures by name; don't replace them with
   ad-hoc `INSERT`/`UPDATE`/`DELETE` against the tables. Ad-hoc SQL is only for

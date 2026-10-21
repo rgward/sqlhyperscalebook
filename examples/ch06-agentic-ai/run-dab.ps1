@@ -57,7 +57,7 @@ if ([version]($dabVersion -split '-')[0] -lt [version]'2.0.0') {
     throw @"
 DAB $dabVersion is too old. Chapter 6 needs 2.0.0 or later, because runtime.mcp
 and its dml-tools switch do not exist before 2.0 - and dml-tools is what bounds
-the agent's tool surface to the eight entities in the config.
+the agent's tool surface to the seven entities in the config.
 
   dotnet tool update --global Microsoft.DataApiBuilder
 "@

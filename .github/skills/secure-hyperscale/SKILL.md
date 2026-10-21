@@ -6,11 +6,14 @@ description: >-
    its RowLevelSecurity feature flag.
     USE WHEN the reader says "run the Chapter 8 security example", "run the
    Chapter 8 RLS app demo", "run the Chapter 8 RLS app demo from a clean state",
-    "enable RLS in Ward General", or "show the Viewing as security demo". Do not
-   create roles, enforce Entra-only authentication, provision CMK or Private
-   Link, classify data, generate Defender alerts, or create or inspect ledger
-   objects. Azure SQL Database auditing is owned by the separate
-   audit-wardgeneral skill.
+    "enable RLS in Ward General", or "show the Viewing as security demo". Also
+    runs the optional server-level TDE customer-managed key example only when
+    the reader explicitly asks for it ("run the Chapter 8 TDE example",
+    "configure TDE with a customer-managed key") and approves the Azure changes
+    in chat. Do not create roles, enforce Entra-only authentication, provision
+    Private Link, classify data, generate Defender alerts, or create or inspect
+    ledger objects. Azure SQL Database auditing is owned by the separate
+    audit-wardgeneral skill.
 ---
 
 # Secure Ward General — Chapter 8
@@ -28,8 +31,9 @@ Database auditing companion investigation is owned by the separate
 `audit-wardgeneral` skill; do not run that workflow from this skill.
 
 Do not turn conceptual chapter topics into additional workflows. Microsoft
-Entra-only authentication, role design, TDE with customer-managed keys, Private
-Link, classification, and Defender for SQL are discussion-only here.
+Entra-only authentication, role design, Private Link, classification, and
+Defender for SQL are discussion-only here. TDE with a customer-managed key has
+an optional script that runs only under the guarded workflow below.
 
 Use the existing `examples/ch04-first-app/ch04.env` configuration. Never ask
 for or place a SQL password on a command line. SQL entry points use the new
@@ -79,7 +83,7 @@ the exact prompt "Run the Chapter 8 RLS app demo":
    the reader to type either runtime command unless terminal tooling is
    unavailable.
 5. Tell the reader that **Viewing as** intentionally lists many attending
-   providers. They can compare **Admin — all patients** with any one or more
+   providers. They can compare **All providers · Admin** with any one or more
    attendings; do not ask them to report provider IDs back to the agent.
 6. Have the reader observe that the board, patient charts, encounter search,
    and handoff candidates pivot to the selected provider while their SQL
@@ -99,6 +103,31 @@ State that the learning policy intentionally permits sessions with no context.
 Do not describe that fail-open choice as production guidance. State that
 historical similarity search and the named-replica Research page do not pivot
 through this encounter policy because they do not read `clinical.Encounter`.
+
+## Optional TDE customer-managed key workflow
+
+Run this only when the reader explicitly asks for the Chapter 8 TDE or
+customer-managed key example. Never run it as part of the RLS demo.
+
+1. Read `examples/ch08-security/tde/README.md`. The script is **not
+   preview-only**; it has no `-WhatIf`.
+2. Ask the reader for a globally unique Key Vault name. Take the resource
+   group, server, and database from `ch04.env` as the script does; do not
+   discover or guess them.
+3. Before running, show the exact command and state in chat that it will:
+   enable the server's system-assigned identity; create a Key Vault with
+   **purge protection** (the vault and key cannot be permanently deleted until
+   the retention period ends); create an RSA key; and make it the
+   **server-level** TDE protector with automatic rotation, which affects every
+   database on the logical server that inherits the server setting. Mention
+   that the vault is a billable resource and that the script has no automated
+   teardown.
+4. Obtain explicit approval in chat, then run
+   `examples/ch08-security/tde/provision-tde-cmk.ps1 -Vault '<name>'`.
+5. Report the protector type, URI, auto-rotation, and database TDE state the
+   script prints. Point the reader to the README's *Return to the
+   Service-Managed Protector* and *Geo-Replication* sections; do not delete
+   keys or vaults.
 
 ## Required report
 
@@ -124,3 +153,5 @@ readiness, and the reader-facing provider-filtering check.
 | `examples/ch08-security/rls/new-client-principal.ps1` | Local EasyAuth principal-header builder |
 | `examples/ch08-security/rls/enable-rls.ps1` | Configured passwordless RLS deployment entry point |
 | `examples/ch08-security/rls/row-level-security.sql` | RLS predicate and security policy |
+| `examples/ch08-security/tde/README.md` | Optional TDE customer-managed key example |
+| `examples/ch08-security/tde/provision-tde-cmk.ps1` | Server-level TDE CMK provisioning (makes Azure changes) |

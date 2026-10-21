@@ -15,7 +15,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [string] $ResourceGroup = $env:RG,
+    [string] $ResourceGroup,
 
     [switch] $ResetDemoData,
 
@@ -57,15 +57,13 @@ function Resolve-SqlsimPath {
     return $resolved
 }
 
-if ([string]::IsNullOrWhiteSpace($ResourceGroup)) {
-    throw 'Set RG or pass -ResourceGroup.'
-}
 if ($ApproveCleanup -and -not $ResetDemoData) {
     throw '-ApproveCleanup requires -ResetDemoData.'
 }
 
 $loadEnv = Join-Path $PSScriptRoot '..\..\ch04-first-app\load-env.ps1'
 . $loadEnv -Require @('WardGeneral__Server', 'WardGeneral__Database') -Quiet
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 
 $sqlsim = Resolve-SqlsimPath
 
@@ -101,9 +99,20 @@ if ($resource.edition -ne 'Hyperscale') {
 if ($resource.status -ne 'Online') {
     throw "Expected an Online database; Azure reports '$($resource.status)'."
 }
-if ($resource.serviceObjective -ne 'HS_Gen5_8') {
-    throw "Stage 1 must begin at HS_Gen5_8; Azure reports '$($resource.serviceObjective)'."
+if ($resource.serviceObjective -like 'HS_S_*') {
+    # Serverless autoscales on its own, so it can't show the 8 -> 16 -> 40 provisioned steps.
+    throw ("Demo 1 measures provisioned compute scaling (HS_Gen5_8 -> HS_Gen5_16 -> HS_Gen5_40), " +
+        "but '$database' is serverless ('$($resource.serviceObjective)'). Switch it to provisioned first: " +
+        "preview with './scale-compute.ps1 -TargetServiceObjective HS_Gen5_8', then rerun with -Approve. " +
+        "Provisioned compute bills every hour until you scale back or delete the database. No Azure change was made.")
 }
+if ($resource.serviceObjective -ne 'HS_Gen5_8') {
+    throw ("Stage 1 must begin at HS_Gen5_8; Azure reports '$($resource.serviceObjective)'. " +
+        "Preview the change with './scale-compute.ps1 -TargetServiceObjective HS_Gen5_8', then rerun with -Approve. " +
+        "No Azure change was made.")
+}
+
+& (Join-Path $PSScriptRoot '..\check-geo-links.ps1') -Server $serverName -Database $database -ResourceGroup $ResourceGroup
 
 $token = az account get-access-token `
     --resource https://database.windows.net/ `

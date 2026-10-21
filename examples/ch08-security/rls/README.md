@@ -121,6 +121,11 @@ provider.
 
 ## Behind the scenes
 
+> **Book note:** The chapter's walkthrough names the unit-board view
+> `clinical.vBedCensus`. In the repository the view is `ops.vBedCensus`
+> (created in `examples/ch02-getting-started/03-views.sql`). It reads
+> `clinical.Encounter` exactly as described, so the same policy filters it.
+
 The selector writes `ProviderId`, `Role`, and the display name into the scoped
 `AccessContext` for the current Blazor circuit. Chapter 8 makes
 `WardGeneralAgent` scoped too, so one browser circuit cannot share another

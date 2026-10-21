@@ -1,6 +1,6 @@
 ---
 name: scale-wardgeneral-compute
-description: 'Run and analyze Chapter 10 Demo 1, the Ward General compute-scaling workload at 8, 16, and 40 vCores. USE WHEN the reader says "run the Chapter 10 Stage 1 baseline", "run the 8-vCore baseline", "run Demo 1", "scale Ward General compute", "run the 8 to 16 to 40 demo", "test Ward General with sqlsim", or "measure compute scaling under load". Owns preflight, SQLSIM path prompting, the read/write workload, laptop-network controls, server and Query Store evidence, and preview-first approved scaling. Do not grow the database, move to Premium-series, tune indexes, or scale named replicas.'
+description: 'Run and analyze Chapter 10 Demo 1, the Ward General compute-scaling workload at 8, 16, and 40 vCores. USE WHEN the reader says "Run Chapter 10 Demo 1 and preview the 8 → 16 → 40 vCore progression" (the book''s prompt), "run the Chapter 10 Stage 1 baseline", "run the 8-vCore baseline", "run Demo 1", "scale Ward General compute", "run the 8 to 16 to 40 demo", "test Ward General with sqlsim", or "measure compute scaling under load". Owns preflight, SQLSIM path prompting, the read/write workload, laptop-network controls, server and Query Store evidence, and preview-first approved scaling. Do not grow the database, move to Premium-series, tune indexes, or scale named replicas.'
 ---
 
 # Scale Ward General compute
@@ -27,15 +27,26 @@ reader-facing source of truth.
    exact counts. Run again with `-ApproveCleanup` only after explicit approval.
    Cleanup deletes all marked Demo 1 rows across prior runs, never unmarked rows.
 - This demo ends at `HS_Gen5_40`. It never scales down or moves to Premium.
+- If the preflight prints a geo-secondary WARNING (a leftover Chapter 9
+  geo-replica), repeat it in your report — partner, region, size, separate
+  billing, possible `RBIO_RG_GEOREPLICA` throttling in Demo 2 — and point to
+  Chapter 9's `cleanup-geo-replica.ps1`. Don't remove it yourself.
 
 ## Baseline-only prompt
 
 For "run the 8-vCore baseline", do exactly this:
 
-1. Run `preflight.ps1`. If `SQLSIM` is absent or invalid, allow its prompt for
-   the full local path to the extracted `sqlsim.exe`.
+1. Run `preflight.ps1`. If `SQLSIM` is not set, ask the reader in chat for the
+   full local path to the extracted `sqlsim.exe` and set `$env:SQLSIM` in the
+   same command that runs the script. Don't rely on the script's terminal
+   prompt; a reader working in chat may not be able to answer it.
 2. Confirm `HS_Gen5_8`, token authentication, firewall/network connectivity,
-   ODBC 18, Query Store, five procedures, and encounter data.
+   ODBC 18, Query Store, five procedures, and encounter data. If preflight
+   reports a serverless (`HS_S_Gen5_*`) database, stop. Explain that Demo 1
+   measures provisioned scaling, run `scale-compute.ps1 -TargetServiceObjective
+   HS_Gen5_8` without `-Approve`, show the compute-model and billing change, and
+   switch only after explicit approval. Do not edit the scripts to bypass the
+   check or run the progression on serverless.
 3. Capture `network-probe.ps1` and `capture-server.ps1` before the workload.
 4. Run `run-workload.ps1 -WorkloadPath workload-8.json` once.
 5. Capture the same network and server evidence after the workload.
@@ -46,10 +57,13 @@ For "run the 8-vCore baseline", do exactly this:
 ## Full Demo 1
 
 1. Run `run-demo.ps1` without `-ApproveScaling`. It runs preflight and previews
-   `HS_Gen5_8 → HS_Gen5_16 → HS_Gen5_40` without changing Azure.
+   `HS_Gen5_8 → HS_Gen5_16 → HS_Gen5_40` without changing Azure. If preflight
+   stops on a serverless or other non-`HS_Gen5_8` starting point, follow the
+   baseline step 2 guidance above before continuing.
 2. Present both changes and obtain explicit approval.
-3. Run `run-demo.ps1 -ApproveScaling` only after approval. Pass the resource
-   group when `RG` is not set.
+3. Run `run-demo.ps1 -ApproveScaling` only after approval. The resource group
+   resolves from `RG` (shell or `ch04.env`) and defaults to `rg-collierhealth`;
+   pass `-ResourceGroup` only if the reader names a different one.
 4. The script runs 100, 200, and 400 workload threads respectively, each for 90
    seconds, and brackets every phase with network and server evidence.
 5. Stop at the first failed workload or scale. Report the actual SLO and do not
@@ -75,12 +89,19 @@ infer cleanup approval from scaling approval.
 - Do not add `-querystats` to the sustained workload. Use Query Store and the
    separate server snapshots for database-side timing and resource evidence.
 
-## Reset compute for a repeat
+## Reset compute for a repeat — or to stop the cost
 
 `scale-compute.ps1` supports scale-up and scale-down. To repeat Demo 1 after it
-ends at 40 vCores, run it first without `-Approve` targeting `HS_Gen5_8`, show
-the reader the current and requested SLO, and obtain explicit approval. Then
-rerun with `-Approve`. Never hide the reset inside `run-demo.ps1`.
+ends at 40 vCores, or when the reader is done with Chapter 10 and is not going
+on to Demo 2, run it first without `-Approve` targeting `HS_Gen5_8`, show the
+reader the current and requested SLO, and obtain explicit approval. Then rerun
+with `-Approve`. Never hide the reset inside `run-demo.ps1`.
+
+When reporting the Demo 1 result, always state that the database is now at
+`HS_Gen5_40` and bills at that size (primary and HA replica) until scaled back,
+and point to "Cost and cleanup" in `examples/ch10-performance/README.md`.
+
+## Connection cap
 - Do not raise the reader-laptop 40-vCore phase to 800 direct connections. The
    live calibration stalled during client connection establishment before any
    workload executed; that was not an Azure SQL capacity result.

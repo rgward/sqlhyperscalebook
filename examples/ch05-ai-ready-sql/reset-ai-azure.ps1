@@ -120,8 +120,27 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-if (-not $ResourceGroup)  { throw 'Pass -ResourceGroup (or set $env:RG).' }
-if (-not $AiResourceName) { throw 'Pass -AiResourceName (or set $env:AI_RESOURCE).' }
+# ch05.env is where the reader's names live. Parameter defaults are read before
+# it can load, so load it here and fill whatever is still empty. -WhatIf must
+# not stop load-env from setting the variables, so it is suspended for the load.
+if (Test-Path (Join-Path $PSScriptRoot 'ch05.env')) {
+    $savedWhatIf = $WhatIfPreference
+    try {
+        $WhatIfPreference = $false
+        & (Join-Path $PSScriptRoot 'load-env.ps1') -Require @() -Quiet
+    }
+    finally { $WhatIfPreference = $savedWhatIf }
+    if (-not $SqlServerName)  { $SqlServerName  = $env:SRV }
+    if (-not $ResourceGroup)  { $ResourceGroup  = $env:RG }
+    if (-not $AiResourceName) { $AiResourceName = $env:AI_RESOURCE }
+    if (-not $CsResourceName) { $CsResourceName = $env:CS_RESOURCE }
+    if (-not $SubscriptionId) { $SubscriptionId = $env:SUBSCRIPTION_ID }
+}
+# ch05.env.template documents APIM_NAME for exactly this script.
+if (-not $ApimName -and $env:APIM_NAME -and $env:APIM_NAME -notmatch '<[^>]*>') { $ApimName = $env:APIM_NAME }
+
+if (-not $ResourceGroup)  { throw 'Pass -ResourceGroup (or set RG in ch05.env).' }
+if (-not $AiResourceName) { throw 'Pass -AiResourceName (or set AI_RESOURCE in ch05.env).' }
 
 # Same derivation as deploy-ai.ps1 / azureaideploy.ps1. If these do not match
 # your environment, the script reports "not found" and leaves the real resource

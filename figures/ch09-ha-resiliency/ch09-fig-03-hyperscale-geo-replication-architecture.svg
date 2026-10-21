@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" font-family="Segoe UI, Arial, sans-serif">
+  <!-- ==================================================================== -->
+  <!-- Figure 9-x. Hyperscale geo-replication, deeper look (Ch 9 §5)        -->
+  <!--                                                                      -->
+  <!-- SCOPE: the primary and one geo-replica only. Each region has its own -->
+  <!-- compute, log service, and page servers. HA replicas, named replicas, -->
+  <!-- applications, gateways, and Azure Storage are deliberately absent.  -->
+  <!--                                                                      -->
+  <!-- Claims asserted here:                                                -->
+  <!--  * A Hyperscale geo-replica has a different set of page servers from -->
+  <!--    the primary, even when both are in the same region.                -->
+  <!--  * Updates are replicated asynchronously: primary transactions commit -->
+  <!--    before they are replicated to the geo-secondary.                   -->
+  <!--  * The geo-secondary is readable; promotion makes it the new primary. -->
+  <!--  * Engine architecture detail supplied by the author: the secondary  -->
+  <!--    log service pulls log from the primary log service, hardens it     -->
+  <!--    locally, and fans it out to its own compute and page servers.      -->
+  <!--                                                                      -->
+  <!-- Public sources (accessed 2026-09-08):                                -->
+  <!--   learn.microsoft.com/azure/azure-sql/database/                      -->
+  <!--     service-tier-hyperscale-replicas#geo-replica                     -->
+  <!--   learn.microsoft.com/azure/azure-sql/database/                      -->
+  <!--     active-geo-replication-overview                                  -->
+  <!--                                                                      -->
+  <!-- Conventions inherited from the Chapter 3 architecture figures:      -->
+  <!-- primary #0072C6, geo #5C2D91, log #D83B01/#C0198C, page server      -->
+  <!-- #008575; white-filled shapes and fixed-orientation arrow markers.    -->
+  <!-- ==================================================================== -->
+  <defs>
+    <marker id="mLogRight" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="0" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/>
+    </marker>
+    <marker id="mLogDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/>
+    </marker>
+    <marker id="mLogUp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#C0198C"/>
+    </marker>
+    <marker id="mDataDown" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="90" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/>
+    </marker>
+    <marker id="mDataUp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="270" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0072C6"/>
+    </marker>
+    <marker id="mPromoteLeft" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="180" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#4B5563"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <!-- ============================ REGIONS ============================ -->
+  <rect x="40" y="52" width="520" height="616" rx="10" fill="#F5F9FF" stroke="#9AA5B1" stroke-width="1.5" stroke-dasharray="7 6"/>
+  <text x="64" y="82" font-size="14" font-weight="700" fill="#1F2937">Primary region</text>
+  <text x="64" y="101" font-size="10" fill="#6B7280">independent Hyperscale data plane</text>
+
+  <rect x="720" y="52" width="520" height="616" rx="10" fill="#FBF8FD" stroke="#9AA5B1" stroke-width="1.5" stroke-dasharray="7 6"/>
+  <text x="744" y="82" font-size="14" font-weight="700" fill="#1F2937">Secondary region</text>
+  <text x="744" y="101" font-size="10" fill="#6B7280">independent Hyperscale data plane</text>
+
+  <!-- ============================ COMPUTE =========================== -->
+  <rect x="140" y="138" width="320" height="130" rx="8" fill="#FFFFFF" stroke="#0072C6" stroke-width="2.4"/>
+  <rect x="152" y="150" width="28" height="15" rx="3" fill="#0072C6"/>
+  <text x="166" y="161" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="300" y="177" text-anchor="middle" font-size="16" font-weight="700" fill="#0072C6">Primary compute replica</text>
+  <text x="300" y="200" text-anchor="middle" font-size="11" fill="#555555">read / write</text>
+  <text x="300" y="218" text-anchor="middle" font-size="10" fill="#555555">transactions commit here</text>
+  <rect x="174" y="231" width="252" height="22" rx="4" fill="#FFFFFF" stroke="#008575" stroke-width="1.3"/>
+  <text x="300" y="246" text-anchor="middle" font-size="9.5" font-weight="600" fill="#008575">Buffer pool · RBPEX</text>
+
+  <rect x="820" y="138" width="320" height="130" rx="8" fill="#FFFFFF" stroke="#5C2D91" stroke-width="2.4"/>
+  <rect x="832" y="150" width="28" height="15" rx="3" fill="#0072C6"/>
+  <text x="846" y="161" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="980" y="177" text-anchor="middle" font-size="16" font-weight="700" fill="#5C2D91">Geo-secondary compute</text>
+  <text x="980" y="200" text-anchor="middle" font-size="11" fill="#555555">read-only while secondary</text>
+  <text x="980" y="218" text-anchor="middle" font-size="10" fill="#555555">read / write after promotion</text>
+  <rect x="854" y="231" width="252" height="22" rx="4" fill="#FFFFFF" stroke="#008575" stroke-width="1.3"/>
+  <text x="980" y="246" text-anchor="middle" font-size="9.5" font-weight="600" fill="#008575">Buffer pool · RBPEX</text>
+
+  <!-- ========================== LOG SERVICES ======================== -->
+  <rect x="120" y="330" width="360" height="84" rx="8" fill="#FFFFFF" stroke="#D83B01" stroke-width="2.2"/>
+  <text x="300" y="360" text-anchor="middle" font-size="15" font-weight="700" fill="#D83B01">Primary log service (XLOG)</text>
+  <text x="300" y="381" text-anchor="middle" font-size="10" fill="#555555">hardens the primary log stream</text>
+  <text x="300" y="397" text-anchor="middle" font-size="9" fill="#6B7280">primary commit path ends here</text>
+
+  <rect x="800" y="330" width="360" height="84" rx="8" fill="#FFFFFF" stroke="#D83B01" stroke-width="2.2"/>
+  <text x="980" y="360" text-anchor="middle" font-size="15" font-weight="700" fill="#D83B01">Secondary log service (XLOG)</text>
+  <text x="980" y="381" text-anchor="middle" font-size="10" fill="#555555">pulls and hardens log locally</text>
+  <text x="980" y="397" text-anchor="middle" font-size="9" fill="#6B7280">then fans out inside this region</text>
+
+  <!-- compute ↔ local log service -->
+  <path d="M300,268 L300,328" fill="none" stroke="#C0198C" stroke-width="2.3" marker-start="url(#mLogUp)" marker-end="url(#mLogDown)"/>
+  <text x="310" y="302" font-size="9" fill="#C0198C">log write</text>
+  <path d="M980,268 L980,328" fill="none" stroke="#C0198C" stroke-width="2.3" marker-start="url(#mLogUp)"/>
+  <text x="990" y="302" font-size="9" fill="#C0198C">log for redo</text>
+
+  <!-- cross-region log-service pull; data flows primary → secondary -->
+  <path d="M480,372 L798,372" fill="none" stroke="#C0198C" stroke-width="3" marker-end="url(#mLogRight)"/>
+  <text x="640" y="346" text-anchor="middle" font-size="11" font-weight="700" fill="#C0198C">secondary XLOG pulls log blocks</text>
+  <text x="640" y="362" text-anchor="middle" font-size="9.5" fill="#6B7280">asynchronous to commit · hardened in the secondary region</text>
+
+  <!-- ========================== PAGE SERVERS ======================== -->
+  <rect x="90" y="478" width="420" height="142" rx="9" fill="none" stroke="#008575" stroke-width="1.7" stroke-dasharray="5 4"/>
+  <text x="106" y="501" font-size="12" font-weight="700" fill="#0E6E63">Primary page servers</text>
+  <text x="106" y="518" font-size="9" fill="#6B7280">own the primary's data files</text>
+
+  <rect x="126" y="536" width="146" height="62" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <rect x="136" y="546" width="22" height="12" rx="3" fill="#0072C6"/>
+  <text x="147" y="555" text-anchor="middle" font-size="7.5" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="199" y="566" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0E6E63">Page server</text>
+  <text x="199" y="583" text-anchor="middle" font-size="8.5" fill="#555555">redo · serve pages</text>
+  <text x="300" y="574" text-anchor="middle" font-size="20" font-weight="700" fill="#008575">· · ·</text>
+  <rect x="328" y="536" width="146" height="62" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <rect x="338" y="546" width="22" height="12" rx="3" fill="#0072C6"/>
+  <text x="349" y="555" text-anchor="middle" font-size="7.5" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="401" y="566" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0E6E63">Page server</text>
+  <text x="401" y="583" text-anchor="middle" font-size="8.5" fill="#555555">redo · serve pages</text>
+
+  <rect x="770" y="478" width="420" height="142" rx="9" fill="none" stroke="#008575" stroke-width="1.7" stroke-dasharray="5 4"/>
+  <text x="786" y="501" font-size="12" font-weight="700" fill="#0E6E63">Geo-secondary page servers</text>
+  <text x="786" y="518" font-size="9" fill="#6B7280">a separate copy of every data file</text>
+
+  <rect x="806" y="536" width="146" height="62" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <rect x="816" y="546" width="22" height="12" rx="3" fill="#0072C6"/>
+  <text x="827" y="555" text-anchor="middle" font-size="7.5" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="879" y="566" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0E6E63">Page server</text>
+  <text x="879" y="583" text-anchor="middle" font-size="8.5" fill="#555555">redo · serve pages</text>
+  <text x="980" y="574" text-anchor="middle" font-size="20" font-weight="700" fill="#008575">· · ·</text>
+  <rect x="1008" y="536" width="146" height="62" rx="7" fill="#FFFFFF" stroke="#008575" stroke-width="2"/>
+  <rect x="1018" y="546" width="22" height="12" rx="3" fill="#0072C6"/>
+  <text x="1029" y="555" text-anchor="middle" font-size="7.5" font-weight="700" fill="#FFFFFF">SQL</text>
+  <text x="1081" y="566" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0E6E63">Page server</text>
+  <text x="1081" y="583" text-anchor="middle" font-size="8.5" fill="#555555">redo · serve pages</text>
+
+  <!-- local log fan-out to each page-server tier -->
+  <path d="M300,414 L300,478" fill="none" stroke="#C0198C" stroke-width="2.3" marker-end="url(#mLogDown)"/>
+  <text x="310" y="452" font-size="9" fill="#C0198C">log for redo</text>
+  <path d="M980,414 L980,478" fill="none" stroke="#C0198C" stroke-width="2.3" marker-end="url(#mLogDown)"/>
+  <text x="990" y="452" font-size="9" fill="#C0198C">log for redo</text>
+
+  <!-- promotion changes roles; replication direction is re-established -->
+  <path d="M790,646 L490,646" fill="none" stroke="#4B5563" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#mPromoteLeft)"/>
+  <text x="640" y="641" text-anchor="middle" font-size="9.5" font-weight="600" fill="#4B5563">geo-failover promotes the secondary and reverses the roles</text>
+</svg>

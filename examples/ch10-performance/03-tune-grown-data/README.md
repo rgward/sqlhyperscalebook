@@ -2,8 +2,13 @@
 
 **Owning skill:** `tune-wardgeneral-data`
 
-Prompt: **Run Chapter 10 Demo 3: demonstrate JSON indexing and memory grant
-feedback on Ward General.**
+Book prompts — each runs one sequence:
+
+- **Run the Chapter 10 JSON index demo**
+- **Run the Chapter 10 memory grant feedback demo.**
+
+To run both: **Run Chapter 10 Demo 3: demonstrate JSON indexing and memory
+grant feedback on Ward General.**
 
 Demo 3 contains two self-contained examples that do not depend on Demo 2 data
 growth:
@@ -15,8 +20,13 @@ growth:
   eight executions of the same cached Sort over `clinical.ShiftReportArchive`,
   with Query Store attribution for every feedback feature that intervenes.
 
-Observation tuning remains deferred. It will use measured plans, duration,
-I/O, and storage rather than accepting an index recommendation blindly.
+A third example is a repository supplement that isn't in the book:
+
+- [`observation-index/`](observation-index/) evaluates the `ValueNumeric`
+  missing-index recommendation from Chapter 7's performance investigation on
+  `clinical.Observation`: read benefit, write cost (measured in a rolled-back
+  transaction), storage, and build time. It drops the index when it finishes.
+  Ask: **Evaluate the Chapter 7 ValueNumeric index.**
 
 When checked on September 11, 2026, the `CREATE JSON INDEX` reference labeled
 the feature preview and listed SQL Server 2025. The syntax has been
@@ -41,23 +51,32 @@ indexed actual plan, writes `plan-summary.csv`, and always runs cleanup.
 Generated evidence is written under
 `json-index/results/runs/<UTC timestamp>/`.
 
-Expected console output resembles:
+Expected console output resembles (your timings will differ):
 
 ```text
-Before index: Operator=Clustered Index Scan; JsonIndexAccess=False; IndexKind=Clustered; Index=[PK_LabResultArchive]; ActualRows=5000005
-After index: Operator=Index Seek; JsonIndexAccess=True; IndexKind=Json; Index=[json_index_search_optimization_nci]; ActualRows=5
+Before index: Operator=Clustered Index Scan; JsonIndexAccess=False; IndexKind=Clustered; Index=[PK_LabResultArchive]; ActualRows=5000005; LogicalReads=162,050; CpuMs=…; ElapsedMs=…
+After index (first run): Operator=Index Seek; JsonIndexAccess=True; IndexKind=Json; Index=[json_index_search_optimization_nci]; ActualRows=5; LogicalReads=…; CpuMs=…; ElapsedMs=…
+After index (warm): Operator=Index Seek; JsonIndexAccess=True; IndexKind=Json; Index=[json_index_search_optimization_nci]; ActualRows=5; LogicalReads=24; CpuMs=0; ElapsedMs=…
 ```
+
+`04-after.sql` runs the indexed query twice. The **first run** includes compiling
+a plan against the new index; the **warm** run is the one the book compares with
+the scan ("24 total reads, under 1 ms warm execution"). Logical reads are summed
+across every operator in the actual plan, and CPU and elapsed time come from the
+plan's `QueryTimeStats`. Timings vary with your machine, network, and service
+size; the reads and the access path are the stable comparison.
 
 The run directory should contain:
 
 | File | Evidence |
 | --- | --- |
 | `before-index.sqlplan` | Actual baseline plan with the clustered index scan. |
-| `after-index.sqlplan` | Actual indexed plan with the internal JSON index seek. |
-| `plan-summary.csv` | Extracted operator, JSON-index, index-kind, and row-count attributes. |
+| `after-index-first-run.sqlplan` | Actual indexed plan from the first run after the build (includes compilation). |
+| `after-index.sqlplan` | Actual indexed plan from the warm run, with the internal JSON index seek. |
+| `plan-summary.csv` | Operator, JSON-index, index-kind, row-count, logical-read, CPU, and elapsed-time evidence for all three runs. |
 | `before-output.txt` | Baseline rows, I/O, timing, and actual-plan XML. |
 | `index-build-output.txt` | Offline JSON-index build and catalog confirmation. |
-| `after-output.txt` | Indexed rows, I/O, timing, and actual-plan XML. |
+| `after-output.txt` | Both indexed runs' rows, I/O, timing, and actual-plan XML. |
 
 ### Open the JSON plans in SSMS
 
@@ -82,8 +101,8 @@ The underlying scripts remain individually runnable:
 2. `json-index/02-before.sql` — capture the baseline plan, reads, and duration.
 3. `json-index/03-create-index.sql` — deliberately perform the offline index
   build with array-search optimization.
-4. `json-index/04-after.sql` — repeat the identical predicate and compare
-  evidence.
+4. `json-index/04-after.sql` — repeat the identical predicate twice (the first
+  run compiles; the second is the warm run) and compare evidence.
 5. `json-index/05-cleanup.sql` — drop only the JSON index and archive table
   created by this example.
 
@@ -154,7 +173,11 @@ Execution 2: SortWarning=False; SpillLevel=none; Grant=993.34 MB; Used=392.55 MB
 ```
 
 The exact grants and timings vary with service objective and current load. The
-required transition is:
+summary lines also start with each execution's `Elapsed` and `CPU` milliseconds
+from the actual plan's `QueryTimeStats`. After the two lines, the runner prints
+the percent change from execution 1 to execution 2 (the book reports about 40%
+faster) and the `sys.query_store_plan_feedback` feature and state, which should
+show memory grant feedback as `FEEDBACK_VALID`. The required transition is:
 
 - execution 1 has a Sort warning and `SpillToTempDb`;
 - execution 2 has no Sort warning;
@@ -168,7 +191,8 @@ The run directory should contain:
 | --- | --- |
 | `execution-1.sqlplan` | Actual plan with the Sort spill warning. |
 | `execution-2.sqlplan` | Actual plan after MGF adjusts the grant. |
-| `plan-summary.csv` | Extracted warning, spill, grant, feedback, and row-count attributes. |
+| `plan-summary.csv` | Extracted warning, spill, grant, feedback, row-count, elapsed, and CPU attributes. |
+| `query-store-feedback.csv` | Feature and state of each `sys.query_store_plan_feedback` row, read before cleanup. |
 | `run-output.txt` | Eight-execution DMV results and Query Store feedback records. |
 
 ### Open the captured plans in SSMS
@@ -241,6 +265,12 @@ overhead, execution 2 was 41% faster.
 Memory grant feedback is an Azure SQL Database IQP feature, not a
 Hyperscale-exclusive feature. This example runs on the Ward General Hyperscale
 database so the chapter tunes the same system throughout.
+
+## When you finish Chapter 10
+
+This is the last demo. If `wardgeneral` is still at `HS_Gen5_40` from Demo 1,
+it is billing at that size (primary and HA replica) until you scale it back —
+see [Cost and cleanup](../README.md#cost-and-cleanup--scale-back-when-you-finish).
 
 ## Sources
 

@@ -1,5 +1,8 @@
 # Chapter 4 — Your First App
 
+> **Figures:** this chapter's book figures are in [`figures/ch04-first-app/`](../../figures/ch04-first-app/),
+> listed with their captions in the [root README](../../README.md#chapter-4).
+
 Build a real application on the database you provisioned in Chapter 2. **Ward
 General Hospital** is a bedside chart: a unit board of occupied beds, a patient
 chart assembled from one round trip, and an in-engine `REGEXP_*` note-signal
@@ -41,7 +44,7 @@ next section names what each one wants when you get to it.
 |---|---|
 | **.NET 10 SDK** or later | All three projects target `net10.0`. An older SDK fails with `NETSDK1045`, which reads like a project error rather than a missing install. Check with `dotnet --list-sdks`. |
 | **PowerShell 7** | Every script here opens with `#requires -Version 7.0`. Windows PowerShell 5.1 will not run them. |
-| A trusted **HTTPS developer certificate** | `dotnet dev-certs https --trust`. Without it the browser rejects the certificate and drops the Blazor circuit, which looks like an app bug. |
+| A trusted **HTTPS developer certificate** | `dotnet dev-certs https --trust`. Without it the browser rejects the certificate and drops the Blazor circuit, which looks like an app bug. When you're finished with the book, `dotnet dev-certs https --clean` removes the HTTPS development certificates from your certificate store. Other local .NET projects use the same certificate, so run `--trust` again if you need it later. |
 
 Nothing in the build touches Azure. You can compile the solution on a machine
 with no sign-in and no database.
@@ -54,8 +57,9 @@ with no sign-in and no database.
 | An identity that can reach the database | The app connects as **you**, not as a service account. Chapter 2 makes you the server's Entra admin, which is enough. |
 | **`wardgeneral` with the Chapter 2 schema *and* its seed data** | Schema without seed gives you a working app with empty screens — a confusing place to land. |
 | A **firewall rule** for this client's IP on the logical server | Otherwise the first data load times out. |
-| Ports **7170** and **5170** free | Kestrel binds both. `shutdown.ps1` frees them. |
+| Ports **7170** and **5170** free | Kestrel binds both. `shutdown.ps1` frees them. To use other ports, see [Using different ports](#using-different-ports). |
 | A real browser | Not the VS Code Simple Browser — see the note under *Running it*. |
+| The **Go-based `sqlcmd`** (recommended) | `preflight-run.ps1` uses it to prove the database answers and the seed ran. Without it that check is skipped with a warning. Install with `winget install --id Microsoft.Sqlcmd` (Windows) or `brew install sqlcmd` (macOS). |
 
 You do not have to check these by hand. `build.ps1` runs `preflight-build.ps1`
 and `run.ps1` runs `preflight-run.ps1`, which verify all of it — including
@@ -70,13 +74,13 @@ Azure CLI all run on macOS and Linux, and the app itself — Blazor Server over
 platform dependency.
 
 Three places in the scripts genuinely differ by operating system, and each one
-branches:
+branches (the third uses the same tool everywhere):
 
 | What | Windows | macOS and Linux |
 |---|---|---|
 | Opening your browser (`run.ps1`) | `Start-Process` | `open` / `xdg-open` |
 | Finding which process holds a port (`shutdown.ps1`) | `Get-NetTCPConnection` | `lsof` |
-| Loading the SQL client for the pre-flight check (`preflight-run.ps1`) | the `win` runtime, with managed networking forced on | the `unix` runtime |
+| Checking the database answers (`preflight-run.ps1`) | the Go-based `sqlcmd` | the Go-based `sqlcmd` |
 
 **These were written for all three platforms but tested only on Windows.** If
 you are on a Mac and something misbehaves, that is where to look first. The rest
@@ -106,25 +110,26 @@ and which chapter gets you there.
 | **Chat icon** — the clinical assistant dock | `Features:AiAgent` | Chapter 6 | The Chapter 6 app evolution, its shift-handoff SQL, and its MCP endpoint over the primary — see [`examples/ch06-agentic-ai/`](../ch06-agentic-ai/) |
 | Row-level filtering behind the **"Viewing as"** selector | `RowLevelSecurity:Enabled` | Chapter 8 | The security predicate published with Chapter 8 |
 
-Row-level security is the one that looks like nothing is gated: the selector is
-live in Chapter 4, it just doesn't filter. Chapter 8's payoff *is* the same
-selector suddenly filtering.
+Row-level security is the one that looks like nothing is gated: in Chapter 4
+every user sees every patient, and the **"Viewing as"** selector is hidden. When
+Chapter 8 turns on `RowLevelSecurity`, the selector appears and the engine starts
+filtering by the clinician you pick.
 
 Chapter 4 features are **not** flags. The base chart — including the `REGEXP_*`
 card — is simply part of the app.
 
-The Research page reads the **`wardgeneral-research` named replica**, which
-already exists: [Chapter 2](../ch02-getting-started/README.md) deploys it with
-`add-replicas.ps1`, and Chapter 3's `06-replicas.sql` surfaces it. Only the
-Chapter 5 proc is missing.
+The Research page reads the **`wardgeneral-research` named replica**. The
+optional `add-replicas.ps1` step in [Chapter 2](../ch02-getting-started/README.md)
+creates it (run it now if you skipped it), and Chapter 3's `06-replicas.sql`
+surfaces it. Only the Chapter 5 proc is missing.
 
 ## Files in this folder
 
 | File | What it does |
 |---|---|
 | `WardGeneral.slnx` | The solution. Three projects, all under `src/`. |
-| `CES-imaging-order-application.md` | A design-and-build guide for extending the Ward General app so approved imaging orders flow from `clinical.ImagingOrder` through Azure SQL change event streaming, Event Hubs, and an Azure Function adapter. |
-| `APP-SERVICE.md` | Moves `WardGeneral.Web`, `WardGeneral.Data`, and `WardGeneral.Agent` to one Azure App Service web app, using managed identity and either the public SQL endpoint or Private Link. |
+| `CES-imaging-order-application.md` | **Conceptual — not tested.** A design-and-build guide for extending the Ward General app so approved imaging orders flow from `clinical.ImagingOrder` through Azure SQL change event streaming, Event Hubs, and an Azure Function adapter. Referenced in Chapter 11. Following it creates billable Azure resources (Event Hubs, Functions). |
+| `APP-SERVICE.md` | **Conceptual — not tested.** Moves `WardGeneral.Web`, `WardGeneral.Data`, and `WardGeneral.Agent` to one Azure App Service web app, using managed identity and either the public SQL endpoint or Private Link. Referenced in Chapter 11. Following it creates billable Azure resources (App Service). |
 | `build.ps1` | Restore + build. `-Clean` for a from-scratch build (stop the app first — see [Rebuilding from scratch](#rebuilding-from-scratch)), `-Configuration Release` to switch config. Runs `preflight-build.ps1` first. |
 | `run.ps1` | Start the app and open your real browser. `-Server` / `-Database` override configuration for this run. |
 | `restart.ps1` | Stop, then start. **This is how you flip a feature flag** — `-Enable` takes the complete list of flags to force on. |
@@ -139,8 +144,14 @@ Chapter 5 proc is missing.
 | Project | What it is |
 |---|---|
 | `src/WardGeneral.Web` | The Blazor Web App (Interactive Server). Pages, layout, feature flags. |
-| `src/WardGeneral.Data` | Class library. Raw ADO.NET over `Microsoft.Data.SqlClient`, one method per stored procedure. No ORM. |
+| `src/WardGeneral.Data` | Class library. Raw ADO.NET over `Microsoft.Data.SqlClient`, one method per stored procedure. No ORM (object-relational mapper, such as Entity Framework). |
 | `src/WardGeneral.Agent` | The read-only assistant shell Chapter 6 evolves into the approval-gated agentic workflow. Project-referenced by `Web`; its UI stays locked until the `AiAgent` flag is on. |
+
+> **Book note:** Figure 4-5 shows `WardGeneral.Data` and `WardGeneral.Web` as
+> they were when the screenshot was taken. The folder now also has
+> `src/WardGeneral.Agent` and more root-level files, such as `load-env.ps1`,
+> `ch04.env.template`, and `start-demo.ps1`, that later chapters rely on. The
+> table above is the current list.
 
 `WardGeneral.Web` is the presentation layer and nothing more. It is an ASP.NET
 Core Blazor application in **Interactive Server** render mode, so every component
@@ -191,11 +202,32 @@ ask mode will not load one.
    cloned, reload the window — a newly added skill folder is not picked up until
    you do.
 3. **Open Copilot Chat and switch to agent mode.**
-4. **Ask for the build:**
+4. **Ask for the build** — this is the book's prompt; put in your own server:
 
-   > Build the Ward General app.
+   > Build and run the Ward General Hospital app against my Hyperscale
+   > database. My logical server is `<your-server>`.database.windows.net,
+   > database wardgeneral.
 
-   Copilot loads the `wardgeneral-app` skill and runs the build for you.
+   Copilot loads the `wardgeneral-app` skill, writes your server into `ch04.env`
+   (see [Configuring the connection](#configuring-the-connection)), runs
+   `build.ps1`, and then starts the app, because the prompt asks for both.
+   If your IP isn't yet allowed through the server firewall, Copilot asks in
+   chat before adding a rule. *"Build the Ward General app"* on its own just
+   builds.
+
+   The book follows the build with a second prompt:
+
+   > Run the Ward General Hospital app. My logical server is
+   > `<your-server>`.database.windows.net, database wardgeneral.
+
+   Use it whenever you want to start the app again later. If the app is
+   already running from the first prompt, `run.ps1` says so and just opens
+   the browser; it doesn't start a second copy.
+
+   **Where the output appears.** Copilot shows the build output in the chat.
+   The running app lives in a terminal Copilot opens; look for it in the
+   **Terminal** panel. If you run the scripts yourself, everything appears in
+   your own terminal.
 
 Or skip steps 3 and 4 and run it yourself:
 
@@ -240,6 +272,21 @@ If `Server` is still blank the app **fails at startup** and names all these
 places. That is deliberate: a silent fallback to `localhost` is a worse first
 five minutes than an explicit error.
 
+If you prefer the JSON file, create
+`src/WardGeneral.Web/appsettings.Development.json` beside `appsettings.json`
+(it's git-ignored):
+
+```json
+{
+  "WardGeneral": {
+    "Server": "<your-sql-server>.database.windows.net",
+    "Database": "wardgeneral"
+  }
+}
+```
+
+Chapter 6 adds an `Agent` section to the same file — see its README.
+
 ### The easy way: `ch04.env`
 
 Copy the template, fill in two values, and every script in this folder picks
@@ -256,6 +303,11 @@ WardGeneral__Database=wardgeneral
 
 Or run `./load-env.ps1` once with no arguments — if `ch04.env` is missing it
 makes it from the template and tells you to fill it in.
+
+The template also has an optional `RG=` line. Leave it as a placeholder if you
+kept Chapter 2's default resource group, `rg-collierhealth`. If you used a
+different group, fill it in: the Azure control-plane scripts in Chapters 7–10
+read the server, database, and resource group from this same file.
 
 `ch04.env` is **git-ignored**. Your server name never reaches a commit, and a
 `git pull` never collides with your edits. `ch04.env.template`, which holds
@@ -323,6 +375,17 @@ follow [the App Service path](APP-SERVICE.md).
 > Do **not** use the VS Code Simple Browser — it rejects the dev certificate and
 > drops the Blazor circuit. `run.ps1` launches your real browser.
 
+### Using different ports
+
+The scripts use fixed ports, 7170 (HTTPS) and 5170 (HTTP). If those are taken,
+pass your own to `run.ps1`, `restart.ps1`, or `start-demo.ps1`, and stop with the
+same ports:
+
+```powershell
+./run.ps1 -HttpsUrl https://localhost:7443 -HttpUrl http://localhost:5443
+./shutdown.ps1 -Ports 7443,5443
+```
+
 To stop:
 
 ```powershell
@@ -363,12 +426,14 @@ Chapter 5 AI objects and the Chapter 2 schema have their own reset paths.
 ## Flipping a feature flag (later chapters)
 
 ```powershell
-./restart.ps1 -Enable AiAssistance              # Ch 5 · AI card + Research
-./restart.ps1 -Enable AiAgent                   # Ch 6 · chat icon (needs DAB)
-./restart.ps1 -Enable RowLevelSecurity          # Ch 8 · the selector starts filtering
-./restart.ps1 -Enable AiAssistance,AiAgent      # more than one
-./restart.ps1                                   # back to the shipped defaults
+./restart.ps1 -Enable AiAssistance                           # Ch 5 · AI card + Research
+./restart.ps1 -Enable AiAssistance,AiAgent                   # Ch 6 as the book runs it · + chat icon (needs DAB)
+./restart.ps1 -Enable AiAssistance,AiAgent,RowLevelSecurity  # Ch 8 as the book runs it · + "Viewing as" filtering
+./restart.ps1 -Enable AiAgent                                # any single flag on its own also works
+./restart.ps1                                                # back to the shipped defaults
 ```
+
+Each chapter keeps the earlier chapters' features on, so name them all.
 
 Three things worth knowing:
 
@@ -384,3 +449,19 @@ Three things worth knowing:
 
 No rebuild is involved. `run.ps1` uses `dotnet run`, so the app reads
 `src/WardGeneral.Web/appsettings.json` from the project directory directly.
+
+## Links from the book
+
+Every web link printed in Chapter 4, in the order it appears, so you can click
+instead of typing it. Cross-references to other chapters and links to this
+repository are left out.
+
+- Blazor — <https://aka.ms/blazor>
+- SQL drivers and providers — <https://aka.ms/sqldrivers>
+- Agent skills in VS Code — <https://code.visualstudio.com/docs/agent-customization/agent-skills>
+- Agent Skills — <https://agentskills.io/home>
+- Awesome Copilot — <https://github.com/github/awesome-copilot>
+- Visual Studio Code Marketplace — <https://marketplace.visualstudio.com>
+- MSSQL extension and Copilot in VS Code — <https://aka.ms/mssqlvscode>
+- JSON in SQL — <https://aka.ms/jsonsql>
+- Regular expressions in SQL — <https://aka.ms/regexsql>

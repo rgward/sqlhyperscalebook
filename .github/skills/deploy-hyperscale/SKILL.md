@@ -6,14 +6,15 @@ description: >-
   decision at a time on the create-time choices (region, globally-unique
   server name, compute size, zone redundancy + HA replica, backup-storage
   redundancy, collation, admin auth), then provisions the database with the
-  PowerShell + az CLI script, separately obtains approval to add the Chapter 2
-  replica topology (a second HA replica and the wardgeneral-research named
-  replica), connects and proves it is SQL Server, builds the through-line
+  PowerShell + az CLI script, separately offers the optional
+  wardgeneral-research named replica, connects and proves it is SQL Server,
+  builds the through-line
   schema, and seeds synthetic data. USE WHEN the reader says any
-  of: "deploy / create / provision / set up / spin up / stand up my (or a)
+  of: "I'd like to deploy an Azure SQL Hyperscale database" (the book's
+  prompt), "deploy / create / provision / set up / spin up / stand up my (or a)
   Hyperscale database", "get started with Azure SQL Hyperscale", "build the
   Ward General database", "deploy the Chapter 2 database", or "walk me through
-  deploying Hyperscale". Scope is the Chapter 2 deploy + prescribed replicas +
+  deploying Hyperscale". Scope is the Chapter 2 deploy + optional named replica +
   connect + schema + seed workflow ONLY. Do NOT use for scaling compute,
   ad hoc replica changes outside that workflow, geo-replication, point-in-time
   restore, security hardening (Entra-only, CMK, auditing), or teardown / cleanup
@@ -98,6 +99,16 @@ Rules for the agent:
   interview only gathers values.
 - The reader's **password is entered in the terminal, never in chat** and never
   written to a file.
+- **Prompts are answered in chat, where the reader can't send an empty
+  message.** Never ask them to "press Enter" to accept something. For a prompt
+  with a `[default …]`, tell them to reply **ok** (or "default") to accept it,
+  and treat that reply as the default. The only keypress in the terminal is the
+  Step 8 password, and Step 1's browser sign-in happens outside chat.
+- **This skill only deploys billable Hyperscale.** If the reader asks for the
+  free Azure SQL Database offer, don't run the interview or the script — point
+  them to "Using the free Azure SQL Database offer instead" in
+  `examples/ch02-getting-started/README.md` (they create it in the portal) and
+  stop.
 
 ## The deployment interview
 
@@ -133,9 +144,12 @@ Prompt: "Deploy into `<active-subscription>` — yes, or name a different one?"
 > one session, so every `$env:` value set along the way is in scope at deploy.
 
 ### Step 2 — Permissions (gate, no variable)
-Tell: creating a server + database needs **Contributor** or a SQL-specific role
-on the subscription/resource group. Confirm they have it; if not, tell them what
-to request.
+Tell: there are two supported paths (Chapter 2, "Permissions"):
+- **Contributor on the subscription** — the script can create the resource group.
+- **Least privilege** — an administrator creates the resource group first and
+  grants the reader **Contributor** or **SQL Server Contributor** on that group.
+  The script then reuses the group without modifying it.
+Ask which applies. If neither, tell them what to request; don't guess.
 
 ### Step 3 — Region  ⚠️ effectively permanent  → `LOC`
 Tell: region is **effectively permanent** (moving later means redeploying), so it
@@ -167,7 +181,10 @@ that, so a region with **no `HS_PRMS_*`** can't host the later scale-out.
 Prompt: "Which region?"
 
 ### Step 4 — Resource group  → `RG`
-Tell: a container for the resources; new or existing is fine.
+Tell: a container for the resources; new or existing is fine. An **existing**
+group is reused as-is (not re-tagged) — required on the least-privilege path from
+Step 2, where the reader can't create or modify the group. A missing group is
+created and needs subscription Contributor.
 Prompt: "Resource group name? [default `rg-collierhealth`]"
 
 ### Step 5 — Logical server name  ⚠️ FIXED AT CREATE  → `SRV`
@@ -208,9 +225,21 @@ same PowerShell session so the deploy inherits it.
 Requirements: 8+ chars; 3 of {upper, lower, number, symbol}; not the login name.
 
 ### Step 9 — Entra admin  → `ADMIN_TYPE`, `ADMIN_DISPLAY_NAME`, `ADMIN_OBJECT_ID`
-Tell: the Microsoft Entra principal that will also be a server admin.
-Prompt: "Entra admin — User, Group, or ServicePrincipal? Its display name? Its
-object id?"
+Tell: the Microsoft Entra principal that will also be a server admin. The book
+uses the reader's own signed-in account, which is also what lets the MSSQL
+extension, the app, and later chapters connect passwordless as them.
+
+Prompt: "Entra admin — **use your signed-in account** (recommended, as in the
+book), or name a group / service principal?"
+
+- **Signed-in account:** run
+  `az ad signed-in-user show --query "{id:id, upn:userPrincipalName}" -o json`,
+  show the result, and ask the reader to confirm. On confirmation set
+  `ADMIN_TYPE=User`, `ADMIN_OBJECT_ID=<id>`, `ADMIN_DISPLAY_NAME=<upn>`. If the
+  lookup fails (for example, `az` is signed in as a service principal), say so
+  and fall back to asking — never guess an identity.
+- **Group or service principal:** ask for the type (`Group` | `ServicePrincipal`),
+  its display name, and its object id.
 
 ### Step 10 — Allow Azure services firewall rule  → `ALLOW_AZURE_SERVICES`
 Tell: this `0.0.0.0` rule lets **other Azure services** (Foundry, MCP servers,
@@ -337,7 +366,8 @@ incident response**. Azure's Cloud Adoption Framework groups them into
 **functional / classification / accounting / ownership** categories, and most
 orgs enforce a minimal set with Azure Policy. Tags are changeable later, but set
 them now so the resources are governed from birth. The script applies the **same
-tag set to the resource group, logical server, and database**.
+tag set to the logical server and database**, and to the resource group only when
+it creates that group (an existing group is left untouched).
 Recommended minimal set (CAF-aligned) — offer these defaults; let the reader edit.
 This Ch 2 deploy is a **follow-along test database**, so tags state what it IS now
 (a sandbox with synthetic data). In the scale chapter it is **promoted** —
@@ -350,7 +380,7 @@ This Ch 2 deploy is a **follow-along test database**, so tags state what it IS n
 - `dataClassification` = `nonproduction` (the seed is synthetic / no PHI)
 - `costCenter` = the chargeback code (**no sensible default — ask if they want it**)
 Spaces aren't allowed in a tag passed on the command line — hyphenate values.
-Prompt: "Tags? Press Enter to accept the recommended set, or give
+Prompt: "Tags? Reply **ok** to accept the recommended set, or give
 `key=value` pairs (space-separated) to override."
 
 ## Step 21 — Confirm and deploy
@@ -377,37 +407,37 @@ script falls back to its own defaults for anything not set.)
   `highAvailabilityReplicaCount = 1`, `zoneRedundant = <chosen>`, and
   `requestedBackupStorageRedundancy = <chosen>`.
 
-### Complete the Chapter 2 replica topology — separate approval required
+### Offer the optional named replica — separate approval required
 
-After the primary provision is verified, explain that Chapter 2 has one more
-deployment step. `examples/ch02-getting-started/add-replicas.ps1`:
+After the primary provision is verified, offer one optional step.
+`examples/ch02-getting-started/add-replicas.ps1`:
 
-- increases the primary from one to **two HA replicas**;
-- creates the serverless `wardgeneral-research` named replica; and
+- creates the serverless `wardgeneral-research` named replica;
+- leaves the primary's HA replica count at **1** (unchanged); and
 - prints the resulting replica topology.
 
-State the cost before asking: the second HA replica adds another full primary
-compute meter, and the named replica is a separate serverless compute meter that
-bills continuously at its minimum when idle because Hyperscale serverless does
-not auto-pause. These replicas are required by the book's cumulative path:
-Chapter 3 inspects `wardgeneral-research`, and Chapter 5 first uses it.
+State the cost before asking: the named replica is a separate serverless compute
+meter that bills continuously at its minimum when idle, because named replicas
+don't auto-pause (Hyperscale serverless auto-pause is in preview and doesn't
+support named replicas). It is optional: Chapter 3 inspects
+`wardgeneral-research`, and Chapter 5's Research page first uses it. The reader
+can skip it now and run the script when they reach those chapters.
 
 Ask exactly one decision and **stop for the answer**:
 
-> Add the billable Chapter 2 replicas now — a second HA replica and the
-> `wardgeneral-research` named replica? [yes/no]
+> Add the optional, billable `wardgeneral-research` named replica now? [yes/no]
 
 - On **yes**, keep the same terminal and environment values from Steps 1–21,
   then run:
   ```powershell
   ./examples/ch02-getting-started/add-replicas.ps1
   ```
-  Require the script to finish successfully. Confirm that `wardgeneral` reports
-  two HA replicas and `wardgeneral-research` is `Online` with service objective
-  `HS_S_Gen5_8` before continuing.
-- On **no**, create nothing else. State that the base Hyperscale database is
-  usable, but Chapters 3 and 5 assume `wardgeneral-research` exists; stop the
-  cumulative Chapter 2 workflow until the reader returns and approves this step.
+  Require the script to finish successfully. Confirm that `wardgeneral` still
+  reports one HA replica and `wardgeneral-research` is `Online` with service
+  objective `HS_S_Gen5_8` before continuing.
+- On **no**, create nothing else and continue with the rest of Chapter 2. State
+  that the named-replica parts of Chapter 3 and Chapter 5's Research page need
+  `wardgeneral-research`, and that running `add-replicas.ps1` later adds it.
 
 **Control-plane proof (`examples/ch02-getting-started/verify-activity-log.ps1`).** For a
 third, independent check you *can* run for the reader (it's **read-only** — just an
@@ -478,9 +508,9 @@ SSMS / the client — the reader doesn't have to eyeball the numbers.
 
 ## Scope discipline
 
-This skill deploys and prepares the database, including the separately approved
-Chapter 2 replica topology — nothing more. It does **not** scale compute, make
-ad hoc HA or named-replica changes outside that prescribed step, create a
+This skill deploys and prepares the database, including the separately approved,
+optional named replica — nothing more. It does **not** scale compute, change
+the HA replica count, make other named-replica changes, create a
 geo-replica, run a point-in-time restore, or tear anything down; those are
 covered by later chapters. If the reader asks "why?" on any step, answer in one
 sentence and keep moving.
@@ -492,7 +522,7 @@ All under `examples/ch02-getting-started/`:
 | File | Role |
 |---|---|
 | `provision-hyperscale.ps1` | canonical CLI provision (Step 21) |
-| `add-replicas.ps1` | separately approved second HA replica + `wardgeneral-research` named replica |
+| `add-replicas.ps1` | separately approved, optional `wardgeneral-research` named replica |
 | `connect-and-verify.sql` | prove-it's-SQL-Server |
 | `01-schemas.sql` | §3 `CREATE SCHEMA clinical / ops` |
 | `02-tables.sql` | §3 16 tables + indexes + bedside invariant |

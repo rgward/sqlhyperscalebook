@@ -16,7 +16,7 @@ param(
     [DateTimeOffset] $StartUtc,
     [Parameter(Mandatory)]
     [DateTimeOffset] $EndUtc,
-    [string] $ResourceGroup = ($env:RG ?? 'rg-collierhealth'),
+    [string] $ResourceGroup,
     [string] $Server,
     [string] $Database,
     [string] $SqlCmd,
@@ -31,6 +31,7 @@ if ($EndUtc -le $StartUtc) { throw 'EndUtc must be later than StartUtc.' }
 
 $loadEnv = Join-Path $PSScriptRoot '..' '..' 'ch04-first-app' 'load-env.ps1'
 if (Test-Path $loadEnv) { & $loadEnv -Optional -Quiet }
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 if (-not $Server) { $Server = $env:WardGeneral__Server }
 if (-not $Database) { $Database = $env:WardGeneral__Database ?? 'wardgeneral' }
 if ([string]::IsNullOrWhiteSpace($Server) -or $Server -match '<[^>]*>') {

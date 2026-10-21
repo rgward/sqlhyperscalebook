@@ -206,7 +206,20 @@ GO
 DECLARE @BatchSize INT      = 1000,          -- rows committed per pass
         @Pause     CHAR(8)  = '00:00:05',    -- pacing between batches
         @Rows      INT      = 1,
-        @Total     INT      = 0;
+        @Total     INT      = 0,
+        @Lock      INT;
+
+/* One embedding run at a time. If a dropped connection left an earlier run   */
+/* still finishing on the server, a second run would embed the same notes and */
+/* hit PK_ClinicalNoteEmbeddings. The lock belongs to this session, so it is   */
+/* released when the loop ends or the session goes away.                       */
+EXEC @Lock = sys.sp_getapplock
+        @Resource    = N'WardGeneral-06-embeddings',
+        @LockMode    = N'Exclusive',
+        @LockOwner   = N'Session',
+        @LockTimeout = 0;
+IF @Lock < 0
+    THROW 51060, 'Another embedding run is still active, possibly the one whose connection dropped. Wait for it to finish (or end that session), then run 06 again.', 1;
 
 WHILE @Rows > 0
 BEGIN
@@ -229,6 +242,8 @@ BEGIN
         WAITFOR DELAY @Pause;
     END
 END
+
+EXEC sys.sp_releaseapplock @Resource = N'WardGeneral-06-embeddings', @LockOwner = N'Session';
 GO
 
 DECLARE @n INT = (SELECT COUNT(*) FROM clinical.ClinicalNoteEmbeddings);

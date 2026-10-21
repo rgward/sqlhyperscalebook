@@ -9,6 +9,8 @@
     that is still a cheap question to ask.
 
     It reads ch05.env, then probes each resource by name with `az ... show`.
+    That includes the Chapter 2 database (required) and the optional
+    wardgeneral-research named replica the Research page reads.
     Every call is a GET. This script creates nothing, changes nothing, deletes
     nothing, and needs no more permission than the ability to read the
     resources it names.
@@ -110,9 +112,50 @@ if ($srvOk) {
     Add-Row 'Server managed identity' $(if ($mi) { $mi } else { '(none yet)' }) ([bool]$mi) 'WILL BE CREATED'
 }
 
+# -- The Chapter 2 database and its optional named replica. Read-only: this
+# chapter creates neither. The database is required for everything here; the
+# named replica only for the Research page, and Chapter 2 makes it optional.
+$db      = $env:WardGeneral__Database
+$replica = 'wardgeneral-research'
+$dbOk      = $false
+$replicaOk = $false
+if ($srvOk) {
+    $dbOk      = [bool] (Get-AzValue @('sql', 'db', 'show', '-n', $db,      '-s', $srv, '-g', $rg, '--query', 'name', '-o', 'tsv'))
+    $replicaOk = [bool] (Get-AzValue @('sql', 'db', 'show', '-n', $replica, '-s', $srv, '-g', $rg, '--query', 'name', '-o', 'tsv'))
+}
+Add-Row 'Database' $db $dbOk 'MISSING - prerequisite'
+Add-Row 'Named replica' $replica $replicaOk 'MISSING - optional (Research page)'
+if ($srvOk -and -not $replicaOk) {
+    $notes.Add("The Research page reads the '$replica' named replica, which Chapter 2 makes optional. Create it with examples/ch02-getting-started/add-replicas.ps1 (billable, serverless) before using Research. The AI assistance card works without it.")
+}
+
 # -- The AI resources.
 $aiOk = [bool] (Get-AzValue @('cognitiveservices', 'account', 'show', '-n', $ai, '-g', $rg, '--query', 'name', '-o', 'tsv'))
-Add-Row 'Foundry account' $ai $aiOk 'WILL BE CREATED'
+$aiNameTaken = $false
+if (-not $aiOk) {
+    # The account becomes <name>.openai.azure.com, so the name must be free across
+    # all of Azure. Ask before the deploy finds out the hard way. The body goes
+    # through a file because az.cmd on Windows mangles inline JSON quotes.
+    $bodyFile = New-TemporaryFile
+    try {
+        @{ subdomainName = $ai; type = 'Microsoft.CognitiveServices/accounts' } | ConvertTo-Json |
+            Set-Content -LiteralPath $bodyFile -Encoding utf8NoBOM
+        $check = (& az rest --method post `
+            --url 'https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.CognitiveServices/checkDomainAvailability' `
+            --url-parameters api-version=2024-10-01 `
+            --body "@$bodyFile" -o json 2>$null | Out-String)
+        if ($LASTEXITCODE -eq 0 -and $check.Trim()) {
+            $availability = $check | ConvertFrom-Json
+            if ($availability.PSObject.Properties['isSubdomainAvailable'] -and -not $availability.isSubdomainAvailable) {
+                $aiNameTaken = $true
+                $reason = if ($availability.PSObject.Properties['reason'] -and $availability.reason) { " ($($availability.reason))" } else { '' }
+                $notes.Add("AI_RESOURCE '$ai' can't be used$reason. Foundry names are global across Azure, so choose another in ch05.env - for example '$srv-ai' plus a few letters or digits - and run this check again. If the account is yours in another resource group, set RG to that group instead.")
+            }
+        }
+    }
+    finally { Remove-Item -LiteralPath $bodyFile -ErrorAction SilentlyContinue }
+}
+Add-Row 'Foundry account' $ai $aiOk $(if ($aiNameTaken) { 'NAME NOT AVAILABLE' } else { 'WILL BE CREATED' })
 
 if ($aiOk) {
     $deps = Get-AzValue @('cognitiveservices', 'account', 'deployment', 'list', '-n', $ai, '-g', $rg, '--query', '[].name', '-o', 'tsv')
@@ -150,16 +193,37 @@ if (-not $NoGateway) {
 
 $rows | Format-Table -AutoSize
 
+# Say where anything new will land, so co-location is a visible decision.
+$willCreateAi = -not $aiOk
+$willCreateGateway = (-not $NoGateway) -and ((-not $apimOk) -or (-not $csOk))
+if ($srvOk -and ($willCreateAi -or $willCreateGateway)) {
+    $srvLoc  = Get-AzValue @('sql', 'server', 'show', '-n', $srv, '-g', $rg, '--query', 'location', '-o', 'tsv')
+    $aiLoc   = if ($aiOk) {
+        Get-AzValue @('cognitiveservices', 'account', 'show', '-n', $ai, '-g', $rg, '--query', 'location', '-o', 'tsv')
+    } elseif ([string]::IsNullOrWhiteSpace($env:AI_LOCATION)) { $srvLoc } else { $env:AI_LOCATION }
+    $gwLoc   = if ([string]::IsNullOrWhiteSpace($env:GATEWAY_LOCATION)) { $aiLoc } else { $env:GATEWAY_LOCATION }
+    $parts = @()
+    if ($willCreateAi)      { $parts += "Foundry in $aiLoc$(if ([string]::IsNullOrWhiteSpace($env:AI_LOCATION)) { ' (the SQL server''s region)' })" }
+    if ($willCreateGateway) { $parts += "gateway/Content Safety in $gwLoc" }
+    $notes.Add("New AI resources will be created in: $($parts -join '; '). To choose other regions, set AI_LOCATION / GATEWAY_LOCATION in ch05.env.")
+}
+
 foreach ($n in $notes) {
     Write-Host "note: $n" -ForegroundColor Yellow
     Write-Host ''
 }
 
-if (-not $rgOk -or -not $srvOk) {
-    Write-Host 'The resource group and the logical server belong to Chapter 2 and are' -ForegroundColor Red
-    Write-Host 'shared by every chapter. This chapter never creates them. If either is' -ForegroundColor Red
-    Write-Host 'missing, check RG and SRV for a typo before assuming they are gone --' -ForegroundColor Red
-    Write-Host 'SRV is the SHORT name, not the FQDN.' -ForegroundColor Red
+if (-not $rgOk -or -not $srvOk -or -not $dbOk) {
+    Write-Host 'The resource group, logical server, and database belong to Chapter 2 and' -ForegroundColor Red
+    Write-Host 'are shared by every chapter. This chapter never creates them. If one is' -ForegroundColor Red
+    Write-Host 'missing, check RG, SRV, and WardGeneral__Database for a typo before' -ForegroundColor Red
+    Write-Host 'assuming it is gone -- SRV is the SHORT name, not the FQDN.' -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+
+if ($aiNameTaken) {
+    Write-Host "Choose a different AI_RESOURCE in ch05.env before running deploy-ai.ps1 (see the note above)." -ForegroundColor Red
     Write-Host ''
     exit 1
 }

@@ -49,17 +49,21 @@ same database without changing that hardware configuration.
 ## Install sqlsim
 
 Download the Windows release from `https://aka.ms/sqlsimtools`, extract it to a
-local folder, and set `SQLSIM` to the full executable path. The repo is private
-while the book is being written; the release location will be public before the
-book ships.
+local folder, and set `SQLSIM` to the full executable path.
 
 ```powershell
 $env:SQLSIM = 'C:\tools\sqlsim\x64\sqlsim.exe'
 ```
 
-The setting is process-scoped in that example. Add it to the user environment
-if it should survive new PowerShell sessions. If `SQLSIM` is missing or invalid,
-`preflight.ps1` prompts for the full path and sets it for the current process.
+The setting is process-scoped in that example. Demo 2 runs in a new process and
+also needs it, so set it for your user once and open a new terminal:
+
+```powershell
+[Environment]::SetEnvironmentVariable('SQLSIM', 'C:\tools\sqlsim\x64\sqlsim.exe', 'User')
+```
+
+If `SQLSIM` is missing or invalid, `preflight.ps1` prompts for the full path and
+sets it for the current process.
 
 sqlsim also requires ODBC Driver 18 for SQL Server. Stage 1 uses an Azure SQL
 access token from the reader's existing `az login`; no database password is
@@ -96,10 +100,15 @@ timeout so a future bad phase stops instead of overrunning indefinitely.
 
 ## Run it
 
+The scripts read the server and database from `examples/ch04-first-app/ch04.env`.
+The resource group comes from `-ResourceGroup`, then `$env:RG`, then `RG=` in
+`ch04.env`, then the Chapter 2 default `rg-collierhealth` — so readers who kept
+the default pass nothing.
+
 Run the preflight by itself when preparing the environment:
 
 ```powershell
-./preflight.ps1 -ResourceGroup <resource-group>
+./preflight.ps1
 ```
 
 It verifies ODBC Driver 18, Azure CLI login, access-token acquisition, Azure
@@ -108,6 +117,23 @@ control-plane visibility, token-auth connectivity through the current firewall
 and the `HS_Gen5_8` starting state. It cannot prove permission to update the
 database without attempting a change; the first approved scale is the
 management-plane authorization check.
+
+### Starting from a serverless database
+
+Demo 1 measures **provisioned** compute at 8, 16, and 40 vCores. A Hyperscale
+serverless database (`HS_S_Gen5_*`) scales itself within its min/max range, so
+it can't show those fixed steps, and the preflight stops with an explanation.
+Chapter 2 deploys provisioned `HS_Gen5_8`; you'd typically have serverless only
+if you created the database yourself or are pointing at the Chapter 9 PITR
+test copy. To switch it to provisioned, preview and then approve:
+
+```powershell
+./scale-compute.ps1 -TargetServiceObjective HS_Gen5_8            # preview, changes nothing
+./scale-compute.ps1 -TargetServiceObjective HS_Gen5_8 -Approve   # switch to provisioned
+```
+
+Provisioned compute bills for every vCore every hour, busy or idle. See
+[Cost and cleanup](../README.md#cost-and-cleanup--scale-back-when-you-finish).
 
 ## Reset before a fresh progression
 
@@ -118,14 +144,14 @@ measurements. Retain the generated data when continuing into Demo 2.
 When deliberately repeating Demo 1 from a clean marker state, preview first:
 
 ```powershell
-./preflight.ps1 -ResourceGroup <resource-group> -ResetDemoData
+./preflight.ps1 -ResetDemoData
 ```
 
 The preview changes nothing. After reviewing the counts, approve the atomic
 delete explicitly:
 
 ```powershell
-./preflight.ps1 -ResourceGroup <resource-group> -ResetDemoData -ApproveCleanup
+./preflight.ps1 -ResetDemoData -ApproveCleanup
 ```
 
 The cleanup deletes **all** exact `CH10-SCALE` rows from all prior Demo 1 runs,
@@ -146,20 +172,20 @@ Preview the complete progression. This validates that the database starts at
 `HS_Gen5_8`, runs the same preflight automatically, and changes nothing:
 
 ```powershell
-./run-demo.ps1 -ResourceGroup <resource-group>
+./run-demo.ps1
 ```
 
 After reviewing both billable changes, authorize the displayed plan:
 
 ```powershell
-./run-demo.ps1 -ResourceGroup <resource-group> -ApproveScaling
+./run-demo.ps1 -ApproveScaling
 ```
 
 To reset the exact marker rows before the approved full progression, first run
 the cleanup preview above and obtain approval, then pass both cleanup switches:
 
 ```powershell
-./run-demo.ps1 -ResourceGroup <resource-group> -ResetDemoData -ApproveCleanup -ApproveScaling
+./run-demo.ps1 -ResetDemoData -ApproveCleanup -ApproveScaling
 ```
 
 The approved run performs:
@@ -196,6 +222,23 @@ workload, calculated from phase-specific Query Store execution-count deltas.
 `summary.json` also retains execution counts plus average CPU and duration for
 diagnosis.
 
+The book says the report captures throughput, latency, Query Store
+CPU/duration, resource pressure, waits, RBPEX, and network drift. The HTML
+report draws throughput, client latency, peak CPU, and a phase table with
+worker pressure, failures, and network drift. The rest of that evidence is in
+the same run folder:
+
+| Evidence | Where to find it |
+| --- | --- |
+| Query Store CPU and duration per procedure | `summary.json` → `ProcedureServerExecution` (`AverageCpuMs`, `AverageDurationMs`) |
+| Resource pressure (CPU, data I/O, log write, workers, sessions) | `summary.json` / `summary.csv` → `Peak*Percent` |
+| Waits (`PAGEIOLATCH_SH`, `WRITELOG`, `RBIO_RG_*`) | `summary.json` / `summary.csv` → `*WaitDeltaMs` |
+| RBPEX cache hit ratio | `server-<slo>-before.txt` and `server-<slo>-after.txt` (raw `measure.sql` output) |
+| Network drift | `network-<slo>-before.json`, `network-<slo>-after.json`, and the report's phase table |
+
+`measure.sql` reads `sys.dm_db_wait_stats`, the database-scoped equivalent of
+`sys.dm_os_wait_stats` in Azure SQL Database.
+
 Standalone preflight and workload runs use `results/preflight/` and
 `results/standalone/`. If any workload or scale fails, the script stops and
 preserves the partial run folder; it does not skip ahead or automatically scale
@@ -208,7 +251,7 @@ interval or one scale independently.
 vCores, preview a reset to the required starting SLO:
 
 ```powershell
-./scale-compute.ps1 -ResourceGroup <resource-group> -TargetServiceObjective HS_Gen5_8
+./scale-compute.ps1 -TargetServiceObjective HS_Gen5_8
 ```
 
 Only after approving that displayed billable change, rerun with `-Approve`.

@@ -5,9 +5,8 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)]
-    [string] $RestoredDatabase,
-    [string] $ResourceGroup = ($env:RG ?? 'rg-collierhealth'),
+    [string] $RestoredDatabase = 'wardgeneral-pitr-demo',
+    [string] $ResourceGroup,
     [string] $Server,
     [string] $Database,
     [switch] $Execute
@@ -19,6 +18,7 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $loadEnv = Join-Path $PSScriptRoot '..' '..' 'ch04-first-app' 'load-env.ps1'
 if (Test-Path $loadEnv) { & $loadEnv -Optional -Quiet }
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 if (-not $Server) { $Server = $env:WardGeneral__Server }
 if (-not $Database) { $Database = $env:WardGeneral__Database ?? 'wardgeneral' }
 if ([string]::IsNullOrWhiteSpace($Server) -or $Server -match '<[^>]*>') { throw 'No Ward General server is configured.' }

@@ -66,11 +66,13 @@
      <your-apim>     ->  your API Management service name
 
    DEPLOYED WITH -NoGateway?
-     You have no gateway to call, so make direct the default: change @UseGateway's
-     default below from 1 to 0. (The credential block is harmless either way —
-     it validates nothing at create time.) If you add the gateway later, put the
-     default back to 1 and re-run this script -- it is CREATE OR ALTER, so that
-     is the whole of it.
+     You have no gateway to call. Make two edits:
+       1. Replace <your-apim> with no-gateway (literally). That satisfies the
+          placeholder check below, and the gateway credential is then skipped.
+       2. Change @UseGateway's default below from 1 to 0, so calls go direct.
+     If you add the gateway later, replace no-gateway with your APIM name, put
+     the default back to 1, and re-run this script -- it is CREATE OR ALTER, so
+     that is the whole of it.
 
    All data created by these scripts is fully synthetic. No real PHI.
    ============================================================================ */
@@ -98,7 +100,7 @@ GO
 IF 'https://<your-foundry>.openai.azure.com/' LIKE '%[<]your-foundry[>]%'
    OR 'https://<your-apim>.azure-api.net/' LIKE '%[<]your-apim[>]%'
 BEGIN
-    RAISERROR('Replace <your-foundry> and <your-apim> throughout this file before running it. See the BEFORE YOU RUN block above. Nothing was changed.', 16, 1);
+    RAISERROR('Replace <your-foundry> and <your-apim> throughout this file before running it (deployed with -NoGateway? replace <your-apim> with no-gateway). See the BEFORE YOU RUN block above. Nothing was changed.', 16, 1);
     SET NOEXEC ON;
 END
 GO
@@ -108,8 +110,12 @@ GO
 /* an Entra token for the audience named in SECRET and sends it as a Bearer header  */
 /* — no key. Same pattern 06 uses for Foundry. The credential is bound BY NAME to   */
 /* the URL prefix of the call, so the gateway host needs its own credential even     */
-/* though the audience is identical. Skip this if you deployed with -NoGateway.      */
-IF NOT EXISTS (SELECT 1 FROM sys.database_scoped_credentials
+/* though the audience is identical. Skipped when <your-apim> was replaced with      */
+/* no-gateway (the -NoGateway path): the right-hand literal below is deliberately    */
+/* NOT a placeholder, so after that replacement both sides match.                    */
+IF 'https://<your-apim>.azure-api.net/' = 'https://no-gateway.azure-api.net/'
+    PRINT '  No gateway (-NoGateway path) — gateway credential skipped.';
+ELSE IF NOT EXISTS (SELECT 1 FROM sys.database_scoped_credentials
                WHERE name = 'https://<your-apim>.azure-api.net/')
 BEGIN
     CREATE DATABASE SCOPED CREDENTIAL [https://<your-apim>.azure-api.net/]

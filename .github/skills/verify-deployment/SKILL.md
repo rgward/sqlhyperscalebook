@@ -7,7 +7,8 @@ description: >-
   database, firewall rules, Entra admin, threat-detection policy) — as
   events-by-status, events-by-operation, a most-recent-events table, and an
   explicit failure flag. Read-only; creates and changes nothing. USE WHEN the
-  reader says any of: "verify my deployment", "check my deployment", "did my
+  reader says any of: "Verify my deployment by summarizing the Azure Activity
+  Log" (the book's prompt), "verify my deployment", "check my deployment", "did my
   deployment succeed / work", "summarize the Azure Activity Log", "check the
   activity log", "confirm the deploy worked", "verify the deployment via the
   activity log", or "show me the control-plane activity for my database". This

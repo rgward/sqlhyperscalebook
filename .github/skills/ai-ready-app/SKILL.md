@@ -12,7 +12,8 @@ description: >-
   Chapter 5 end-to-end path from *Azure SQL Hyperscale Unveiled*. USE WHEN the
   reader says any of: "prepare the application for AI", "prepare the app for
   AI", "make the app AI-ready", "get the Chapter 5 app running", "run the app
-  with AI", "I want the AI features working", "turn on AI assistance end to
+  with AI", "Tear down and rebuild all the Chapter 5 Azure AI resources but
+  leave the logical server and wardgeneral database alone", "I want the AI features working", "turn on AI assistance end to
   end", "deploy and
   run Chapter 5", "pre-flight the Chapter 5 AI resources", "which SQL scripts do
   I run for Chapter 5", "what do I replace in the Chapter 5 scripts", "verify my
@@ -77,6 +78,30 @@ logs what came back: that is the subject matter. Running it for them hides it.
 So: state the order, name the files, explain any of them on request, and stop.
 If the reader explicitly asks you to execute a script, that is their call — but
 never volunteer it, and never do it as part of the flow below.
+
+## Entry points — match the reader's request, start there
+
+The book gives readers separate prompts for separate moments. **Do not run the
+whole flow for each one.**
+
+| The reader says | Do | Stop after |
+|---|---|---|
+| *"prepare the application for AI"* (the book's first prompt) | Steps 0–3: `ch05.env` and `check-ai-env.ps1`, the deploy, the placeholders, the SQL hand-off | Handing them the SQL list. Do **not** start the app — they haven't run the SQL yet. |
+| *"run the app with AI"* (the book's second prompt) | Read-only checks, then Step 5 (below) | The app is running |
+| *"Tear down and rebuild all the Chapter 5 Azure AI resources…"* | The section of that name under **Tearing down** | The redeploy |
+
+**"run the app with AI" never deploys.** Its checks, in order:
+
+1. `./check-ai-env.ps1` (read-only). If any row says **WILL BE CREATED**, the
+   Azure side isn't ready: stop and tell the reader to start with *"prepare the
+   application for AI"*. Don't run `deploy-ai.ps1` from this entry point.
+2. Ask the reader to confirm they've run `06`→`09` and that
+   `verify-embeddings.sql` reports `MISSING=0` (Step 4). Don't run the SQL for
+   them. If they haven't, point them at Step 3 and stop — the app would show an
+   empty AI card.
+3. If the named replica row said **optional / missing**, mention that Research
+   won't work until they run Chapter 2's `add-replicas.ps1`, then continue.
+4. Step 5.
 
 ## Read this before you do anything else
 
@@ -204,11 +229,17 @@ That single command does everything Step 0 needs:
 1. `load-env.ps1` reads `ch05.env`. **If it does not exist, it is created from
    `ch05.env.template` and the run stops.** Tell the reader to open it and fill
    it in. That is the one thing you need from them, and it is a file to edit,
-   not five questions to answer.
+   not five questions to answer. Two values aren't obvious from Chapter 2, so
+   say what they are when you ask: `AI_RESOURCE` is a **new**, globally unique
+   name for the Foundry account (suggest their SQL server's short name plus
+   `-ai` and a few characters), and `PUBLISHER_EMAIL` is **their own email**,
+   which API Management requires as its publisher contact.
 2. Any value still empty or still carrying `<angle brackets>` is reported by
    name, and the run stops. A partly-filled file never reaches Azure.
 3. Every named resource is probed read-only and reported as **exists** or
    **WILL BE CREATED**, with a closing line saying how many would be created.
+   A Foundry name that's already taken anywhere in Azure is reported as
+   **NAME NOT AVAILABLE** and the check stops; have the reader pick another.
 
 **Read the WILL BE CREATED lines back to the reader before running the deploy.**
 That list is the whole point of the check. A resource they expected to already
@@ -220,12 +251,19 @@ catching it afterwards can mean a 30–45 minute APIM provision they did not wan
 including on someone else's environment, and it is the right first move when a
 reader reports that something is not working.
 
+It also checks the Chapter 2 `wardgeneral` database (missing = stop; nothing in
+Chapter 5 works) and the `wardgeneral-research` named replica. The replica is
+optional in Chapter 2, so a missing one is reported as optional, not a failure:
+tell the reader the Research page needs it and that
+`examples/ch02-getting-started/add-replicas.ps1` creates it (billable — get
+approval before running it). Don't block the rest of the chapter on it.
+
 The file also feeds the rest of the chapter, so nothing is asked for twice:
 
 | From `ch05.env` | Used by |
 |---|---|
 | `RG`, `SRV`, `AI_RESOURCE`, `PUBLISHER_EMAIL`, `SUBSCRIPTION_ID`, `CS_RESOURCE` | `deploy-ai.ps1` — it already reads these as its parameter defaults |
-| `AI_RESOURCE` | the `<your-foundry>` placeholder the reader edits into `06`, `08`, `10` (Step 2) |
+| `AI_RESOURCE` | the `<your-foundry>` placeholder the reader edits into `06`, `08` (Step 2) |
 | `APIM_NAME` | the `<your-apim>` placeholder, and `reset-ai-azure.ps1` |
 | `WardGeneral__Server`, `WardGeneral__Database` | the app itself, at the highest precedence it honours — so `run-ai-app.ps1` needs no `-Server` or `-Database` (Step 5) |
 
@@ -270,9 +308,10 @@ did not read the row, nothing downstream catches it for you.
 
 The gateway is technically optional: the AI assistance procedure works without it
 by calling the model deployment directly. If *they* raise skipping it, add
-`-NoGateway`, tell them to set `@UseGateway`'s default to `0` in `08` as that
-script instructs, and tell them the gateway can be added later by re-running
-`deploy-ai.ps1` without the switch, putting that default back to `1` and re-running
+`-NoGateway`, tell them to replace `<your-apim>` with `no-gateway` and set
+`@UseGateway`'s default to `0` in `08` as that script instructs, and tell them
+the gateway can be added later by re-running `deploy-ai.ps1` without the switch,
+replacing `no-gateway` with the APIM name, putting that default back to `1` and re-running
 `08` — it is `CREATE OR ALTER`, so nothing is lost. Offer that as an escape hatch
 when they ask for it, not as a decision you put back to them.
 
@@ -374,9 +413,17 @@ the reader also resets the database objects, hours of re-embedding.
 
 Every name the scripts default to is an environment-variable override —
 `SUBSCRIPTION_ID`, `RG`, `SRV` (the Hyperscale server), `AI_RESOURCE`,
-`AI_LOCATION`. Set the ones that differ in the **same** PowerShell session before
-running anything. `RG` and `SRV` are the same variables the Chapter 2 deploy
-used, so a session that still has them set is already correct.
+`AI_LOCATION`, `GATEWAY_LOCATION`. Set the ones that differ in the **same**
+PowerShell session before running anything. `RG` and `SRV` are the same
+variables the Chapter 2 deploy used, so a session that still has them set is
+already correct.
+
+The AI resources default to the **SQL server's region** (`AI_LOCATION` unset), and
+the gateway and Content Safety default to the Foundry region (`GATEWAY_LOCATION`
+unset). Before the deploy, tell the reader which regions will be used —
+`check-ai-env.ps1` prints them — so co-location is a decision they see, not a
+surprise. If the deploy reports a model isn't offered in that region, have them
+set `AI_LOCATION` in `ch05.env` and run it again.
 
 The Foundry account is created **`kind=OpenAI`** with a custom subdomain — the
 subdomain is what makes Entra token auth possible at all. Note that
@@ -419,18 +466,22 @@ resources, so the scripts cannot ship with working defaults.
 
 | Placeholder | Replace with | In |
 |---|---|---|
-| `<your-foundry>` | The Foundry resource name from Step 1 | `06`, `08`, `10` |
-| `<your-apim>` | The APIM service name from Step 1 | `08`, `10` |
+| `<your-foundry>` | The Foundry resource name from Step 1 | `06`, `08` |
+| `<your-apim>` | The APIM service name from Step 1 | `08` |
 
 Same `<your-foundry>` value in every file. Each file opens with a **BEFORE
 YOU RUN** block naming which placeholders it carries. If the reader named the
 embedding deployment something other than `text-embedding-3-large`, that goes in
-`06` too.
+`06` too. `10` and `11` have no placeholders. `reset-ai-objects.sql` (optional,
+destructive) carries both placeholders too — mention it only if they run it.
 
-**If they took `-NoGateway`:** `08` carries a clearly marked note telling them to
-change `@UseGateway`'s default from `1` to `0`. Point it out — without that edit
-the procedure calls an APIM instance that does not exist, and the failure is a
-timeout, not a clear error.
+**If they took `-NoGateway`:** they have no APIM name, so in `08` they replace
+`<your-apim>` with `no-gateway` (literally) — that passes `08`'s placeholder
+check and skips the gateway credential — and change `@UseGateway`'s default
+from `1` to `0`. Point out both. Without the first, `08` stops at its
+placeholder check and creates nothing; without the second, the procedure calls
+an APIM instance that does not exist, and the failure is a timeout, not a clear
+error.
 
 If they ask *why a placeholder and not a variable* — the credential's **name must
 exactly equal the endpoint URL**, because SQL matches an outbound URL against a
@@ -541,8 +592,12 @@ the policy, the backend, or the managed-identity role — not in SQL.
 ## Step 5 — Build and run the app with AI on
 
 ```powershell
-./run-ai-app.ps1 -Server <your-server>.database.windows.net -Database wardgeneral
+./run-ai-app.ps1
 ```
+
+It reads the server and database from `ch05.env` (the `WardGeneral__Server` /
+`WardGeneral__Database` lines). Pass `-Server` / `-Database` only if the reader
+names different ones.
 
 One command, and the order inside it is build-then-run: it calls
 `../ch04-first-app/build.ps1`, then `restart.ps1 -Enable AiAssistance`.
@@ -770,3 +825,28 @@ is not billed at rest, and keeping it means the 60,000 embeddings stay usable.
 The script never touches the resource group, the logical server or the
 `wardgeneral` database — the database is shared across every chapter. Leave the
 Foundry account alone unless they are finished with Chapter 6, which reuses it.
+
+### The book's prompt: "Tear down and rebuild all the Chapter 5 Azure AI resources but leave the logical server and wardgeneral database alone"
+
+This is the **Azure side only**. Do **not** run `reset-ai-objects.sql` for it —
+that discards every embedding (3–4 hours to regenerate) and the prompt says to
+leave the database alone. Run, in order, in `examples/ch05-ai-ready-sql/`:
+
+1. `./reset-ai-azure.ps1 -WhatIf` — show the reader exactly what will be deleted
+   and purged. Say plainly that Chapter 6 reuses the Foundry account.
+2. Stop and get explicit approval.
+3. `./reset-ai-azure.ps1 -Confirm:$false` — the script is
+   `ConfirmImpact='High'`, so without `-Confirm:$false` it waits on a terminal
+   prompt the agent can't see. Only after the approval in step 2.
+4. `./check-ai-env.ps1`, then `./deploy-ai.ps1` (Step 1 of this skill) with the
+   same `ch05.env`, so the resources come back under the **same names**.
+
+With the same Foundry name and the same `text-embedding-3-large` deployment, the
+SQL objects keep working: the external model and credentials point at the
+endpoint by name, the server identity's role is re-granted by the deploy, and
+the existing vectors stay valid. **Keep the same `AI_RESOURCE` name** for this
+prompt: `06` and `08` create their credentials and external model only if absent
+and leave existing ones alone, so a renamed Foundry account would leave the SQL
+objects pointing at the old endpoint. Changing the name is the full reset path
+(`reset-ai-objects.sql`, then `06`–`09`) — say so, and get approval, before
+taking it.

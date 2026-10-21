@@ -5,7 +5,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [string] $ResourceGroup = ($env:RG ?? 'rg-collierhealth'),
+    [string] $ResourceGroup,
     [string] $SourceServer,
     [string] $Database,
     [string] $TargetServer,
@@ -18,6 +18,7 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $loadEnv = Join-Path $PSScriptRoot '..' '..' 'ch04-first-app' 'load-env.ps1'
 & $loadEnv -Require @('WardGeneral__Server', 'WardGeneral__Database') -Quiet
+if (-not $ResourceGroup) { $ResourceGroup = $env:RG ?? 'rg-collierhealth' }
 if (-not $SourceServer) { $SourceServer = $env:WardGeneral__Server }
 if (-not $Database) { $Database = $env:WardGeneral__Database }
 $SourceServer = $SourceServer -replace '\.database\.windows\.net$', ''
@@ -47,7 +48,7 @@ $source = az sql db show `
     --resource-group $ResourceGroup `
     --server $SourceServer `
     --name $Database `
-    --query '{id:id,name:name,status:status,edition:edition}' `
+    --query '{id:id,name:name,status:status,edition:edition,location:location}' `
     --output json | ConvertFrom-Json
 $links = @(az sql db replica list-links `
     --resource-group $ResourceGroup `
@@ -61,8 +62,8 @@ $targetDatabases = @(az sql db list `
     --query '[].name' `
     --output tsv)
 
-if ($target.location -ne 'eastus2') {
-    throw "Refusing cleanup: target server is in '$($target.location)', not 'eastus2'."
+if ($target.location -eq $source.location) {
+    throw "Refusing cleanup: target server is in '$($target.location)', the source's own region, so it is not this example's geo-replica target."
 }
 $targetTags = @{}
 if ($target.tags) {

@@ -14,6 +14,8 @@ param(
     [ValidateRange(30, 600)]
     [int] $WorkloadSeconds = 300,
     [int] $SampleSeconds = 15,
+    # Full path to sqlsim.exe; defaults to $env:SQLSIM, then prompts like Demo 1's preflight.
+    [string] $SqlsimPath,
     [switch] $Execute
 )
 
@@ -41,12 +43,24 @@ $sqlcmd = @(
 if (-not $sqlcmd) {
     throw 'The new sqlcmd was not found. Install it with: winget install --id Microsoft.Sqlcmd'
 }
-$sqlsim = @(
-    $env:SQLSIM
-) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-if (-not $sqlsim) {
-    throw 'Set SQLSIM to the full path of sqlsim.exe from https://aka.ms/sqlsimtools.'
+$sqlsim = if ($SqlsimPath) { $SqlsimPath } else { $env:SQLSIM }
+if ([string]::IsNullOrWhiteSpace($sqlsim) -or -not (Test-Path -LiteralPath $sqlsim -PathType Leaf)) {
+    if (-not [string]::IsNullOrWhiteSpace($sqlsim)) {
+        Write-Warning "sqlsim path does not point to a file: $sqlsim"
+    }
+    # Demo 1's preflight sets SQLSIM only for its own process, so ask again here.
+    Write-Host ''
+    Write-Host 'Enter the same sqlsim.exe path you used for Demo 1 (download: https://aka.ms/sqlsimtools).' -ForegroundColor Yellow
+    $sqlsim = (Read-Host 'Enter the full path to sqlsim.exe').Trim().Trim('"')
+    if ([string]::IsNullOrWhiteSpace($sqlsim) -or -not (Test-Path -LiteralPath $sqlsim -PathType Leaf)) {
+        throw "sqlsim.exe was not found at '$sqlsim'. No Azure change was made."
+    }
 }
+if ([System.IO.Path]::GetFileName($sqlsim) -ine 'sqlsim.exe') {
+    throw "Expected a path ending in sqlsim.exe; received '$sqlsim'."
+}
+$sqlsim = (Resolve-Path -LiteralPath $sqlsim).Path
+$env:SQLSIM = $sqlsim
 
 $snapshotScript = Join-Path $PSScriptRoot 'capture-growth-io.sql'
 $sampleScript = Join-Path $PSScriptRoot 'sample-growth-io.sql'
@@ -108,6 +122,7 @@ Write-Host ("  Sample interval   {0} seconds" -f $SampleSeconds)
 if ($serviceObjective -ne 'HS_Gen5_40') {
     throw "Demo 2 requires HS_Gen5_40; the database reports $serviceObjective."
 }
+& (Join-Path $PSScriptRoot '..\check-geo-links.ps1') -Server $Server -Database $Database
 if (-not $Execute) {
     Write-Host ''
     Write-Host 'Preview only. This exercise runs one write-intensive interval and permanently appends its generated data.' -ForegroundColor Yellow

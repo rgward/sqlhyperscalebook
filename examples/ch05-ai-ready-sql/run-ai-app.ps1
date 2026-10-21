@@ -102,6 +102,14 @@ param(
 $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
 
+# ch05.env carries WardGeneral__Server / __Database for the app (see the
+# template), so load it when present. A value already in the shell wins, and an
+# explicit -Server/-Database still overrides both. No values are required here:
+# the app's own pre-flight reports a missing server with every way to fix it.
+if (Test-Path (Join-Path $here 'ch05.env')) {
+    & (Join-Path $here 'load-env.ps1') -Require @() -Quiet
+}
+
 # The one app, resolved relative to this folder so it works the same in this repo
 # and in the reader-facing companion repo -- publish-examples.ps1 mirrors both
 # chapters into the same layout, so this relative hop is stable on both sides.
