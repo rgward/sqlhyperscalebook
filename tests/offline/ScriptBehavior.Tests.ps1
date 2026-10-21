@@ -1,0 +1,242 @@
+#requires -Version 7.0
+# Offline tier - script behavior that earlier fixes depend on: configuration
+# loading, cross-platform paths, StrictMode edge cases, and read-only checks.
+
+BeforeAll {
+    Import-Module (Join-Path $PSScriptRoot '..' 'lib' 'BookTest.psm1') -Force
+
+    function Invoke-Book {
+        param(
+            [string] $Script,
+            [string] $Arguments = '',
+            [System.Collections.IDictionary] $Az = [ordered]@{},
+            [hashtable] $Environment = @{},
+            [string] $Prelude = '',
+            [object] $SqlCmd = $null
+        )
+        $fakeAz = New-RecordingAz -Responses $Az
+        $env = @{ RG = 'rg-collierhealth'; WardGeneral__Server = 'collierhealth-test.database.windows.net'; WardGeneral__Database = 'wardgeneral' }
+        foreach ($k in $fakeAz.Environment.Keys) { $env[$k] = $fakeAz.Environment[$k] }
+        if ($SqlCmd) { foreach ($k in $SqlCmd.Environment.Keys) { $env[$k] = $SqlCmd.Environment[$k] } }
+        foreach ($k in $Environment.Keys) { $env[$k] = $Environment[$k] }
+        $r = Invoke-IsolatedScript -Script $Script -Arguments $Arguments -Environment $env -Prelude $Prelude
+        $calls = if (Test-Path $fakeAz.LogPath) { @(Get-Content $fakeAz.LogPath) } else { @() }
+        $r | Add-Member -NotePropertyName AzCalls -NotePropertyValue $calls -PassThru
+    }
+}
+
+Describe 'load-env.ps1 (<Chapter>)' -Tag 'Offline' -ForEach @(
+    @{ Chapter = 'ch04'; Script = 'examples/ch04-first-app/load-env.ps1'; Keys = @('WardGeneral__Server', 'WardGeneral__Database') }
+    @{ Chapter = 'ch05'; Script = 'examples/ch05-ai-ready-sql/load-env.ps1'; Keys = @('RG', 'SRV', 'AI_RESOURCE') }
+) {
+    BeforeEach {
+        $scratch = New-TestScratch 'loadenv'
+        $envFile = Join-Path $scratch "$Chapter.env"
+        $require = "-Require @('$($Keys -join "','")')"
+        $filled = @{}; foreach ($k in $Keys) { $filled[$k] = "value-$k" }
+    }
+
+    It 'accepts exported variables when the file is missing, and copies nothing' {
+        $r = Invoke-IsolatedScript -Script $Script -Arguments "-Path '$envFile' $require -Quiet" -Environment $filled
+        $r.ExitCode | Should -Be 0 -Because $r.Text
+        Test-Path $envFile | Should -BeFalse
+    }
+
+    It 'creates the file from the template and stops when a value is <Case>' -ForEach @(
+        @{ Case = 'unset'; Value = $null }, @{ Case = 'a placeholder'; Value = '<your-value>' }
+    ) {
+        $partial = $filled.Clone(); $partial[$Keys[0]] = $Value
+        $r = Invoke-IsolatedScript -Script $Script -Arguments "-Path '$envFile' $require -Quiet" -Environment $partial
+        $r.ExitCode | Should -Not -Be 0
+        $r.Text | Should -Match "No $Chapter\.env yet"
+        Test-Path $envFile | Should -BeTrue
+    }
+
+    It 'lets an exported variable win over the file' {
+        ($Keys | ForEach-Object { "$_=from-file" }) | Set-Content $envFile
+        $probe = Join-Path $scratch 'probe.ps1'
+        "& '$(Get-BookPath $Script)' -Path '$envFile' $require -Quiet; `$env:$($Keys[0])" | Set-Content $probe
+        $r = Invoke-IsolatedScript -Script $probe -Environment @{ $Keys[0] = 'from-shell' }
+        $r.ExitCode | Should -Be 0 -Because $r.Text
+        @($r.Output | Where-Object { $_ })[-1] | Should -Be 'from-shell'
+    }
+}
+
+Describe 'run-availability.ps1 (Chapter 7)' -Tag 'Offline' {
+    BeforeAll {
+        $s = 'examples/ch07-observability/availability/run-availability.ps1'
+        $sqlcmd = New-FakeSqlCmd -Output "replica_role  synchronization_health`nPRIMARY       HEALTHY"
+        function New-Event([string] $Service, [string] $Region, [string] $Name) {
+            @{ name = $Name; properties = @{ eventType = 'ServiceIssue'; status = 'Resolved'; title = $Name; lastUpdateTime = '2026-01-01T00:00:00Z'
+                    impact = @(@{ impactedService = $Service; impactedRegions = @(@{ impactedRegion = $Region }) }) } }
+        }
+        $events = @{ value = @(
+                (New-Event 'Azure SQL Database' 'West US 3' 'match'),
+                (New-Event 'Azure SQL Database' 'East US' 'other-region'),
+                (New-Event 'Azure SQL Managed Instance' 'West US 3' 'other-service')
+            ) } | ConvertTo-Json -Depth 10 -Compress
+        $availability = '{"value":[{"name":{"value":"availability"},"timeseries":[{"data":[{"average":100,"minimum":100},{"average":99.5,"minimum":99}]}]}]}'
+        function Get-Rules([string] $Locations = '[{"name":"westus3","displayName":"West US 3"}]', [string] $Health = '{"properties":{"availabilityState":"Available","summary":"OK"}}') {
+            [ordered]@{
+                '^account list-locations' = $Locations
+                'metrics availability'    = $availability
+                'metrics connection_'     = '{}'
+                'metrics replication_lag' = ''
+                'availabilityStatuses'    = $Health
+                'ResourceHealth/events'   = $events
+            }
+        }
+    }
+
+    It 'runs with no LOCALAPPDATA or TEMP (macOS/Linux) and writes its evidence to the temp folder' {
+        $tmp = New-TestScratch 'tmp'
+        $r = Invoke-Book $s -Az (Get-Rules) -SqlCmd $sqlcmd -Environment @{ LOCALAPPDATA = $null; TEMP = $null; TMP = $tmp; TMPDIR = $tmp }
+        $r.ExitCode | Should -Be 0 -Because $r.Text
+        $r.Text | Should -Match 'PRIMARY\s+HEALTHY'
+        $evidence = Get-ChildItem $tmp -Directory -Filter 'wardgeneral-ch07-availability-*' | Select-Object -First 1
+        $evidence | Should -Not -BeNullOrEmpty
+        foreach ($f in 'azure-monitor-availability.json', 'resource-health.json', 'service-health.json') {
+            Test-Path (Join-Path $evidence.FullName $f) | Should -BeTrue
+        }
+    }
+
+    It 'tolerates metrics with no value array and a region with no display name' {
+        $out = New-TestScratch 'avail'
+        $r = Invoke-Book $s "-OutputDirectory '$out'" -Az (Get-Rules -Locations '[{"name":"westus3"}]') -SqlCmd $sqlcmd
+        $r.ExitCode | Should -Be 0 -Because $r.Text
+        $r.Text | Should -Match 'Region\s+: westus3\s+\(westus3\)'
+        $metrics = Get-Content (Join-Path $out 'azure-monitor-availability.json') -Raw | ConvertFrom-Json
+        @($metrics.Metrics).Count | Should -Be 1
+    }
+
+    It 'counts only Azure SQL Database events in the database region' {
+        $out = New-TestScratch 'avail'
+        $r = Invoke-Book $s "-OutputDirectory '$out'" -Az (Get-Rules) -SqlCmd $sqlcmd
+        $r.Text | Should -Match 'Service Health\s+: 1 Azure SQL Database event\(s\) in West US 3 .*\(3 subscription event\(s\) checked\)'
+        $health = Get-Content (Join-Path $out 'service-health.json') -Raw | ConvertFrom-Json
+        @($health.MatchingEvents).TrackingId | Should -Be 'match'
+    }
+
+    It 'reports unavailable Resource Health without failing' {
+        $out = New-TestScratch 'avail'
+        $r = Invoke-Book $s "-OutputDirectory '$out'" -Az (Get-Rules -Health 'EXIT:1|') -SqlCmd $sqlcmd
+        $r.ExitCode | Should -Be 0 -Because $r.Text
+        $r.Text | Should -Match 'Resource Health : unavailable'
+    }
+
+    It 'stops when the replica query fails' {
+        $r = Invoke-Book $s "-OutputDirectory '$(New-TestScratch 'avail')'" -Az (Get-Rules) -SqlCmd (New-FakeSqlCmd -ExitCode 1)
+        $r.ExitCode | Should -Not -Be 0
+        $r.Text | Should -Match 'sqlcmd(\.exe)?"? (exited with|ended with non-zero exit) code:? 1'
+        $r.Text | Should -Not -Match 'Azure Monitor availability evidence'
+    }
+
+    It 'makes only read-only Azure calls' {
+        $r = Invoke-Book $s "-OutputDirectory '$(New-TestScratch 'avail')'" -Az (Get-Rules) -SqlCmd $sqlcmd
+        $r.AzCalls | Where-Object { $_ -match '^rest ' } | ForEach-Object { $_ | Should -Match '^rest --method get ' }
+        $r.AzCalls -join "`n" | Should -Not -Match '(^|\n)\S+( \S+)* (create|update|delete|set)( |$)'
+    }
+}
+
+Describe 'Resource Graph lookup with one subscription (Chapter 7)' -Tag 'Offline' {
+    It 'sends subscriptions as a JSON array from <_>' -ForEach @(
+        'examples/ch07-observability/engineevents/azuresqlerrors/azuresqlerrors.ps1'
+    ) {
+        $capture = Join-Path (New-TestScratch 'arg') 'body.json'
+        $prelude = @"
+function global:Invoke-RestMethod {
+    param(`$Method, `$Uri, `$Headers, `$ContentType, `$Body)
+    if (`$Uri -match 'ResourceGraph') { Set-Content -LiteralPath '$capture' -Value `$Body; throw 'BOOKTEST captured' }
+}
+"@
+        $r = Invoke-Book $_ -Prelude $prelude -Az ([ordered]@{ '^account list' = '00000000-0000-0000-0000-000000000001' })
+        $r.Text | Should -Match 'BOOKTEST captured'
+        $body = Get-Content $capture -Raw
+        $body | Should -Match '"subscriptions":\s*\[\s*"00000000-0000-0000-0000-000000000001"\s*\]'
+    }
+}
+
+Describe 'Local port helpers (Chapters 4 and 8)' -Tag 'Offline' {
+    BeforeAll {
+        $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
+        $listener.Start()
+        $port = $listener.LocalEndpoint.Port
+    }
+    AfterAll { $listener.Stop() }
+
+    It 'finds this process listening on a port, and its command line, in <_>' -ForEach @(
+        'examples/ch04-first-app/shutdown.ps1',
+        'examples/ch08-security/rls/stop-local-apps.ps1',
+        'examples/ch08-security/rls/00-inspect-rls-state.ps1'
+    ) {
+        $ast = Get-ScriptAst (Get-BookPath $_)
+        $functions = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                $n.Name -in 'Get-PortOwnerId', 'Get-ProcessCommandLine' }, $true)
+        @($functions).Count | Should -BeGreaterThan 0
+        foreach ($f in $functions) { . ([scriptblock]::Create($f.Extent.Text)) }
+        @(Get-PortOwnerId $port) | Should -Contain $PID
+        if ($functions.Name -contains 'Get-ProcessCommandLine') {
+            Get-ProcessCommandLine $PID | Should -Match '(?i)pwsh|powershell'
+        }
+    }
+}
+
+Describe 'check-ai-env.ps1 (Chapter 5)' -Tag 'Offline' {
+    BeforeAll {
+        $s = 'examples/ch05-ai-ready-sql/check-ai-env.ps1'
+        function Invoke-Check([System.Collections.IDictionary] $Extra = [ordered]@{}, [hashtable] $Environment = @{}) {
+            $file = Join-Path (New-TestScratch 'ch05') 'ch05.env'
+            @('RG=rg-collierhealth', 'SRV=collierhealth-test', 'AI_RESOURCE=collierhealth-ai',
+                'WardGeneral__Server=collierhealth-test.database.windows.net', 'WardGeneral__Database=wardgeneral') | Set-Content $file
+            $rules = [ordered]@{}
+            foreach ($k in $Extra.Keys) { $rules[$k] = $Extra[$k] }
+            foreach ($pair in @(
+                    @('^group show', 'rg-collierhealth'),
+                    @('^sql server show .*identity.principalId', 'principal-1'),
+                    @('^sql server show .*location', 'westus3'),
+                    @('^sql server show', 'collierhealth-test'),
+                    @('^sql db show -n wardgeneral-research', 'wardgeneral-research'),
+                    @('^sql db show -n wardgeneral ', 'wardgeneral'),
+                    @('^cognitiveservices account show', 'EXIT:3|'),
+                    @('checkDomainAvailability', '{"isSubdomainAvailable":true}')
+                )) { if (-not $rules.Contains($pair[0])) { $rules[$pair[0]] = $pair[1] } }
+            $env = @{ AI_LOCATION = $null; GATEWAY_LOCATION = $null; APIM_NAME = $null; CS_RESOURCE = $null; SUBSCRIPTION_ID = $null }
+            foreach ($k in $Environment.Keys) { $env[$k] = $Environment[$k] }
+            Invoke-Book $s "-NoGateway -Path '$file'" -Az $rules -Environment $env
+        }
+    }
+
+    It 'plans a new Foundry account in the SQL server''s region by default' {
+        $r = Invoke-Check
+        $r.ExitCode | Should -Be 0 -Because $r.Text
+        $r.Text | Should -Match 'Foundry account\s+collierhealth-ai\s+WILL BE CREATED'
+        $r.Text | Should -Match "Foundry in westus3 \(the SQL server's region\)"
+    }
+
+    It 'honors AI_LOCATION' {
+        $r = Invoke-Check -Environment @{ AI_LOCATION = 'eastus2' }
+        $r.Text | Should -Match 'Foundry in eastus2'
+        $r.Text | Should -Not -Match "the SQL server's region"
+    }
+
+    It 'stops when the Foundry name is taken elsewhere in Azure' {
+        $r = Invoke-Check -Extra ([ordered]@{ 'checkDomainAvailability' = '{"isSubdomainAvailable":false,"reason":"Subdomain is in use"}' })
+        $r.ExitCode | Should -Be 1
+        $r.Text | Should -Match 'NAME NOT AVAILABLE'
+        $r.Text | Should -Match 'Choose a different AI_RESOURCE'
+    }
+
+    It 'stops when a Chapter 2 prerequisite is missing' {
+        $r = Invoke-Check -Extra ([ordered]@{ '^sql db show -n wardgeneral ' = '' })
+        $r.ExitCode | Should -Be 1
+        $r.Text | Should -Match 'belong to Chapter 2'
+    }
+
+    It 'makes no change: its only POST is the name-availability check' {
+        $r = Invoke-Check
+        $posts = @($r.AzCalls | Where-Object { $_ -match '--method (post|put|patch|delete)' })
+        $posts.Count | Should -Be 1
+        $posts[0] | Should -Match 'checkDomainAvailability'
+        $r.AzCalls -join "`n" | Should -Not -Match '(^|\n)\S+( \S+)* (create|update|delete)( |$)'
+    }
+}

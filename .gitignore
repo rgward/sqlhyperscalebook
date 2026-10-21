@@ -85,6 +85,11 @@ TestResults/
 *.log
 /examples/ch10-performance/**/results/
 
+# Test suite: run evidence and fake tools built on demand (tests/test.env is
+# already covered by *.env).
+/tests/results/
+/tests/.cache/
+
 # Author-only review material must not return to the reader repository.
 /remove_before_publish/
 

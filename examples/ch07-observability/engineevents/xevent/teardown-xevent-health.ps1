@@ -59,7 +59,7 @@ $sqlcmdPath = @(
     $env:SQLCMD,
     $(if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'Programs\sqlcmd\sqlcmd.exe' }),
     'C:\Program Files\SqlCmd\sqlcmd.exe',
-    (Get-Command sqlcmd -ErrorAction SilentlyContinue).Source
+    (Get-Command sqlcmd -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
 ) | Where-Object { $_ -and (Test-Path $_) -and (& $isNewSqlcmd $_) } |
     Select-Object -First 1
 

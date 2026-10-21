@@ -31,15 +31,24 @@ costs, approval gates, cleanup behavior, or re-run behavior.
 
 ## Validate locally
 
-From the repository root, run the static checks in PowerShell 7:
+From the repository root, run the offline test suite in PowerShell 7. It needs
+[Pester](https://pester.dev) 5.5 or later and the .NET 10 SDK:
 
 ```powershell
-.\tools\validate-repository.ps1
+Install-Module Pester -MinimumVersion 5.5.0 -Scope CurrentUser -Force -SkipPublisherCheck
+./tests/Invoke-BookTests.ps1
 ```
 
-These checks parse PowerShell and JSON, check local Markdown link targets, and
-reject local configuration, generated artifacts, and author-only review files.
-They do not execute chapter scripts, connect to Azure, or validate SQL behavior.
+The suite runs the static checks in `tools/validate-repository.ps1`. Those
+checks parse PowerShell and JSON, check local Markdown link targets, and reject
+local configuration, generated artifacts, and author-only review files.
+
+The suite then checks the repository's conventions, the Copilot skills, and the
+prompts and links printed in the book. It runs the preview, approval, and
+safety paths of the billable and destructive scripts against a fake Azure CLI.
+Finally, it fails if a new example isn't covered by the live tier. It doesn't
+connect to Azure. See [tests/README.md](tests/README.md) for details, and for
+how to add tests for a new or changed example.
 
 For application or probe changes, use the .NET 10 SDK:
 
@@ -49,14 +58,19 @@ dotnet build .\examples\ch08-security\auditing\session-context-probe\SessionCont
 dotnet build .\examples\ch09-ha-resiliency\failover\retry-probe\RetryProbe.csproj --configuration Release
 ```
 
-The repository-checks workflow runs these checks without Azure credentials.
+The repository-checks workflow runs these checks and the offline suite without
+Azure credentials.
 The application data library and auditing probe explicitly pin
 `System.Security.Cryptography.Pkcs` to 9.0.21 to override vulnerable transitive
 SQL client dependencies. Keep that dependency on a patched version when
 updating packages; CI treats NuGet vulnerability warnings as errors.
-For changes that need a database, follow the owning chapter's verification
-steps against your own dev/test resources. Record what you tested and clean up
-any billable resources afterward. A successful build is not a live Azure test.
+For changes that need a database, run the affected chapters with the live tier
+against a dev/test subscription:
+`./tests/Invoke-BookTests.ps1 -Live -AcceptCharges -Chapter 2,3,4,5` runs
+Chapters 2 through 5. Include every chapter from 2 up to the one you changed,
+because each chapter builds on the ones before it. The run creates billable
+resources and deletes them afterwards. Record what you tested. A successful
+build or offline run is not a live Azure test.
 
 Before publishing changes, install [Gitleaks](https://github.com/gitleaks/gitleaks)
 and scan the working tree and all locally available Git history:

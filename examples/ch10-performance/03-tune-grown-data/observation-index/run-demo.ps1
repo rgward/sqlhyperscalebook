@@ -51,7 +51,7 @@ if ([string]::IsNullOrWhiteSpace($Server) -or
 $sqlcmd = @(
     $env:SQLCMD,
     'C:\Program Files\SqlCmd\sqlcmd.exe',
-    (Get-Command sqlcmd -ErrorAction SilentlyContinue).Source
+    (Get-Command sqlcmd -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
 ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 if (-not $sqlcmd) {
     throw 'The new sqlcmd was not found. Install it with: winget install --id Microsoft.Sqlcmd'

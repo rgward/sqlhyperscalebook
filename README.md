@@ -57,6 +57,7 @@ which carries the same examples.
 - [Using the examples](#using-the-examples)
 - [Costs and cleanup](#costs-and-cleanup)
 - [Conventions](#conventions)
+- [Testing the examples](#testing-the-examples)
 - [Figures](#figures)
 - [Links from the book](#links-from-the-book)
 - [Support and contributing](#support-and-contributing)
@@ -143,6 +144,7 @@ and caller.
 │   ├── ch09-ha-resiliency/     Failover, point-in-time restore, and geo-replication
 │   └── ch10-performance/       Compute scaling, data growth, and tuning
 ├── figures/                    Every book figure by chapter, plus SVG sources
+├── tests/                      Automated test suite for every example
 ├── tools/                      Repository validation
 ├── CONTRIBUTING.md
 ├── SECURITY.md
@@ -381,6 +383,27 @@ SSMS defaults most of these on, but **`sqlcmd` defaults `QUOTED_IDENTIFIER` and
 MSSQL extension, SSMS, or `sqlcmd`, so leave it in place and run each file
 whole. Read-only diagnostic queries, cleanup scripts, and sqlsim workload
 statements create nothing, so they don't carry it.
+
+## Testing the examples
+
+An automated suite in [`tests/`](tests/README.md) covers every example in the
+repository, in two tiers:
+
+| Tier | What it does | Azure |
+| --- | --- | :---: |
+| **Offline** | Checks every script, Copilot skill, book prompt, and book link. A recording fake `az` confirms that every billable or destructive script previews by default, that its approval switch makes only the intended change, and that its safety guards refuse. It also checks that every example is covered by the live tier. Runs on every push. | No |
+| **Live** | Builds a separate copy of the book's environment, with the book's names, from a tester-provided `tests/test.env`. Runs every chapter's examples in order against it and checks each documented result, then deletes it. | **Billable** |
+
+```powershell
+./tests/Invoke-BookTests.ps1                        # offline, about 2–3 minutes
+./tests/Invoke-BookTests.ps1 -Live                  # live: show the plan only
+./tests/Invoke-BookTests.ps1 -Live -AcceptCharges   # live: run, then tear down
+```
+
+The offline tier needs PowerShell 7, Pester 5.5 or later, and the .NET 10 SDK.
+The live tier creates the same billable resources a reader does and takes
+several hours; see the [test suite README](tests/README.md) for setup, options,
+and cost.
 
 ## Figures
 
