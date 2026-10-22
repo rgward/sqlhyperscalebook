@@ -65,11 +65,16 @@ if ([string]::IsNullOrWhiteSpace($token)) {
 try {
     Push-Location $PSScriptRoot
     try {
+        # -l: hundreds of simultaneous token sign-ins from one laptop take far
+        # longer than the driver's default 15-second login timeout; 400 threads
+        # averaged 12 s per sign-in in testing. -retry/-retrydelay set
+        # idle-connection resiliency, not login retries.
         & $sqlsim `
             -S $server `
             -d $database `
             -T $token `
             -workload $workload `
+            -l 60 `
             -retry 3 `
             -retrydelay 5 `
             -t 60 `
