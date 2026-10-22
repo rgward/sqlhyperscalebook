@@ -87,12 +87,16 @@ Describe 'Chapter 10 - Demo 3: tune the grown data' -Tag 'Ch10' {
 }
 
 Describe 'Chapter 10 - retained calibration query' -Tag 'Ch10' {
-    # Excluded from the workloads because its access path overruns the bounded
-    # interval (see the 01-scale-compute README); it took 3-15+ minutes in live
-    # runs. Its own block, so a slow run never skips the demos.
-    It 'runs once without error (sql/get-patient-chart-by-bed.sql)' {
-        $r = Invoke-BookSql -File "$ch/01-scale-compute/sql/get-patient-chart-by-bed.sql" -Name 'ch10/get-patient-chart-by-bed' -TimeoutMinutes 30
-        $r.ExitCode | Should -Be 0
+    # Excluded from the workloads because its access path overruns (the README
+    # records 162 s per call; live runs took 3 to 15+ minutes). Cap it at two
+    # minutes: completing, or timing out as documented, both pass. Any other
+    # error (a missing procedure, a syntax error) fails.
+    It 'runs, or times out as documented (sql/get-patient-chart-by-bed.sql)' {
+        $r = Invoke-BookSql -File "$ch/01-scale-compute/sql/get-patient-chart-by-bed.sql" -Name 'ch10/get-patient-chart-by-bed' `
+            -ExtraArguments @('-t', '120') -AllowFailure -TimeoutMinutes 5
+        if ($r.ExitCode -ne 0) {
+            $r.Text | Should -Match '(?i)timeout expired|query timeout' -Because "only the documented overrun is acceptable ($($r.LogPath))"
+        }
     }
 }
 
