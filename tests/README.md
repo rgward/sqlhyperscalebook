@@ -38,7 +38,7 @@ files are in [`offline/`](offline/):
 | File | What it checks |
 | --- | --- |
 | `Repository.Tests.ps1` | `tools/validate-repository.ps1` passes. No script has an unguarded Windows-only path or a hard-coded secret. Every SQL file that creates objects keeps the seven-line `SET` preamble. The templates ship only placeholders, and the files readers fill in are git-ignored. |
-| `SkillsAndBook.Tests.ps1` | Every Copilot skill has valid front matter and refers only to files that exist. Each of the 20 prompts printed in the book reaches its skill and appears in its chapter README. Each of the book's 130 printed links is listed in the repository. Every Markdown `#anchor` resolves. |
+| `SkillsAndBook.Tests.ps1` | Every Copilot skill has valid front matter, a description of at most 1,024 characters (Copilot silently drops longer ones), and refers only to files that exist. Where Copilot CLI is installed, every skill actually loads. Each of the 20 prompts printed in the book appears in its skill's description and in its chapter README. Each of the book's 130 printed links is listed in the repository. Every Markdown `#anchor` resolves. |
 | `PreviewModes.Tests.ps1` | Every billable or destructive script previews by default and makes no change before its gate. A fake, recording `az` confirms that each preview changes nothing, each gate switch (`-Execute`, `-Approve`, `-Apply`) makes exactly the intended change, and each safety guard refuses (wrong database, wrong region, untagged server, and more). |
 | `ScriptBehavior.Tests.ps1` | Configuration loading and precedence. The Chapter 7 availability run on macOS/Linux-style paths, with sparse Azure Monitor data and exact Service Health matching. The Resource Graph request with one subscription. The local port helpers. The Chapter 5 environment check. |
 | `Coverage.Tests.ps1` | Every `.ps1` and `.sql` example is run by the live tier, either directly or through the script that calls it ([`fixtures/covered-via.json`](fixtures/covered-via.json)). Adding an example without a live test fails here. |
@@ -47,6 +47,38 @@ The fake `az` and `sqlcmd` are small .NET programs, built once into
 `tests/.cache/` and placed first on `PATH` for the script under test. Scripts
 therefore see the same native-command behavior as with the real tools, and the
 real Azure CLI is never reached.
+
+## Skill routing evaluation
+
+The offline tier proves each book prompt is *written into* its skill. It can't
+prove GitHub Copilot actually *picks* that skill, because that depends on the
+model. [`Measure-SkillRouting.ps1`](Measure-SkillRouting.ps1) measures it:
+
+```powershell
+./tests/Measure-SkillRouting.ps1                # all 20 book prompts, once each
+./tests/Measure-SkillRouting.ps1 -Repeat 3      # three sessions per prompt
+./tests/Measure-SkillRouting.ps1 -Chapter 2,5 -Model <model>
+```
+
+It first lists the skills Copilot loads (`copilot skill list`) and reports any
+repository skill it dropped. Copilot drops a skill silently when its
+description breaks the Agent Skills rules; a description over 1,024
+characters is the usual cause. It then runs each prompt in a non-interactive
+[GitHub Copilot CLI](https://docs.github.com/copilot/how-tos/copilot-cli)
+session from the repository root, records the first skill Copilot loads, and
+writes `summary.md` and `routing-results.json` to `tests/results/routing-<utc>/`.
+
+- **Safe:** each session has only the `skill` tool, so Copilot can choose a
+  skill but can't run a command, edit a file, or reach Azure.
+- **Not deterministic:** results can vary between runs and models, so it isn't
+  part of CI. Use `-Repeat` to see how stable a choice is.
+- **Cost:** one Copilot premium request per session.
+- **Fidelity:** Copilot CLI stands in for VS Code agent mode. Both read the same
+  `.github/skills` files, but their models and other installed skills can
+  differ.
+
+Run it after changing any skill's description. It needs Copilot CLI
+installed and signed in.
 
 ## The live tier
 
@@ -134,6 +166,7 @@ subscription selection.
 ```text
 tests/
 ├── Invoke-BookTests.ps1   Runner for both tiers
+├── Measure-SkillRouting.ps1  Book prompts through Copilot: which skill it picks
 ├── test.env.template      Live-tier configuration (copy to test.env)
 ├── lib/BookTest.psm1      Shared helpers: isolated runs, fake tools, live steps
 ├── offline/               Offline tier

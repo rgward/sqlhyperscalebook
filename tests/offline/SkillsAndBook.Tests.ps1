@@ -46,6 +46,26 @@ Describe 'Copilot skills' -Tag 'Offline' {
         $fm.Description.Length | Should -BeGreaterThan 40
     }
 
+    It '<Name> has a description Copilot will load (at most 1,024 characters)' -ForEach $script:skills {
+        # Over the Agent Skills limit, Copilot drops the skill without any warning
+        # (github/copilot-cli#3494). Five skills, including Chapter 2's, were lost this way.
+        (Get-SkillFrontMatter $Path).Description.Length | Should -BeLessOrEqual 1024
+    }
+
+    It 'every skill loads in GitHub Copilot CLI (copilot skill list)' {
+        # Catches any loader rejection, not only length. Free: no model call.
+        if (-not (Get-Command copilot -ErrorAction SilentlyContinue)) {
+            Set-ItResult -Skipped -Because 'GitHub Copilot CLI is not installed'
+            return
+        }
+        Push-Location $root
+        try { $listed = @(copilot skill list --json 2>$null | Out-String | ConvertFrom-Json) }
+        finally { Pop-Location }
+        $loaded = @($listed | Where-Object { $_.source -eq 'project' } | ForEach-Object name)
+        $missing = @(Get-ChildItem (Join-Path $root '.github' 'skills') -Directory | ForEach-Object Name | Where-Object { $_ -notin $loaded })
+        $missing | Should -BeNullOrEmpty -Because 'Copilot drops a skill it cannot load, so its book prompts never route'
+    }
+
     It '<Name> refers only to repository files that exist' -ForEach $script:skills {
         $text = Get-Content -LiteralPath $Path -Raw
         $paths = [regex]::Matches($text, '(?<![\w/.-])((?:examples|tools|tests|figures)/[\w./-]+\.(?:ps1|sql|md|json|slnx|csproj|svg|png))') |
@@ -64,9 +84,10 @@ Describe 'Prompts printed in the book' -Tag 'Offline' {
         $skillPath = Join-Path $root '.github' 'skills' $Skill 'SKILL.md'
         Test-Path -LiteralPath $skillPath | Should -BeTrue
         $fm = Get-SkillFrontMatter $skillPath
-        $haystack = ConvertTo-Comparable ($fm.Description + ' ' + $fm.Body)
+        # Copilot chooses a skill from its description alone; the body is read only afterwards.
+        $haystack = ConvertTo-Comparable $fm.Description
         $needle = ConvertTo-Comparable ($Prompt.TrimEnd('.'))
-        $haystack.Contains($needle) | Should -BeTrue -Because "the skill must list the book's prompt so Copilot routes it"
+        $haystack.Contains($needle) | Should -BeTrue -Because "the skill's description must list the book's prompt so Copilot routes it"
     }
 
     It 'Ch <Chapter>: "<Prompt>" appears in <Readme>' -ForEach $script:prompts {

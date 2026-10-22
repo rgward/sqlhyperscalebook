@@ -1,32 +1,17 @@
 ---
 name: wardgeneral-app
 description: >-
-  Build, run, restart and stop the Ward General Blazor web application and its
-  data-access library against an Azure SQL Hyperscale database — the Chapter 4
-  example from *Azure SQL Hyperscale Unveiled*. USE WHEN the reader says any of:
-  "build the app", "run the app", "restart the app", "stop the app", "restart the
-  app with a feature flag", "flip a feature flag", "build the Ward General app",
-  "run the Ward General app", "Run Ward General Hospital app", "start the Ward
-  General Hospital app", "start the hospital app", "get the chart app running",
-  "build the Chapter 4 app", "Build and run the Ward General Hospital app
-  against my Hyperscale database", "Run the Ward General Hospital app. My logical
-  server is …", or wants to point the app at the wardgeneral
-  Hyperscale database and see the patient chart in a browser. ALSO USE WHEN they
-  say "configure the app", "point the app at my database", "set up ch04.env",
-  "where do I put my server name", or "the app can't find my server" — their
-  values live in ch04.env, which they fill in once from ch04.env.template. If
-  their prompt already names the server (the book's prompts do), write that into
-  ch04.env for them; otherwise never interview them for a server name and never
-  go discovering one (step 1).
-  Covers: the example
-  layout, configuring the passwordless (Microsoft Entra) connection, building with
-  build.ps1, running with run.ps1, restarting with restart.ps1 -Enable to pick up
-  a feature flag, stopping with shutdown.ps1, and what each screen shows. Scope is
-  BUILD + CONFIGURE + RUN the app ONLY. Do NOT use to deploy the database (see
-  deploy-hyperscale), deploy the Azure AI resources a feature flag depends on (see
-  ai-ready-app), stand up DAB / the SQL MCP server, or provision Azure App
-  Service / Container Apps. For the Chapter 5 END-TO-END path — deploy the AI layer
-  AND build/run the app with AiAssistance already on — see **ai-ready-app**.
+  Build, configure, run, restart, and stop the Chapter 4 Ward General Blazor
+  patient-chart app against the wardgeneral Hyperscale database, using
+  passwordless Microsoft Entra authentication and the server named in
+  ch04.env. USE WHEN the reader says "Build and run the Ward General Hospital
+  app against my Hyperscale database" or "Run the Ward General Hospital app.
+  My logical server is ..." (the book's prompts), "build the app", "run the
+  app", "restart the app", "stop the app", "restart the app with a feature
+  flag", "start the Ward General app", "configure the app", "point the app at
+  my database", "set up ch04.env", or "the app can't find my server". Do NOT
+  use to deploy the database (deploy-hyperscale), the Chapter 5 AI resources or
+  AI-enabled app (ai-ready-app), DAB or the SQL MCP server, or App Service.
 ---
 
 # Build and run the Ward General app

@@ -405,6 +405,12 @@ The live tier creates the same billable resources a reader does and takes
 several hours; see the [test suite README](tests/README.md) for setup, options,
 and cost.
 
+A separate evaluation, `./tests/Measure-SkillRouting.ps1`, runs each prompt
+printed in the book through GitHub Copilot CLI. It records whether Copilot
+picks the intended skill, and whether it loads every skill at all. It's safe,
+because Copilot can only choose a skill, not run anything, but its results can
+vary by model, so it isn't part of CI.
+
 ## Figures
 
 Every captioned figure in the book is published, by chapter, in
