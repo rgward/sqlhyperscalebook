@@ -40,8 +40,9 @@ This stage contains:
   performance report from a completed orchestration run.
 
 The `sql/get-patient-chart-by-bed.sql` calibration query is retained to make
-the workload exclusion reproducible. No shipped workload JSON references it;
-the live calibration showed that access path overrunning the bounded interval.
+the workload exclusion reproducible. No shipped workload JSON references it.
+The original procedure overran the bounded interval; see the note below on
+how it has since been fixed.
 
 The script deliberately leaves the database at `HS_Gen5_40`. Stage 2 grows the
 same database without changing that hardware configuration.
@@ -94,9 +95,14 @@ business conflicts and distort the compute comparison.
 `GetPatientChartByBed` is deliberately excluded from the scaling workload. A
 live calibration run with 24 concurrent callers averaged 162.3 seconds of
 server duration and kept in-flight calls alive long after the 90-second
-deadline. That access path is a query-tuning problem, not evidence for compute
-scaling, and belongs in future tuning work. `run-workload.ps1` also sets a 60-second query
-timeout so a future bad phase stops instead of overrunning indefinitely.
+deadline. That access path was a query-tuning problem, not evidence for
+compute scaling. The procedure filtered `clinical.vPatientChart` on `BedId`,
+which the chart-section views can't use, so every call scanned all of
+`clinical.Observation`. The procedure now resolves the bed's active encounter
+first and reads the chart by `EncounterId`, as `GetPatientChart` does, and a
+call takes milliseconds. It stays out of the workload so the Demo 1 mix and
+results match the book. `run-workload.ps1` also sets a 60-second query timeout
+so a future bad phase stops instead of overrunning indefinitely.
 
 ## Run it
 
