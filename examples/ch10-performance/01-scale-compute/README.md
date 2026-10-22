@@ -278,6 +278,17 @@ average query latency changes by more than 25% during a phase, the script warns
 that laptop latency is contaminated and that phase should be repeated. Keep the
 same laptop, location, VPN state, and connection type for all three phases.
 
+Each phase opens all of its connections at once: 100, then 200, then 400. Every
+connection signs in to Azure SQL separately, so sign-in time grows with the
+thread count. In testing from a laptop with about 100 ms round trips, sign-ins
+averaged about 4, 6, and 12 seconds. `run-workload.ps1` therefore gives each
+sign-in 60 seconds (sqlsim `-l 60`) instead of the driver's 15-second default.
+If a phase still reports failed connections (`Login timeout expired` in its
+`sqlsim-<slo>.txt`), the client network is too slow or too busy for 400
+simultaneous sign-ins. Repeat the run from a faster, steadier connection; a
+round trip of well over 100 ms (see `network-<slo>-before.json`) is a sign of
+trouble.
+
 Interpret the evidence together:
 
 - Query Store duration improves and sqlsim latency improves: scaling helped the

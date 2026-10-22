@@ -330,3 +330,15 @@ function global:Invoke-RestMethod {
         $r.Text | Should -Match 'Log Analytics rejected the audit query: .*Syntax error'
     }
 }
+Describe 'sqlsim workloads (Chapter 10)' -Tag 'Offline' {
+    It '<_> gives each sign-in more than the driver''s 15-second default' -ForEach @(
+        'examples/ch10-performance/01-scale-compute/run-workload.ps1',
+        'examples/ch10-performance/02-grow-data/run-demo.ps1'
+    ) {
+        # Hundreds of simultaneous token sign-ins from a laptop overran 15 s in live runs.
+        $text = Get-Content -LiteralPath (Get-BookPath $_) -Raw
+        $match = [regex]::Match($text, '(?:-l\s+[''"]?|''-l'',\s*'')(\d+)')
+        $match.Success | Should -BeTrue -Because 'sqlsim must be given an explicit login timeout (-l)'
+        [int]$match.Groups[1].Value | Should -BeGreaterOrEqual 60
+    }
+}

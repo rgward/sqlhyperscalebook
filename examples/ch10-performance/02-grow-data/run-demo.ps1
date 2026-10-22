@@ -185,6 +185,7 @@ try {
             '-d', $Database,
             '-T', $token,
             '-workload', $workloadTemplate,
+            '-l', '60',
             '-retry', '3',
             '-retrydelay', '5',
             '-t', '240',
