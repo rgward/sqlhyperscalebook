@@ -53,6 +53,19 @@ Describe 'Chapter 2 - deploy, seed, verify' -Tag 'Ch02' {
         $r.Text | Should -Match 'ALL CHECKS PASSED'
     }
 
+    It 'reads a chart by bed as fast as by encounter (GetPatientChartByBed)' {
+        # Regression guard: filtering vPatientChart on BedId scanned all of
+        # clinical.Observation (minutes per call). Both lookups must return the
+        # same encounter well inside a 30-second query timeout.
+        $bed = Get-BookScalar -Name 'ch02/active-bed' -Query "SELECT TOP (1) BedId FROM clinical.Encounter WHERE Status = N'Active' AND BedId IS NOT NULL ORDER BY BedId"
+        $expected = Get-BookScalar -Name 'ch02/active-bed-encounter' -Query "SELECT EncounterId FROM clinical.Encounter WHERE BedId = $bed AND Status = N'Active'"
+        $r = Invoke-BookSql -Query "SET NOCOUNT ON; EXEC clinical.GetPatientChartByBed @BedId = $bed;" -Name 'ch02/chart-by-bed' `
+            -ExtraArguments @('-t', '30', '-h', '-1', '-W', '-s', '|') -TimeoutMinutes 3
+        $r.ExitCode | Should -Be 0
+        $r.Text | Should -Not -Match '(?i)timeout expired'
+        ($r.Output | Where-Object { $_ -match '^\d+\|' } | Select-Object -First 1) -replace '\|.*$', '' | Should -Be $expected
+    }
+
     It 'summarizes the deployment from the Activity Log (verify-activity-log.ps1)' {
         $r = Invoke-BookScript -Script "$ch/verify-activity-log.ps1" -Name 'ch02/verify-activity-log' -TimeoutMinutes 10
         $r.ExitCode | Should -Be 0 -Because $r.LogPath

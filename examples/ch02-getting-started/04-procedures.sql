@@ -53,12 +53,26 @@ END;
 GO
 
 /* ---- Read: chart for whoever is currently in a bed --------------------- */
-/* Same explicit-column contract as GetPatientChart.                            */
+/* Same explicit-column contract as GetPatientChart. Resolve the bed's active   */
+/* encounter first, then read the chart by EncounterId exactly as               */
+/* GetPatientChart does. Filtering vPatientChart on BedId instead cannot reach  */
+/* the chart-section views (each groups by EncounterId), so SQL Server builds   */
+/* every section for every encounter (a full scan of clinical.Observation)      */
+/* before keeping one row. UX_Encounter_ActiveBed guarantees at most one        */
+/* active encounter per bed; no active encounter returns an empty result.       */
 CREATE OR ALTER PROCEDURE clinical.GetPatientChartByBed
     @BedId INT
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    DECLARE @EncounterId INT =
+    (
+        SELECT EncounterId
+        FROM clinical.Encounter
+        WHERE BedId = @BedId
+          AND Status = N'Active'
+    );
 
     SELECT
         EncounterId, EncounterStatus, EncounterType, AdmitTime, DischargeTime, IntakeJson,
@@ -68,8 +82,7 @@ BEGIN
         Diagnoses, Medications, Allergies, LatestVitals, RecentLabs,
         Symptoms, CareTeam, Imaging, RecentNotes, NoteSignals
     FROM clinical.vPatientChart
-    WHERE BedId = @BedId
-      AND EncounterStatus = N'Active';
+    WHERE EncounterId = @EncounterId;
 END;
 GO
 
