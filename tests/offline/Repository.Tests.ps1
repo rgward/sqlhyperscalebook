@@ -81,7 +81,8 @@ Describe 'Reader configuration templates' -Tag 'Offline' {
         Push-Location (Get-BookRepoRoot)
         try {
             foreach ($f in 'examples/ch04-first-app/ch04.env', 'examples/ch05-ai-ready-sql/ch05.env', 'tests/test.env',
-                'tests/results/x.txt', 'tests/.cache/x.txt', 'examples/ch04-first-app/src/WardGeneral.Web/appsettings.Development.json') {
+                'tests/results/x.txt', 'tests/.cache/x.txt', 'examples/ch04-first-app/src/WardGeneral.Web/appsettings.Development.json',
+                'examples/ch08-security/rls/_local/dab-config.rls.json') {
                 & git check-ignore -q -- $f
                 $LASTEXITCODE | Should -Be 0 -Because "$f must never be committed"
             }
