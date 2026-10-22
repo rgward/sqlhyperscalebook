@@ -62,7 +62,7 @@ $sqlcmdPath = @(
     $env:SQLCMD,
     $(if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'Programs\sqlcmd\sqlcmd.exe' }),
     'C:\Program Files\sqlcmd\sqlcmd.exe',
-    (Get-Command sqlcmd -ErrorAction SilentlyContinue).Source
+    (Get-Command sqlcmd -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
 ) | Where-Object { $_ -and (Test-Path $_) -and (& $isGoSqlcmd $_) } |
     Select-Object -First 1
 
@@ -76,7 +76,7 @@ Then open a new PowerShell session, or set SQLCMD to its full path.
 '@
 }
 
-$az = (Get-Command az -ErrorAction SilentlyContinue).Source
+$az = (Get-Command az -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
 if (-not $az) {
     throw 'Azure CLI was not found. Install it and run az login before starting this demo.'
 }

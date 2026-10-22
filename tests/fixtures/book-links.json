@@ -1,0 +1,547 @@
+{
+  "source": "Every web link printed in the book, by chapter, in book order. The repository Links-from-the-book lists must contain each one.",
+  "chapters": {
+    "ch01": [
+      {
+        "title": "Socrates research paper (the architecture behind Hyperscale)",
+        "url": "https://aka.ms/socratespaper"
+      },
+      {
+        "title": "Azure SQL Database resource limits",
+        "url": "https://aka.ms/sqldbresourcelimits"
+      },
+      {
+        "title": "Azure SQL service level agreement (SLA)",
+        "url": "https://aka.ms/azuresqlsla"
+      }
+    ],
+    "ch02": [
+      {
+        "title": "Visual Studio subscriptions (monthly Azure credits)",
+        "url": "https://visualstudio.microsoft.com/subscriptions"
+      },
+      {
+        "title": "Azure free trial",
+        "url": "https://aka.ms/azurefree"
+      },
+      {
+        "title": "Azure for Students",
+        "url": "https://aka.ms/azurestudent"
+      },
+      {
+        "title": "Azure SQL Database free offer",
+        "url": "https://aka.ms/freedboffer"
+      },
+      {
+        "title": "Azure role-based access control (RBAC)",
+        "url": "https://aka.ms/azurerolebasedaccesscontrol"
+      },
+      {
+        "title": "Azure portal",
+        "url": "https://portal.azure.com"
+      },
+      {
+        "title": "Azure CLI (az)",
+        "url": "https://aka.ms/azcli"
+      },
+      {
+        "title": "Azure PowerShell",
+        "url": "https://learn.microsoft.com/powershell/azure"
+      },
+      {
+        "title": "Bicep",
+        "url": "https://aka.ms/bicep"
+      },
+      {
+        "title": "Terraform",
+        "url": "https://developer.hashicorp.com/terraform"
+      },
+      {
+        "title": "Azure REST API reference",
+        "url": "https://learn.microsoft.com/rest/api/azure"
+      },
+      {
+        "title": "Azure SQL REST API reference",
+        "url": "https://learn.microsoft.com/rest/api/sql"
+      },
+      {
+        "title": "Visual Studio Code",
+        "url": "https://aka.ms/vscode"
+      },
+      {
+        "title": "MSSQL extension for VS Code",
+        "url": "https://aka.ms/vscodemssql"
+      },
+      {
+        "title": "SQL Server Management Studio (SSMS)",
+        "url": "https://aka.ms/ssms"
+      },
+      {
+        "title": "sqlcmd (go-sqlcmd)",
+        "url": "https://aka.ms/sqlcmd"
+      },
+      {
+        "title": "SQL Server PowerShell modules",
+        "url": "https://aka.ms/sqlpowershell"
+      },
+      {
+        "title": "SQL Database Projects",
+        "url": "https://aka.ms/sqlprojects"
+      },
+      {
+        "title": "GitHub Copilot CLI",
+        "url": "https://github.com/features/copilot/cli/"
+      },
+      {
+        "title": "GitHub Copilot desktop app",
+        "url": "https://github.com/github/app"
+      },
+      {
+        "title": "AI model choices for GitHub Copilot",
+        "url": "https://docs.github.com/copilot/how-tos/use-ai-models"
+      },
+      {
+        "title": "Microsoft Foundry models",
+        "url": "https://learn.microsoft.com/azure/foundry/concepts/foundry-models-overview"
+      },
+      {
+        "title": "HammerDB",
+        "url": "https://www.hammerdb.com"
+      },
+      {
+        "title": "sqlsimtools (workload simulation)",
+        "url": "https://aka.ms/sqlsimtools"
+      },
+      {
+        "title": "FabCon and SQLCon 2026 announcements (Fabric Database Hub)",
+        "url": "https://aka.ms/FabCon-SQLCon-2026-news"
+      },
+      {
+        "title": "VS Code download",
+        "url": "https://code.visualstudio.com"
+      },
+      {
+        "title": "GitHub Copilot",
+        "url": "https://github.com/features/copilot"
+      },
+      {
+        "title": "PowerShell 7",
+        "url": "https://aka.ms/powershell"
+      },
+      {
+        "title": "Install the Azure CLI on Windows",
+        "url": "https://aka.ms/installazurecliwindows"
+      },
+      {
+        "title": "Azure MCP Server extension for VS Code",
+        "url": "https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azure-mcp-server"
+      },
+      {
+        "title": "Azure SQL Database resource limits",
+        "url": "https://aka.ms/azuresqlresourcelimits"
+      },
+      {
+        "title": "ALTER DATABASE options for Azure SQL Database",
+        "url": "https://learn.microsoft.com/sql/t-sql/statements/alter-database-transact-sql?view=azuresqldb-current"
+      },
+      {
+        "title": "ALTER DATABASE SCOPED CONFIGURATION",
+        "url": "https://learn.microsoft.com/sql/t-sql/statements/alter-database-scoped-configuration-transact-sql"
+      },
+      {
+        "title": "What's new in Azure SQL Database",
+        "url": "https://aka.ms/whatsnewsqldb"
+      }
+    ],
+    "ch03": [
+      {
+        "title": "Socrates project",
+        "url": "https://aka.ms/socratesproject"
+      },
+      {
+        "title": "T-SQL differences between SQL Server and Azure SQL Database",
+        "url": "https://aka.ms/azuresqldbtsqldiff"
+      },
+      {
+        "title": "Buffer Pool Extension (the basis for RBPEX)",
+        "url": "https://aka.ms/sqlbpe"
+      },
+      {
+        "title": "Azure SQL Database resource limits",
+        "url": "https://aka.ms/azuresqlresourcelimits"
+      }
+    ],
+    "ch04": [
+      {
+        "title": "Blazor",
+        "url": "https://aka.ms/blazor"
+      },
+      {
+        "title": "SQL drivers and providers",
+        "url": "https://aka.ms/sqldrivers"
+      },
+      {
+        "title": "Agent skills in VS Code",
+        "url": "https://code.visualstudio.com/docs/agent-customization/agent-skills"
+      },
+      {
+        "title": "Agent Skills",
+        "url": "https://agentskills.io/home"
+      },
+      {
+        "title": "Awesome Copilot",
+        "url": "https://github.com/github/awesome-copilot"
+      },
+      {
+        "title": "Visual Studio Code Marketplace",
+        "url": "https://marketplace.visualstudio.com"
+      },
+      {
+        "title": "MSSQL extension and Copilot in VS Code",
+        "url": "https://aka.ms/mssqlvscode"
+      },
+      {
+        "title": "JSON in SQL",
+        "url": "https://aka.ms/jsonsql"
+      },
+      {
+        "title": "Regular expressions in SQL",
+        "url": "https://aka.ms/regexsql"
+      }
+    ],
+    "ch05": [
+      {
+        "title": "Microsoft Foundry",
+        "url": "https://ai.azure.com"
+      },
+      {
+        "title": "DiskANN",
+        "url": "https://aka.ms/diskann"
+      },
+      {
+        "title": "AI_GENERATE_CHUNKS",
+        "url": "https://learn.microsoft.com/sql/t-sql/functions/ai-generate-chunks-transact-sql"
+      },
+      {
+        "title": "Hybrid search sample (full-text and vector re-ranking; older vector syntax)",
+        "url": "https://github.com/Azure-Samples/azure-sql-db-vector-search/tree/main/Hybrid-Search"
+      },
+      {
+        "title": "Azure OpenAI chat completions REST reference",
+        "url": "https://learn.microsoft.com/rest/api/microsoft-foundry/azureopenai/chat"
+      },
+      {
+        "title": "sp_invoke_external_rest_endpoint reference",
+        "url": "https://aka.ms/sqlrestapi"
+      },
+      {
+        "title": "Ledger tables",
+        "url": "https://aka.ms/sqlledger"
+      },
+      {
+        "title": "Content safety policy in Azure API Management",
+        "url": "https://learn.microsoft.com/azure/api-management/llm-content-safety-policy"
+      }
+    ],
+    "ch06": [
+      {
+        "title": "Model Context Protocol (MCP)",
+        "url": "https://modelcontextprotocol.io"
+      },
+      {
+        "title": "Data API builder (DAB)",
+        "url": "https://aka.ms/dab"
+      },
+      {
+        "title": "SQL MCP Server",
+        "url": "https://aka.ms/sqlmcpserver"
+      },
+      {
+        "title": "Microsoft Agent Framework",
+        "url": "https://github.com/microsoft/agent-framework"
+      },
+      {
+        "title": "Agent Skills specification",
+        "url": "https://agentskills.io/specification"
+      },
+      {
+        "title": "Agent skills in Microsoft Agent Framework (C#)",
+        "url": "https://learn.microsoft.com/agent-framework/agents/skills?pivots=programming-language-csharp#skill-structure"
+      }
+    ],
+    "ch07": [
+      {
+        "title": "Azure SQL Database resource limits",
+        "url": "https://aka.ms/azuresqlresourcelimits"
+      },
+      {
+        "title": "Dynamic management views (DMVs)",
+        "url": "https://aka.ms/sqldmvs"
+      },
+      {
+        "title": "Query Store",
+        "url": "https://aka.ms/querystore"
+      },
+      {
+        "title": "Extended Events",
+        "url": "https://aka.ms/sqlxevents"
+      },
+      {
+        "title": "AzureSQLErrors",
+        "url": "https://aka.ms/azuresqlerrors"
+      },
+      {
+        "title": "Azure Monitor OpenTelemetry",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/app/opentelemetry-enable"
+      },
+      {
+        "title": "Application Insights",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview"
+      },
+      {
+        "title": "GenAI gateway capabilities in Azure API Management",
+        "url": "https://learn.microsoft.com/azure/api-management/genai-gateway-capabilities"
+      }
+    ],
+    "ch08": [
+      {
+        "title": "Row-level security (RLS)",
+        "url": "https://aka.ms/sqlrls"
+      },
+      {
+        "title": "Ledger",
+        "url": "https://aka.ms/sqlledger"
+      },
+      {
+        "title": "User-assigned managed identity for Azure SQL",
+        "url": "https://learn.microsoft.com/azure/azure-sql/database/authentication-azure-ad-user-assigned-managed-identity"
+      },
+      {
+        "title": "Outbound firewall rules",
+        "url": "https://learn.microsoft.com/azure/azure-sql/database/outbound-firewall-rule-overview"
+      },
+      {
+        "title": "Transparent data encryption (TDE)",
+        "url": "https://aka.ms/sqltde"
+      },
+      {
+        "title": "Always Encrypted with secure enclaves",
+        "url": "https://aka.ms/sqlae"
+      },
+      {
+        "title": "Research paper on Always Encrypted and secure enclaves",
+        "url": "https://dl.acm.org/doi/epdf/10.1145/3318464.3386141"
+      },
+      {
+        "title": "Azure SQL Database auditing",
+        "url": "https://aka.ms/azuresqlaudit"
+      },
+      {
+        "title": "Microsoft Defender for SQL",
+        "url": "https://learn.microsoft.com/azure/defender-for-cloud/defender-for-sql-introduction"
+      }
+    ],
+    "ch09": [
+      {
+        "title": "Azure SQL service level agreement (SLA)",
+        "url": "https://aka.ms/azuresqlsla"
+      },
+      {
+        "title": "Configurable retry logic in Microsoft.Data.SqlClient",
+        "url": "https://learn.microsoft.com/sql/connect/ado-net/configurable-retry-logic"
+      },
+      {
+        "title": "Databases - Failover REST API",
+        "url": "https://learn.microsoft.com/rest/api/sql/databases/failover"
+      },
+      {
+        "title": "Ways to trigger a manual failover",
+        "url": "https://aka.ms/testazuresqlfailover"
+      },
+      {
+        "title": "Azure availability zones",
+        "url": "https://azure.microsoft.com/explore/global-infrastructure/availability-zones"
+      },
+      {
+        "title": "Azure regions and zone support",
+        "url": "https://learn.microsoft.com/azure/reliability/regions-list"
+      },
+      {
+        "title": "Azure paired regions",
+        "url": "https://aka.ms/azurepairedregions"
+      },
+      {
+        "title": "Immutable backups",
+        "url": "https://learn.microsoft.com/azure/azure-sql/database/backup-immutability"
+      },
+      {
+        "title": "Point-in-time restore (PITR)",
+        "url": "https://aka.ms/sqlpitr"
+      },
+      {
+        "title": "Database copy",
+        "url": "https://aka.ms/azuresqldbcopy"
+      },
+      {
+        "title": "Planned maintenance events",
+        "url": "https://learn.microsoft.com/azure/azure-sql/database/planned-maintenance"
+      }
+    ],
+    "ch10": [
+      {
+        "title": "Redmond Magazine: why Hyperscale is not just for massive workloads",
+        "url": "https://redmondmag.com/articles/2026/07/21/why-azure-sql-database-hyperscale-is-not-just-for-massive-workloads.aspx"
+      },
+      {
+        "title": "Azure SQL performance tuning",
+        "url": "https://aka.ms/azuresqltune"
+      },
+      {
+        "title": "SQL Server performance tuning",
+        "url": "https://aka.ms/sqlservertune"
+      },
+      {
+        "title": "Query processing architecture",
+        "url": "https://aka.ms/sqlqp"
+      },
+      {
+        "title": "Query Store",
+        "url": "https://aka.ms/querystore"
+      },
+      {
+        "title": "sqlsimtools (sqlsim)",
+        "url": "https://aka.ms/sqlsimtools"
+      },
+      {
+        "title": "Named replicas",
+        "url": "https://aka.ms/namedreplicas"
+      },
+      {
+        "title": "Query Store for secondary replicas",
+        "url": "https://learn.microsoft.com/sql/relational-databases/performance/query-store-for-secondary-replicas"
+      },
+      {
+        "title": "Serverless",
+        "url": "https://aka.ms/azuresqlserverless"
+      },
+      {
+        "title": "ProRP research paper",
+        "url": "https://www.microsoft.com/research/publication/prorp"
+      },
+      {
+        "title": "CREATE JSON INDEX",
+        "url": "https://learn.microsoft.com/sql/t-sql/statements/create-json-index-transact-sql"
+      },
+      {
+        "title": "Intelligent query processing (IQP)",
+        "url": "https://aka.ms/sqliqp"
+      },
+      {
+        "title": "Memory grant feedback",
+        "url": "https://aka.ms/sqlmgf"
+      },
+      {
+        "title": "Optimized locking demo",
+        "url": "https://github.com/microsoft/bobsql/tree/master/demos/sqlserver2025/optimized_locking"
+      },
+      {
+        "title": "Optimized locking",
+        "url": "https://aka.ms/optimizedlocking"
+      },
+      {
+        "title": "Automatic index compaction demo",
+        "url": "https://github.com/microsoft/bobsql/tree/master/demos/auto_index_compaction"
+      },
+      {
+        "title": "Automatic index compaction",
+        "url": "https://aka.ms/sqlaic"
+      },
+      {
+        "title": "Independent Hyperscale performance study",
+        "url": "https://aka.ms/hyperscalebenchmark"
+      }
+    ],
+    "ch11": [
+      {
+        "title": "Microsoft Foundry",
+        "url": "https://ai.azure.com"
+      },
+      {
+        "title": "Foundry Agent Service",
+        "url": "https://learn.microsoft.com/azure/foundry/agents/overview"
+      },
+      {
+        "title": "SqlPackage",
+        "url": "https://aka.ms/sqlpackages"
+      },
+      {
+        "title": "Azure Database Migration Service",
+        "url": "https://aka.ms/dms"
+      },
+      {
+        "title": "Database compatibility level",
+        "url": "https://aka.ms/dbcompat"
+      },
+      {
+        "title": "T-SQL differences between SQL Server and Azure SQL Database",
+        "url": "https://aka.ms/azuresqldbtsqldiff"
+      },
+      {
+        "title": "Microsoft Entra authentication with Microsoft.Data.SqlClient",
+        "url": "https://learn.microsoft.com/sql/connect/ado-net/sql/azure-active-directory-authentication"
+      },
+      {
+        "title": "Azure SQL trigger for Azure Functions",
+        "url": "https://learn.microsoft.com/azure/azure-functions/functions-bindings-azure-sql-trigger"
+      },
+      {
+        "title": "Change event streaming (CES)",
+        "url": "https://learn.microsoft.com/sql/relational-databases/track-changes/change-event-streaming/overview"
+      },
+      {
+        "title": "Fabric Mirroring for SQL",
+        "url": "https://aka.ms/sqlmirroring"
+      },
+      {
+        "title": "Azure SQL Database Container",
+        "url": "https://microsoft.github.io/azure-sql-database-container"
+      },
+      {
+        "title": "Azure SQL Hyperscale documentation",
+        "url": "https://aka.ms/sqlhyperscale"
+      },
+      {
+        "title": "Azure SQL Foundations companion repo",
+        "url": "https://aka.ms/azuresqlfoundations"
+      },
+      {
+        "title": "Azure SQL Foundations video series",
+        "url": "https://aka.ms/azuresqlfoundationseries"
+      },
+      {
+        "title": "Bob Ward's presentations",
+        "url": "https://aka.ms/bobwardms"
+      },
+      {
+        "title": "sqlsimtools",
+        "url": "https://aka.ms/sqlsimtools"
+      },
+      {
+        "title": "Exam DP-800",
+        "url": "https://aka.ms/dp800/exam"
+      },
+      {
+        "title": "Data Exposed",
+        "url": "https://aka.ms/dataexposed"
+      },
+      {
+        "title": "Azure SQL blog",
+        "url": "https://aka.ms/azuresqlblog"
+      },
+      {
+        "title": "Azure SQL dev blog",
+        "url": "https://devblogs.microsoft.com/azure-sql"
+      }
+    ]
+  }
+}

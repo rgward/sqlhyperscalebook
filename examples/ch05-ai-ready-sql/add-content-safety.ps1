@@ -8,6 +8,9 @@
     Safety resource (F0 = free tier), grants the gateway's managed identity
     "Cognitive Services User" on it, points a gateway backend at it, and
     rewrites the API policy to run every request through <llm-content-safety>.
+    The tier is F0 (free) unless CS_SKU or -CsSku says S0. Azure allows one
+    free Content Safety account per subscription; if one exists elsewhere, the
+    script stops and says so before attempting the create.
     Because an APIM policy PUT is a FULL REPLACE, this rewrite RE-INCLUDES the
     validate-azure-ad-token (managed-identity) block from setup-ai-gateway.ps1 so
     it never drops the passwordless auth. Keep the two policies in sync.
@@ -33,7 +36,10 @@ param(
     [Parameter(Mandatory)][string] $CsResourceName,               # dedicated kind=ContentSafety resource
     [Parameter(Mandatory)][string] $SqlServerName,                # its MI is the ONLY authorized caller
     [string] $Location       = 'centralus',
-    [string] $CsSku          = 'F0',                             # F0 = free; S0 = pay-per-transaction
+    # F0 = free, but Azure allows ONE free Content Safety account per subscription.
+    # S0 = pay-per-transaction. CS_SKU in ch05.env sets it for deploy-ai.ps1.
+    [ValidateSet('F0', 'S0')]
+    [string] $CsSku          = $(if ($env:CS_SKU -in 'F0', 'S0') { $env:CS_SKU } else { 'F0' }),
     [int]    $Threshold      = 2,                                # FourSeverityLevels: 0,2,4,6 (2 = strict)
     [string] $TokenAudience  = 'https://cognitiveservices.azure.com'  # first-party audience (matches setup-ai-gateway.ps1)
 )
@@ -74,10 +80,28 @@ $csExists = az cognitiveservices account show --name $CsResourceName --resource-
 if ($csExists) {
     Write-Host '  Already exists.' -ForegroundColor Green
 } else {
-    az cognitiveservices account create `
+    if ($CsSku -eq 'F0') {
+        # Azure allows one free Content Safety account per subscription. Say so
+        # before the create fails with CanNotCreateMultipleFreeAccounts.
+        $freeAccounts = @(az cognitiveservices account list --query "[?kind=='ContentSafety'].{name:name, resourceGroup:resourceGroup, sku:sku.name}" -o json 2>$null |
+            ConvertFrom-Json | Where-Object { $_.sku -eq 'F0' })
+        if ($freeAccounts.Count -gt 0) {
+            $existing = $freeAccounts[0]
+            Write-Host "  This subscription's one free (F0) Content Safety account is already in use: '$($existing.name)' in resource group '$($existing.resourceGroup)'." -ForegroundColor Red
+            Write-Host '  Azure allows only one per subscription. Either:' -ForegroundColor Red
+            Write-Host "    - set CS_SKU=S0 in ch05.env (pay per transaction) and run deploy-ai.ps1 again, or" -ForegroundColor Red
+            Write-Host "    - deploy into resource group '$($existing.resourceGroup)' and set CS_RESOURCE=$($existing.name) to reuse it." -ForegroundColor Red
+            exit 1
+        }
+    }
+    $createOutput = az cognitiveservices account create `
         --name $CsResourceName --resource-group $ResourceGroup --location $Location `
-        --kind ContentSafety --sku $CsSku --custom-domain $CsResourceName --yes --output none
-    if ($LASTEXITCODE -ne 0) { Write-Host '  ERROR creating Content Safety resource.' -ForegroundColor Red; exit 1 }
+        --kind ContentSafety --sku $CsSku --custom-domain $CsResourceName --yes --output none 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host '  ERROR creating Content Safety resource:' -ForegroundColor Red
+        $createOutput | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+        exit 1
+    }
     Write-Host '  Created.' -ForegroundColor Green
 }
 $csResourceId = az cognitiveservices account show --name $CsResourceName --resource-group $ResourceGroup --query 'id' -o tsv

@@ -1,0 +1,125 @@
+{
+  "source": "Prompts printed in Azure SQL Hyperscale Unveiled (final proof). Each must reach its skill and appear in its chapter README.",
+  "prompts": [
+    {
+      "chapter": 2,
+      "skill": "deploy-hyperscale",
+      "readme": "examples/ch02-getting-started/README.md",
+      "prompt": "I'd like to deploy an Azure SQL Hyperscale database"
+    },
+    {
+      "chapter": 2,
+      "skill": "verify-deployment",
+      "readme": "examples/ch02-getting-started/README.md",
+      "prompt": "Verify my deployment by summarizing the Azure Activity Log."
+    },
+    {
+      "chapter": 4,
+      "skill": "wardgeneral-app",
+      "readme": "examples/ch04-first-app/README.md",
+      "prompt": "Build and run the Ward General Hospital app against my Hyperscale database"
+    },
+    {
+      "chapter": 4,
+      "skill": "wardgeneral-app",
+      "readme": "examples/ch04-first-app/README.md",
+      "prompt": "Run the Ward General Hospital app. My logical server is"
+    },
+    {
+      "chapter": 5,
+      "skill": "ai-ready-app",
+      "readme": "examples/ch05-ai-ready-sql/README.md",
+      "prompt": "prepare the application for AI"
+    },
+    {
+      "chapter": 5,
+      "skill": "ai-ready-app",
+      "readme": "examples/ch05-ai-ready-sql/README.md",
+      "prompt": "run the app with AI"
+    },
+    {
+      "chapter": 5,
+      "skill": "ai-ready-app",
+      "readme": "examples/ch05-ai-ready-sql/README.md",
+      "prompt": "Tear down and rebuild all the Chapter 5 Azure AI resources but leave the logical server and wardgeneral database alone"
+    },
+    {
+      "chapter": 6,
+      "skill": "wardgeneral-agent",
+      "readme": "examples/ch06-agentic-ai/README.md",
+      "prompt": "build the Chapter 6 agent"
+    },
+    {
+      "chapter": 7,
+      "skill": "observe-hyperscale-performance",
+      "readme": "examples/ch07-observability/perf/README.md",
+      "prompt": "Run the Chapter 7 performance demo for wardgeneral."
+    },
+    {
+      "chapter": 7,
+      "skill": "observe-hyperscale-availability",
+      "readme": "examples/ch07-observability/availability/README.md",
+      "prompt": "Run the Chapter 7 availability investigation for wardgeneral."
+    },
+    {
+      "chapter": 8,
+      "skill": "secure-hyperscale",
+      "readme": "examples/ch08-security/rls/README.md",
+      "prompt": "Run the Chapter 8 RLS app demo"
+    },
+    {
+      "chapter": 8,
+      "skill": "audit-wardgeneral",
+      "readme": "examples/ch08-security/auditing/README.md",
+      "prompt": "Start the Ward General audit."
+    },
+    {
+      "chapter": 8,
+      "skill": "audit-wardgeneral",
+      "readme": "examples/ch08-security/auditing/README.md",
+      "prompt": "I opened a patient chart. Find my audit activity."
+    },
+    {
+      "chapter": 9,
+      "skill": "test-hyperscale-failover",
+      "readme": "examples/ch09-ha-resiliency/failover/README.md",
+      "prompt": "Run the Chapter 9 failover demo"
+    },
+    {
+      "chapter": 9,
+      "skill": "deploy-wardgeneral-geo-replica",
+      "readme": "examples/ch09-ha-resiliency/geo/README.md",
+      "prompt": "Create the Ward General geo-replica"
+    },
+    {
+      "chapter": 9,
+      "skill": "recover-wardgeneral-pitr",
+      "readme": "examples/ch09-ha-resiliency/pitr/README.md",
+      "prompt": "Create a current Ward General test database using PITR."
+    },
+    {
+      "chapter": 10,
+      "skill": "scale-wardgeneral-compute",
+      "readme": "examples/ch10-performance/01-scale-compute/README.md",
+      "prompt": "Run Chapter 10 Demo 1 and preview the 8 → 16 → 40 vCore progression."
+    },
+    {
+      "chapter": 10,
+      "skill": "grow-wardgeneral-database",
+      "readme": "examples/ch10-performance/02-grow-data/README.md",
+      "prompt": "Run Chapter 10 Demo 2: drive Ward General writes for five minutes and identify whether any constraints were observed in the measured evidence."
+    },
+    {
+      "chapter": 10,
+      "skill": "tune-wardgeneral-data",
+      "readme": "examples/ch10-performance/03-tune-grown-data/README.md",
+      "prompt": "Run the Chapter 10 JSON index demo"
+    },
+    {
+      "chapter": 10,
+      "skill": "tune-wardgeneral-data",
+      "readme": "examples/ch10-performance/03-tune-grown-data/README.md",
+      "prompt": "Run the Chapter 10 memory grant feedback demo."
+    }
+  ]
+}

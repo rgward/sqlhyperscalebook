@@ -100,6 +100,13 @@ rows have arrived, do not widen the interval, poll, or generate replacement
 activity. Preserve both UTC bounds and tell the reader to invoke the same
 continuation prompt after a few minutes; rerun the identical interval then.
 
+Exception: a destination created in this workflow can take up to 90 minutes to
+start receiving events, and activity before then is never retained. If the
+script reports *No audit records have reached workspace … yet* and setup was
+less than about 90 minutes ago, explain this. Rerunning the same interval may
+never return the activity. Offer to record a new UTC start time and have the
+reader open a chart again; don't do it without their agreement.
+
 If the saved start time is unavailable, say so. Use the script's default
 previous-30-minute window only with the reader's approval, because it is less
 discriminating than the intended fixed interval.

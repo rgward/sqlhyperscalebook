@@ -93,6 +93,7 @@ Write-Host ''
 $rows    = [System.Collections.Generic.List[object]]::new()
 $notes   = [System.Collections.Generic.List[string]]::new()
 $creates = 0
+$csFreeInUse = $false
 
 function Add-Row([string] $What, [string] $Name, [bool] $Exists, [string] $WhenAbsent) {
     $status = if ($Exists) { 'exists' } else { $WhenAbsent }
@@ -176,7 +177,19 @@ if (-not $NoGateway) {
     }
 
     $csOk = [bool] (Get-AzValue @('cognitiveservices', 'account', 'show', '-n', $cs, '-g', $rg, '--query', 'name', '-o', 'tsv'))
-    Add-Row 'Content Safety' $cs $csOk 'WILL BE CREATED'
+    $csSku = if ($env:CS_SKU -in 'F0', 'S0') { $env:CS_SKU } else { 'F0' }
+    if (-not $csOk -and $csSku -eq 'F0') {
+        # Azure allows one free Content Safety account per subscription.
+        $freeCs = @((Get-AzValue @('cognitiveservices', 'account', 'list', '--query', "[?kind=='ContentSafety'].[name, resourceGroup, sku.name]", '-o', 'tsv')) -split '\r?\n' |
+            Where-Object { ($_ -split '\t')[2] -eq 'F0' })
+        if ($freeCs.Count -gt 0) {
+            $csFreeInUse = $true
+            $first = $freeCs[0] -split '\t'
+            $notes.Add("This subscription's one free (F0) Content Safety account is already in use: '$($first[0])' in resource group '$($first[1])'. Azure allows only one, so creating '$cs' on F0 would fail. Set CS_SKU=S0 in ch05.env (pay per transaction), or deploy into '$($first[1])' with CS_RESOURCE=$($first[0]) to reuse it.")
+        }
+    }
+    Add-Row 'Content Safety' $cs $csOk $(if ($csFreeInUse) { 'FREE TIER IN USE' } else { "WILL BE CREATED ($csSku)" })
+    if (-not $csOk -and -not $csFreeInUse) { $script:creates++ }
 
     # The one value in this chapter that changes behaviour rather than naming -
     # but only worth a note when something is actually about to be created. A
@@ -224,6 +237,12 @@ if (-not $rgOk -or -not $srvOk -or -not $dbOk) {
 
 if ($aiNameTaken) {
     Write-Host "Choose a different AI_RESOURCE in ch05.env before running deploy-ai.ps1 (see the note above)." -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
+
+if ($csFreeInUse) {
+    Write-Host "Set CS_SKU=S0 in ch05.env, or run with -NoGateway, before running deploy-ai.ps1 (see the note above)." -ForegroundColor Red
     Write-Host ''
     exit 1
 }

@@ -79,12 +79,26 @@ $queryBody = @{
         $StartUtc.ToUniversalTime().ToString('o'), `
         $EndUtc.ToUniversalTime().ToString('o')
 } | ConvertTo-Json
-$response = Invoke-RestMethod `
-    -Method Post `
-    -Uri "https://api.loganalytics.io/v1/workspaces/$($workspace.customerId)/query" `
-    -Headers @{ Authorization = "Bearer $logsToken" } `
-    -ContentType 'application/json' `
-    -Body $queryBody
+try {
+    $response = Invoke-RestMethod `
+        -Method Post `
+        -Uri "https://api.loganalytics.io/v1/workspaces/$($workspace.customerId)/query" `
+        -Headers @{ Authorization = "Bearer $logsToken" } `
+        -ContentType 'application/json' `
+        -Body $queryBody
+}
+catch {
+    $detail = "$($_.ErrorDetails.Message)"
+    # AzureDiagnostics creates the audit columns (event_time_t, ...) only when the
+    # first audit record arrives, so until then the query cannot resolve them.
+    if ($detail -match 'SEM0100' -and $detail -match 'Failed to resolve column') {
+        Write-Host "No audit records have reached workspace '$WorkspaceName' yet; its audit columns appear with the first record." -ForegroundColor Yellow
+        Write-Host 'A new audit destination can take up to 90 minutes to start receiving events. Open a chart again in a few minutes, then rerun.' -ForegroundColor Yellow
+        return
+    }
+    if ($detail) { throw "Log Analytics rejected the audit query: $detail" }
+    throw
+}
 
 $table = @($response.tables) | Select-Object -First 1
 $rows = if ($table) {

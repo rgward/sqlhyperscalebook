@@ -14,6 +14,8 @@
     ch04.env.template. Run this with no arguments and it will do that copy for
     you and stop, because a template full of <placeholders> is not a
     configuration and running on with it produces a confusing failure later.
+    The exception: if every -Require variable is already set in the shell, a
+    missing ch04.env is not an error, and nothing is copied.
 
     OPTIONAL BY DESIGN. Chapter 4 has three ways to point the app at a database
     and this is only one of them, so run.ps1 and preflight-run.ps1 call this
@@ -78,6 +80,17 @@ if (-not (Test-Path $Path)) {
     # The -Optional caller has other configuration sources and must not be
     # stopped just because this one is absent.
     if ($Optional) { return }
+
+    # The file is one way to supply the names; variables already exported in
+    # the shell are another. If every required one is set, there's nothing to do.
+    $requiredMissing = @($Require | Where-Object {
+        $value = [Environment]::GetEnvironmentVariable($_)
+        [string]::IsNullOrWhiteSpace($value) -or $value -match '<[^>]*>'
+    })
+    if ($Require.Count -gt 0 -and $requiredMissing.Count -eq 0) {
+        if (-not $Quiet) { Write-Host "No $(Split-Path $Path -Leaf); using $($Require -join ', ') from this shell." -ForegroundColor DarkGray }
+        return
+    }
 
     if (Test-Path $template) {
         Copy-Item $template $Path

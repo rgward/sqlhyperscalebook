@@ -233,6 +233,12 @@ Chapter 2's optional
 [`add-replicas.ps1`](../ch02-getting-started/add-replicas.ps1) before you use
 Research.
 
+Content Safety is created on the free **F0** tier by default, and Azure allows
+only **one free Content Safety account per subscription**. If your subscription
+already has one, in any resource group, the check marks the row **FREE TIER IN
+USE**, names the existing account, and stops. Set `CS_SKU=S0` in `ch05.env` to
+create a pay-per-transaction one instead, or run with `-NoGateway`.
+
 **Read that list before you deploy.** Anything you expected to already have,
 showing up as *will be created*, is a typo in `ch05.env` or the wrong
 subscription — not a missing resource. Catching it here is free. Catching it

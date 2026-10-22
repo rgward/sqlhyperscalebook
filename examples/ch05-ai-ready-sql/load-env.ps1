@@ -15,7 +15,8 @@
     ch05.env.template. If ch05.env is missing this script copies the template
     into place and stops, because a template full of <placeholders> is not a
     configuration and running on with it would produce a confusing failure three
-    steps later.
+    steps later. The exception: if every -Require variable is already set in
+    the shell, a missing ch05.env is not an error, and nothing is copied.
 
     PRECEDENCE. A variable already set in the shell WINS over the file, and the
     file is not allowed to quietly overwrite it. Someone who exported SRV by
@@ -62,6 +63,17 @@ if (-not $Path) { $Path = Join-Path $PSScriptRoot 'ch05.env' }
 $template = Join-Path $PSScriptRoot 'ch05.env.template'
 
 if (-not (Test-Path $Path)) {
+    # The file is one way to supply the names; variables already exported in
+    # the shell are another. If every required one is set, there's nothing to do.
+    $requiredMissing = @($Require | Where-Object {
+        $value = [Environment]::GetEnvironmentVariable($_)
+        [string]::IsNullOrWhiteSpace($value) -or $value -match '<[^>]*>'
+    })
+    if ($Require.Count -gt 0 -and $requiredMissing.Count -eq 0) {
+        if (-not $Quiet) { Write-Host "No $(Split-Path $Path -Leaf); using $($Require -join ', ') from this shell." -ForegroundColor DarkGray }
+        return
+    }
+
     if (Test-Path $template) {
         Copy-Item $template $Path
         Write-Host ''

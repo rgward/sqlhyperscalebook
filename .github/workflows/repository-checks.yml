@@ -11,7 +11,7 @@ permissions:
 jobs:
   validate:
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     defaults:
       run:
         shell: pwsh
@@ -38,3 +38,14 @@ jobs:
               throw "Build failed: $project"
             }
           }
+      - name: Install Pester
+        run: Install-Module Pester -MinimumVersion 5.5.0 -Scope CurrentUser -Force -SkipPublisherCheck
+      - name: Run the offline test suite
+        run: ./tests/Invoke-BookTests.ps1 -OutputDirectory ./tests/results/offline
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-test-results
+          path: tests/results/offline
+          if-no-files-found: ignore
