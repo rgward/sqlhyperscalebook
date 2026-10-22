@@ -1,24 +1,17 @@
 ---
 name: deploy-hyperscale
 description: >-
-  Guided, step-by-step deployment of an Azure SQL Hyperscale database for the
-  book's Collier Health / Ward General scenario. Interviews the reader one
-  decision at a time on the create-time choices (region, globally-unique
-  server name, compute size, zone redundancy + HA replica, backup-storage
-  redundancy, collation, admin auth), then provisions the database with the
-  PowerShell + az CLI script, separately offers the optional
-  wardgeneral-research named replica, connects and proves it is SQL Server,
-  builds the through-line
-  schema, and seeds synthetic data. USE WHEN the reader says any
-  of: "I'd like to deploy an Azure SQL Hyperscale database" (the book's
-  prompt), "deploy / create / provision / set up / spin up / stand up my (or a)
-  Hyperscale database", "get started with Azure SQL Hyperscale", "build the
-  Ward General database", "deploy the Chapter 2 database", or "walk me through
-  deploying Hyperscale". Scope is the Chapter 2 deploy + optional named replica +
-  connect + schema + seed workflow ONLY. Do NOT use for scaling compute,
-  ad hoc replica changes outside that workflow, geo-replication, point-in-time
-  restore, security hardening (Entra-only, CMK, auditing), or teardown / cleanup
-  — those are owned by later chapters and their own skills.
+  Guided deployment of the book's Chapter 2 Azure SQL Hyperscale database
+  (Collier Health server, wardgeneral database). Asks one create-time decision
+  at a time (region, server name, compute, zone redundancy and HA replica,
+  backup redundancy, collation, admin auth), provisions with PowerShell and az,
+  offers the optional wardgeneral-research named replica, then connects,
+  builds the schema, and seeds synthetic data. USE WHEN the reader says "I'd
+  like to deploy an Azure SQL Hyperscale database" (the book's prompt),
+  "deploy, create, provision, or set up my Hyperscale database", "get started
+  with Azure SQL Hyperscale", "build the Ward General database", or "deploy the
+  Chapter 2 database". Do NOT use for scaling, geo-replication, restore,
+  security hardening, or teardown; later chapters' skills own those.
 ---
 
 # Deploy a Hyperscale database (guided)

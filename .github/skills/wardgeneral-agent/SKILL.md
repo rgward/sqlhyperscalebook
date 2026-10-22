@@ -1,55 +1,19 @@
 ---
 name: wardgeneral-agent
 description: >-
-  Evolve the existing Chapter 4 Ward General application into the Chapter 6
-  agentic application, deploy the Chapter 6 SQL and DAB/MCP contracts, rebuild
-  the shared app, start the MCP endpoint, and restart Ward General with the
-  AiAgent feature flag. The Chapter 6 workflow is a two-turn SHIFT HANDOFF:
-  find the patients who need one, then prepare an SBAR handoff for a named
-  patient and save it through an approval gate. USE WHEN the reader says any of:
-  "build the Chapter 6 agent", "evolve the Ward General app", "add Agent Skills
-  to Ward General", "add the shift handoff skill", "which patients need a shift
-  handoff", "prepare a shift handoff", "add save_handoff", "add the handoff
-  candidates query", "set up the Chapter 6 app", "run the Chapter 6 app", "run
-  the agentic app", "start the Ward General agent", "enable AiAgent", "set up
-  DAB for Chapter 6", "start the Chapter 6 MCP server", "rebuild the app for
-  Chapter 6", "test the approval flow", "show me what the agent did", "add the
-  agent trace panel". ALSO USE WHEN they say "configure the Chapter 6 app", "where
-  does the Foundry endpoint go", "set up appsettings.Development.json", "the
-  agent has no model endpoint", "ch04.env is missing after a fresh clone", "I
-  cloned this on another machine and nothing runs", "DAB will not start",
-  "Audience and Issuer must be set when using a JWT identity Provider", "the
-  MCP endpoint publishes generic tools in addition to the seven named tools", "dml-tools is being ignored",
-  "which DAB version does Chapter 6 need", "run Chapter 5 and Chapter 6
-  together", "enable AiAssistance and AiAgent", or "make the whole app work at
-  once". ALSO USE WHEN a Chapter 6 run misbehaves and they say "the handoff
-  roster is empty", "no patients need a handoff", "get_handoff_candidates returns
-  nothing", "PendingLabCount is always zero", "refresh the shift window",
-  "re-anchor the demo data", "refresh and run", "refresh the data and start the
-  app", "re-anchor and restart", "I'm back on Chapter 6 a week later", "the demo
-  data has gone stale, get it running again", "the seed data is stale", "the
-  agent has no tools",
-  "show me the agent payload", "what is in the system message", "what is in the
-  user message", "what is in the tools array", "how does load_skill appear in
-  the payload", "show the handoff conversation payload", "how do the model and
-  tools go back and forth",
-  "why is place_order not a tool", "what would it take to expose place_order",
-  "how would the agent place an imaging order", "add an ordering skill", "what
-  is PlaceImagingOrder for", "why deploy a procedure nothing calls", "the
-  ordering plumbing", "imaging orders in Chapter 6",
-  "nothing answering at localhost:5000", "the pre-flight refuses to start the
-  app", "why does run.ps1 need DAB", "the probe shows more than seven tools",
-  "the vitals don't trend", "the trends look fake", "every patient looks the
-  same", "heart rate jumps back down", "the agent says a patient improved when
-  they didn't", "up from / down from is wrong", or "no patient is
-  deteriorating". This is the Chapter 6 end-to-end workflow from Azure SQL
-  Hyperscale Unveiled: evolve the one shared app in examples/ch04-first-app, add
-  clinical.AgentRecommendation and its approval-gated save_handoff MCP tool,
-  publish one DAB endpoint over the wardgeneral primary, build, then enable
-  AiAgent. Scope is Chapter 6 IMPLEMENT + SQL/DAB SETUP + BUILD + RUN. Do NOT
-  create a second Ward General application, deploy the Chapter 5 Azure AI
-  resources, point DAB at the named replica, bypass tool approval, or move the
-  agent into the hosted Foundry Agent runtime; Chapter 11 owns hosted deployment.
+  Chapter 6 end to end: evolve the shared Ward General app into the agentic
+  shift-handoff application (find the patients who need a handoff, then
+  prepare an SBAR handoff and save it through an approval gate). Deploys the
+  Chapter 6 SQL contracts, sets up and starts one DAB SQL MCP endpoint over the
+  wardgeneral primary, rebuilds the app, and restarts it with AiAgent. USE
+  WHEN the reader says "build the Chapter 6 agent" (the book's prompt), "set
+  up, run, or rebuild the Chapter 6 app", "start the Ward General agent",
+  "enable AiAgent", "start the Chapter 6 MCP server", "prepare a shift
+  handoff", or "refresh and run", or reports a Chapter 6 problem: DAB won't
+  start, an empty handoff roster, stale demo data, the agent payload or tools,
+  imaging orders, or vitals trends. Do NOT create a second app, deploy the
+  Chapter 5 Azure AI resources, point DAB at the named replica, bypass tool
+  approval, or move the agent to hosted Foundry Agent Service (Chapter 11).
 ---
 
 # Evolve and run the Ward General agent
@@ -175,6 +139,21 @@ in this repo and worth remembering: `ChatClientAgentOptions` has **no**
 composes inside the gate.
 
 ## Route by intent
+
+Requests this skill owns beyond the book's prompt: evolving the Ward General
+app, Agent Skills and the shift-handoff skill, `save_handoff` and the
+handoff-candidates query; setting up, rebuilding, or running the Chapter 6 app
+and DAB/MCP server, and enabling `AiAgent` (alone or with `AiAssistance`);
+configuration on a fresh clone or second machine (`ch04.env`,
+`appsettings.Development.json`, the Foundry endpoint); DAB failures (won't
+start, JWT "Audience and Issuer must be set", `dml-tools` ignored, more than
+seven tools, version questions); stale demo data (an empty handoff roster,
+`PendingLabCount` always zero, refresh the shift window, refresh and run);
+the agent payload (system and user messages, the tools array, `load_skill`,
+the model/tool exchange); `place_order`, `PlaceImagingOrder`, and imaging
+orders; nothing answering at localhost:5000 or the pre-flight refusing to
+start; and vitals trends that look wrong (no change, no deterioration, wrong
+"up from / down from").
 
 The code for Chapter 6 **ships complete** in `examples/ch04-first-app/src/`. A
 reader's request never needs app source edited. Rows marked *maintainer* are for

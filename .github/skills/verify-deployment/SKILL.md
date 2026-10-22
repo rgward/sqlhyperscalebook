@@ -1,22 +1,14 @@
 ---
 name: verify-deployment
 description: >-
-  Verify an Azure SQL Hyperscale deployment from the CONTROL PLANE by
-  summarizing the Azure Activity Log for the resource group — every operation
-  Azure Resource Manager ran to build the database (create server, create
-  database, firewall rules, Entra admin, threat-detection policy) — as
-  events-by-status, events-by-operation, a most-recent-events table, and an
-  explicit failure flag. Read-only; creates and changes nothing. USE WHEN the
-  reader says any of: "Verify my deployment by summarizing the Azure Activity
-  Log" (the book's prompt), "verify my deployment", "check my deployment", "did my
-  deployment succeed / work", "summarize the Azure Activity Log", "check the
-  activity log", "confirm the deploy worked", "verify the deployment via the
-  activity log", or "show me the control-plane activity for my database". This
-  is the deploy / control-plane proof — the third verification angle alongside
-  connect-and-verify.sql (engine/tier) and verify-data.sql (data). Scope:
-  read-only Activity Log summary ONLY. Do NOT use to deploy, scale, connect, or
-  run the schema/data checks — those are owned by the deploy-hyperscale skill
-  and the connect-and-verify.sql / verify-data.sql scripts.
+  Verify a Chapter 2 Azure SQL Hyperscale deployment from the control plane by
+  summarizing the Azure Activity Log for its resource group: events by status
+  and operation, the most recent events, and an explicit failure flag.
+  Read-only. USE WHEN the reader says "Verify my deployment by summarizing the
+  Azure Activity Log" (the book's prompt), "verify my deployment", "did my
+  deployment succeed", "summarize the Azure Activity Log", or "check the
+  activity log". Do NOT use to deploy, scale, or connect, or for the
+  connect-and-verify.sql and verify-data.sql checks.
 ---
 
 # Verify a Hyperscale deployment — control-plane proof

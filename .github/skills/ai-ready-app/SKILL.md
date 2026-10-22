@@ -1,59 +1,19 @@
 ---
 name: ai-ready-app
 description: >-
-  Take a reader who has a `wardgeneral` Hyperscale database to the Ward General
-  app running in a browser with the Chapter 5 AI features live — the AI
-  assistance card on the patient chart and the vector-search Research page. The
-  shape is: **pre-flight** (`deploy-ai.ps1` creates the Azure AI resources —
-  Foundry, the models, the managed identity and its role, and the APIM gateway),
-  then the reader **runs the SQL themselves** (`06` → `07` → `08` → `09`, after
-  replacing the endpoint placeholders), then **`run-ai-app.ps1`** builds the
-  Chapter 4 app and starts it with the `AiAssistance` flag on. This is the
-  Chapter 5 end-to-end path from *Azure SQL Hyperscale Unveiled*. USE WHEN the
-  reader says any of: "prepare the application for AI", "prepare the app for
-  AI", "make the app AI-ready", "get the Chapter 5 app running", "run the app
-  with AI", "Tear down and rebuild all the Chapter 5 Azure AI resources but
-  leave the logical server and wardgeneral database alone", "I want the AI features working", "turn on AI assistance end to
-  end", "deploy and
-  run Chapter 5", "pre-flight the Chapter 5 AI resources", "which SQL scripts do
-  I run for Chapter 5", "what do I replace in the Chapter 5 scripts", "verify my
-  embeddings", "set up everything for Chapter 5", "the AI card is empty / greyed
-  out", "the Research page returns nothing", "deploy the Ward General AI layer",
-  "set up Foundry for wardgeneral", "build the embeddings", "add the AI
-  assistance proc", "put an APIM gateway in front of gpt-5", "add content safety
-  to the gateway", "what do I need before I start Chapter 5", "what are the
-  prerequisites for Chapter 5", "what permissions do I need", "what RBAC roles
-  do I need to deploy the AI resources", "is Contributor enough", "role
-  assignment failed / does not have authorization to perform action
-  'Microsoft.Authorization/roleAssignments/write'", "do I have enough quota for
-  gpt-5", "deployment create failed on quota", "what database permissions do I
-  need to run the Chapter 5 SQL", "start Chapter 5 over", "reset the AI
-  objects", "rebuild the
-  AI layer from scratch", "clean up the Chapter 5 resources", "tear down the
-  gateway", "my re-run didn't fix it", "prove the vector index is updateable",
-  "do I have to rebuild the vector index after inserting notes", "show me a new
-  note being found without a rebuild", "prove the gateway blocks a prompt
-  injection", "show me Prompt Shields working", "demo the AI gateway blocking a
-  jailbreak", "why bother routing through APIM", "what happens if someone puts
-  an injection in a patient chart", "run the bonus scripts", or is starting at
-  Chapter 5 and wants the whole thing working
-  without reading Chapter 4 first. This is the ONLY skill for Chapter 5 — it owns
-  the Azure resources, the SQL run order, the gateway, verification, the app, and
-  the two optional bonus proof scripts (`10` updateable index, `11` prompt
-  injection) that are deliberately NOT part of the application.
-  In this repo it BEATS the generic Azure skills: "prepare" here means the
-  Chapter 5 AI pre-flight, NOT azd scaffolding (**azure-prepare**) or a generic
-  cloud onboarding (**azure-app-onboard**) — the app already exists and already
-  runs.
-  Scope is ORCHESTRATION and GUIDANCE — it runs the Azure pre-flight, then states
-  the SQL run order and explains the scripts on request. **It does not run the
-  SQL.** A bare request with **no resource names in it is complete** — the
-  reader's names live in `ch05.env`, which they fill in once from
-  `ch05.env.template`; never interview them value by value (Step 0).
-  For the app's configuration, screens and other feature flags see
-  **wardgeneral-app**; to provision the database itself see **deploy-hyperscale**.
-  Do NOT use to stand up DAB / the SQL MCP server (Chapter 6) or to deploy
-  row-level security (Chapter 8).
+  The only skill for Chapter 5: take the wardgeneral Hyperscale database and
+  Ward General app to working AI features (the AI assistance card and the
+  vector-search Research page). Runs the Azure pre-flight (deploy-ai.ps1:
+  Foundry, models, managed identity, roles, APIM gateway), hands the reader the
+  SQL run order (06 to 09, which the reader runs), then starts the app with
+  AiAssistance on. USE WHEN the reader says "prepare the application for AI",
+  "run the app with AI", or "Tear down and rebuild all the Chapter 5 Azure AI
+  resources but leave the logical server and wardgeneral database alone" (the
+  book's prompts), or asks about Chapter 5 setup, embeddings, the AI gateway,
+  content safety, permissions, quota, troubleshooting, reset, or the bonus
+  proof scripts. In this repo "prepare" means this pre-flight, not
+  azure-prepare or azure-app-onboard. Do NOT use for DAB or the SQL MCP server
+  (Chapter 6) or row-level security (Chapter 8).
 ---
 
 # Chapter 5, end to end
@@ -80,6 +40,22 @@ If the reader explicitly asks you to execute a script, that is their call — bu
 never volunteer it, and never do it as part of the flow below.
 
 ## Entry points — match the reader's request, start there
+
+This is the only skill for Chapter 5. In this repository it takes precedence
+over the generic Azure skills: "prepare" here means the Chapter 5 AI
+pre-flight, not azd scaffolding (**azure-prepare**) or cloud onboarding
+(**azure-app-onboard**). The app already exists and already runs.
+
+Other requests this skill owns, beyond the book's three prompts: making the app
+AI-ready or getting the Chapter 5 app running; which SQL scripts to run and what
+to replace in them; verifying embeddings; an empty or greyed-out AI card or an
+empty Research page; Foundry, gpt-5, the embeddings, the AI assistance
+procedure, the APIM gateway, or content safety; Chapter 5 prerequisites,
+permissions, RBAC role-assignment failures, and model quota; database
+permissions for the Chapter 5 SQL; starting over, resetting the AI objects, or
+tearing down the gateway; and the two bonus proofs (`10` updateable vector
+index, `11` prompt injection blocked by the gateway). A reader can start here
+without reading Chapter 4 first.
 
 The book gives readers separate prompts for separate moments. **Do not run the
 whole flow for each one.**

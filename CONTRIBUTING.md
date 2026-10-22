@@ -29,6 +29,13 @@ All example data must remain synthetic.
 Update directly related documentation. Explain any changed prerequisites,
 costs, approval gates, cleanup behavior, or re-run behavior.
 
+When you change a Copilot skill under `.github/skills/`, keep its
+`description` to 1,024 characters or fewer and keep the book's prompts in it.
+Copilot reads only the description when choosing a skill, and it silently drops
+a skill whose description is longer. Then run
+`./tests/Measure-SkillRouting.ps1` to confirm the book's prompts still route to
+the right skill.
+
 ## Validate locally
 
 From the repository root, run the offline test suite in PowerShell 7. It needs
