@@ -342,3 +342,25 @@ Describe 'sqlsim workloads (Chapter 10)' -Tag 'Offline' {
         [int]$match.Groups[1].Value | Should -BeGreaterOrEqual 60
     }
 }
+Describe 'Log Analytics query windows' -Tag 'Offline' {
+    It 'every timespan sent to Log Analytics is a valid ISO 8601 duration or interval' {
+        # "P2H" (no T before the hours) is accepted without error but treated as
+        # an empty window: azuresqlerrors.ps1 returned no rows for every reader.
+        $root = Get-BookRepoRoot
+        $bad = foreach ($f in Get-ChildItem (Join-Path $root 'examples') -Recurse -Filter *.ps1) {
+            foreach ($m in Select-String -LiteralPath $f.FullName -Pattern 'timespan\s*=\s*(.+)$') {
+                $value = $m.Matches[0].Groups[1].Value
+                # A duration literal must put hours/minutes/seconds after T.
+                if ($value -match '"P(?!T)[^"/]*\$\{?\w+\}?[HMS]"' -or $value -match "'P(?!T)\d+[HMS]'" -or $value -match '"P(?!T)\d+[HMS]"') {
+                    "$($f.Name):$($m.LineNumber): $($m.Line.Trim())"
+                }
+            }
+        }
+        $bad | Should -BeNullOrEmpty -Because 'use PT-prefixed hours (PT2H); P is for days (P1D)'
+    }
+
+    It 'azuresqlerrors.ps1 sends a PT-prefixed hour window' {
+        $text = Get-Content -LiteralPath (Get-BookPath 'examples/ch07-observability/engineevents/azuresqlerrors/azuresqlerrors.ps1') -Raw
+        $text | Should -Match 'timespan\s*=\s*"PT\$\{Hours\}H"'
+    }
+}

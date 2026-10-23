@@ -76,14 +76,15 @@ Describe 'Chapter 7 - AzureSQLErrors in Log Analytics' -Tag 'Ch07', 'LogAnalytic
     }
 
     It 'finds the errors in AzureSQLErrors (azuresqlerrors.ps1, waits for routing and ingestion)' {
-        # A new diagnostic setting can take up to 90 minutes to start sending, and
-        # errors raised before then are never retained, so raise a fresh one each poll.
+        # Rows arrived about 10 minutes after setup in testing; allow 40. A fresh
+        # error each poll covers routing that starts after the first error. The
+        # row must carry the marker, so the query really reads this database.
         $script:poll = 0
-        $found = Wait-BookCondition -Because 'AzureSQLErrors rows to arrive (routing start + ingestion delay)' -TimeoutSeconds 6000 -IntervalSeconds 300 -Condition {
+        $found = Wait-BookCondition -Because 'AzureSQLErrors rows to arrive (routing start + ingestion delay)' -TimeoutSeconds 2400 -IntervalSeconds 180 -Condition {
             $script:poll++
             $null = Invoke-BookSql -File "$ch/engineevents/azuresqlerrors/generate-azuresqlerror.sql" -Name "ch07/generate-azuresqlerror-$($script:poll)" -AllowFailure
             $r = Invoke-BookScript -Script "$ch/engineevents/azuresqlerrors/azuresqlerrors.ps1" -Arguments '-Hours 2' -Name "ch07/azuresqlerrors-$($script:poll)" -TimeoutMinutes 10
-            $r.Text -match 'Returned [1-9]\d* AzureSQLErrors row'
+            $r.Text -match 'Returned [1-9]\d* AzureSQLErrors row' -and $r.Text -match 'CH07_ENGINEEVENTS_AZURESQLERRORS_TEST'
         }
         $found | Should -BeTrue
     }

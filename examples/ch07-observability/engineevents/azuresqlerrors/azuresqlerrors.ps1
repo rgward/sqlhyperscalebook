@@ -154,9 +154,12 @@ try {
     $logsToken = az account get-access-token `
         --resource https://api.loganalytics.io `
         --query accessToken -o tsv
+    # ISO 8601 duration: hours need the time designator (PT2H). Log Analytics
+    # accepts "P2H" without an error but treats it as an empty window, so every
+    # query returned no rows.
     $queryBody = @{
         query = $query
-        timespan = "P${Hours}H"
+        timespan = "PT${Hours}H"
     } | ConvertTo-Json
     $queryResponse = Invoke-RestMethod `
         -Method Post `
