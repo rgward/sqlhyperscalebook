@@ -364,3 +364,61 @@ Describe 'Log Analytics query windows' -Tag 'Offline' {
         $text | Should -Match 'timespan\s*=\s*"PT\$\{Hours\}H"'
     }
 }
+Describe 'azuresqlerrors.ps1 -Wait (Chapter 7)' -Tag 'Offline' {
+    BeforeAll {
+        $s = 'examples/ch07-observability/engineevents/azuresqlerrors/azuresqlerrors.ps1'
+        $rules = [ordered]@{ '^resource show' = '{"name":"wardgeneral-ch07-logs","customerId":"ws-1"}' }
+        $marker = 'CH07_ENGINEEVENTS_AZURESQLERRORS_TEST'
+        # Log Analytics answers with no rows until call number $ArrivesOnCall.
+        function New-LogAnalyticsMock([int] $ArrivesOnCall) {
+            $counter = Join-Path (New-TestScratch 'la') 'calls.txt'
+            @"
+function global:Invoke-RestMethod {
+    param(`$Method, `$Uri, `$Headers, `$ContentType, `$Body)
+    if (`$Uri -match 'ResourceGraph') {
+        return [pscustomobject]@{ data = @([pscustomobject]@{ id = '/subscriptions/0/resourceGroups/rg/providers/Microsoft.Sql/servers/collierhealth-test/databases/wardgeneral'; subscriptionId = '0' }) }
+    }
+    `$n = [int](Get-Content -LiteralPath '$counter' -ErrorAction SilentlyContinue) + 1
+    Set-Content -LiteralPath '$counter' -Value `$n
+    `$columns = @('TimeGenerated','ErrorNumber','Severity','State','UserDefined','Message','QueryHash','QueryPlanHash','OperationName') | ForEach-Object { [pscustomobject]@{ name = `$_ } }
+    `$rows = [System.Collections.Generic.List[object]]::new()
+    if (`$n -ge $ArrivesOnCall) { `$rows.Add([object[]]@('2026-10-23T00:00:00Z', 50001, 16, 1, 1, '$marker', '0', '0', 'ErrorEvent')) }
+    [pscustomobject]@{ tables = @([pscustomobject]@{ columns = `$columns; rows = `$rows.ToArray() }) }
+}
+"@
+        }
+        $args3 = "-WorkspaceResourceId '/subscriptions/0/resourceGroups/rg/providers/Microsoft.OperationalInsights/workspaces/wardgeneral-ch07-logs'"
+    }
+
+    It 'raises the test error again until it arrives, then shows it' {
+        $sqlcmd = New-FakeSqlCmd -Output "Msg 50001, Level 16, State 1`n$marker"
+        $r = Invoke-Book $s "$args3 -Wait -WaitIntervalSeconds 1" -Az $rules -SqlCmd $sqlcmd -Prelude (New-LogAnalyticsMock -ArrivesOnCall 3)
+        $r.ExitCode | Should -Be 0 -Because $r.Text
+        $r.Text | Should -Match 'Raised test error 50001 \(attempt 3\)'
+        $r.Text | Should -Match 'The test error has arrived in AzureSQLErrors'
+        $r.Text | Should -Match 'Returned 1 AzureSQLErrors row'
+        @(Get-Content $sqlcmd.LogPath | Where-Object { $_ -match 'generate-azuresqlerror\.sql' }).Count | Should -Be 3
+    }
+
+    It 'stops with guidance when the error has not arrived in time' {
+        $sqlcmd = New-FakeSqlCmd -Output "Msg 50001, Level 16, State 1`n$marker"
+        $r = Invoke-Book $s "$args3 -Wait -WaitMinutes 1 -WaitIntervalSeconds 61" -Az $rules -SqlCmd $sqlcmd -Prelude (New-LogAnalyticsMock -ArrivesOnCall 99)
+        $r.Text | Should -Match 'had not arrived after 1 minutes'
+        $r.Text | Should -Match 'No AzureSQLErrors rows were returned'
+    }
+
+    It 'fails clearly when the test error cannot be raised' {
+        $sqlcmd = New-FakeSqlCmd -Output "Login failed: Client with IP address is not allowed to access the server."
+        $r = Invoke-Book $s "$args3 -Wait -WaitIntervalSeconds 1" -Az $rules -SqlCmd $sqlcmd -Prelude (New-LogAnalyticsMock -ArrivesOnCall 1)
+        $r.ExitCode | Should -Not -Be 0
+        $r.Text | Should -Match 'Could not raise the test error'
+    }
+
+    It 'without -Wait, queries once and raises nothing' {
+        $sqlcmd = New-FakeSqlCmd -Output $marker
+        $r = Invoke-Book $s $args3 -Az $rules -SqlCmd $sqlcmd -Prelude (New-LogAnalyticsMock -ArrivesOnCall 1)
+        $r.ExitCode | Should -Be 0 -Because $r.Text
+        $r.Text | Should -Match 'Returned 1 AzureSQLErrors row'
+        @(Get-Content $sqlcmd.LogPath -ErrorAction SilentlyContinue | Where-Object { $_ -match '-i ' }).Count | Should -Be 0
+    }
+}

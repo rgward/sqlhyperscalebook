@@ -69,10 +69,16 @@ the README.
 When authorized:
 
 1. Run `azuresqlerrors/setup-azuresqlerrors.ps1 -WhatIf` and show the plan.
-2. Run `azuresqlerrors/setup-azuresqlerrors.ps1` only after approval.
-3. Run `azuresqlerrors/generate-azuresqlerror.sql` once when a controlled
-  retained event is requested; a nonzero exit is expected.
-4. Run `azuresqlerrors/azuresqlerrors.ps1` to query the configured lookback.
+2. Run `azuresqlerrors/setup-azuresqlerrors.ps1` only after approval. If the
+   reader is starting Chapter 7, suggest doing this first and returning to it
+   after the other examples, because the route takes time to start.
+3. When a controlled retained event is requested, run
+   `azuresqlerrors/azuresqlerrors.ps1 -Wait`. It raises error 50001 with
+   `generate-azuresqlerror.sql`, checks `AzureSQLErrors`, and repeats every 5
+   minutes until the error arrives (up to 3 hours). Run it in a terminal and
+   tell the reader it can take from a few minutes to a few hours.
+4. Run `azuresqlerrors/azuresqlerrors.ps1` without `-Wait` to query the
+   configured lookback at any other time.
 5. Interpret rows using the source-confirmed capture contract below. Distinguish
    no retained rows from proof that the application saw no SQL errors.
 
@@ -97,18 +103,20 @@ severity 16 and the workflow uses an Azure connection to `wardgeneral`. If it
 does not appear, investigate ingestion delay, diagnostic routing, and telemetry
 loss; do not infer an undocumented error-number allowlist.
 
-A diagnostic setting created in this session can take time to start sending
-events (about 10 minutes in testing; Azure allows up to 90), and an error raised
-before routing starts is never retained. If setup just ran and the query returns
-no rows, say so, and offer to raise error 50001 again after 10–15 minutes and
-re-query. Don't report the route as broken until a fresh error, raised well
-after setup, is still missing.
+A diagnostic setting starts sending at an unpredictable moment: in testing on
+2026-10-23 it ranged from about 1 minute to about 3 hours, longer than the 90
+minutes Azure documents, regardless of how the server was created. An error
+raised before then is never retained, even after the route starts. So a single
+error raised right after setup can be lost for good. Use `-Wait`, which keeps
+raising fresh errors until one arrives. Don't report the route as broken unless
+`-Wait` times out.
 
 When the reader asks specifically for an object-not-found test, run
 `azuresqlerrors/generate-object-not-found.sql` exactly once instead. Its
 deliberately misspelled `clinical.Observaton` reference raises system error 208,
-severity 16, and changes no data or schema. A nonzero sqlcmd exit is expected;
-do not retry.
+severity 16, and changes no data or schema. A nonzero sqlcmd exit is expected.
+If the route may not have started yet, say that this error can be lost and
+offer `-Wait` afterwards.
 
 Run `azuresqlerrors/teardown-azuresqlerrors.ps1 -WhatIf` first. Delete the
 diagnostic setting and workspace only after explicit approval. Recoverable

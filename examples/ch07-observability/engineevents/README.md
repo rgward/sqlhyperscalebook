@@ -73,18 +73,28 @@ existing untagged workspace or a same-named diagnostic setting that points
 somewhere else.
 
 Log delivery is asynchronous. Events generated before the diagnostic setting
-exists are not backfilled.
+exists are not backfilled, and neither are events generated before Azure starts
+sending a new setting's events, which takes anything from a few minutes to a
+few hours. Run the setup at the start of your Chapter 7 session.
 
-After setup, run `generate-azuresqlerror.sql` once against `wardgeneral` with
-the MSSQL extension, SSMS, or the new sqlcmd. The expected result is error
-50001 with marker `CH07_ENGINEEVENTS_AZURESQLERRORS_TEST`. The error is
-intentional and changes no data or schema. Allow for ingestion delay before
-querying the workspace.
+When you're ready, raise the test error and wait for it to arrive:
 
-To test a familiar system error instead, run
-`azuresqlerrors/generate-object-not-found.sql` once. Its deliberately
-misspelled `clinical.Observaton` reference raises error 208, severity 16. A
-nonzero client exit is expected; do not retry it.
+```powershell
+./examples/ch07-observability/engineevents/azuresqlerrors/azuresqlerrors.ps1 -Wait
+```
+
+`-Wait` runs `generate-azuresqlerror.sql` (error 50001 with marker
+`CH07_ENGINEEVENTS_AZURESQLERRORS_TEST`), checks `AzureSQLErrors`, and repeats
+every 5 minutes until the error appears, for up to 3 hours. The error is
+intentional and changes no data or schema.
+
+To raise an error yourself instead, run `generate-azuresqlerror.sql` once
+against `wardgeneral` with the MSSQL extension, SSMS, or the new sqlcmd. To
+test a familiar system error, run `azuresqlerrors/generate-object-not-found.sql`
+once. Its deliberately misspelled `clinical.Observaton` reference raises error
+208, severity 16. A nonzero client exit is expected for both. If an error you
+raised yourself never appears, it was probably raised before Azure started
+sending; use `-Wait`.
 
 ## Query retained errors
 
