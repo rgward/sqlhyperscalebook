@@ -6,6 +6,8 @@
 
 Companion examples for the Apress book by **Bob Ward**
 
+[View or download the book cover (PDF)](figures/book-cover.pdf)
+
 Special thanks to **Kendal Van Dyke** for reviewing both the book and this repository.
 
 [![Repository checks](https://github.com/rgward/sqlhyperscalebook/actions/workflows/repository-checks.yml/badge.svg)](https://github.com/rgward/sqlhyperscalebook/actions/workflows/repository-checks.yml)
