@@ -196,5 +196,5 @@ Write-Host 'Category           : Errors' -ForegroundColor Gray
 Write-Host 'Destination schema : resource specific' -ForegroundColor Gray
 Write-Host ''
 Write-Host 'Log ingestion is billable and asynchronous. Use teardown-azuresqlerrors.ps1 when finished.' -ForegroundColor Yellow
-Write-Host 'A new diagnostic setting can take up to 90 minutes to start sending events; errors raised before then are' -ForegroundColor Yellow
-Write-Host 'not retained. If azuresqlerrors.ps1 returns no rows, wait 10-15 minutes, raise the test error again, and re-query.' -ForegroundColor Yellow
+Write-Host 'A new diagnostic setting can take a while to start sending events (about 10 minutes in testing; up to 90). Errors' -ForegroundColor Yellow
+Write-Host 'raised before then are not retained. If azuresqlerrors.ps1 returns no rows, wait 10-15 minutes, raise the test error again, and re-query.' -ForegroundColor Yellow

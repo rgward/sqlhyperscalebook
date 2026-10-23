@@ -83,7 +83,10 @@ capture contract:
   higher, or error number 3257, 3999, 17803, 701, 802, 8645, 8651, 8657, or
   8902.
 - The downstream transformation also requires `is_azure_connection = 1` and
-  `database_id > 4`; it has no additional error-number allowlist.
+  `database_id > 4`; it has no additional error-number allowlist. A connection
+  from a reader's laptop counts as an Azure connection: in testing on
+  2026-10-23, errors raised from a laptop over the public endpoint were
+  retained, as were errors from inside Azure.
 - Rows are category `Errors`, operation `ErrorEvent`, and can carry error
   number, severity, state, message, user-defined flag, query hash, and plan hash.
 - Severity 11–15 application errors are generally excluded. The telemetry
@@ -94,11 +97,12 @@ severity 16 and the workflow uses an Azure connection to `wardgeneral`. If it
 does not appear, investigate ingestion delay, diagnostic routing, and telemetry
 loss; do not infer an undocumented error-number allowlist.
 
-A diagnostic setting created in this session can take up to 90 minutes to
-start sending events, and an error raised before routing starts is never
-retained. If setup just ran and the query returns no rows, say so, and offer to
-raise error 50001 again after 10–15 minutes and re-query. Don't report the
-route as broken until a fresh error, raised well after setup, is still missing.
+A diagnostic setting created in this session can take time to start sending
+events (about 10 minutes in testing; Azure allows up to 90), and an error raised
+before routing starts is never retained. If setup just ran and the query returns
+no rows, say so, and offer to raise error 50001 again after 10–15 minutes and
+re-query. Don't report the route as broken until a fresh error, raised well
+after setup, is still missing.
 
 When the reader asks specifically for an object-not-found test, run
 `azuresqlerrors/generate-object-not-found.sql` exactly once instead. Its
