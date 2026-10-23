@@ -6,6 +6,8 @@
 
 Companion examples for the Apress book by **Bob Ward**
 
+Special thanks to **Kendal Van Dyke** for reviewing both the book and this repository.
+
 [![Repository checks](https://github.com/rgward/sqlhyperscalebook/actions/workflows/repository-checks.yml/badge.svg)](https://github.com/rgward/sqlhyperscalebook/actions/workflows/repository-checks.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Azure SQL Hyperscale](https://img.shields.io/badge/Azure%20SQL-Hyperscale-0078D4.svg)](https://aka.ms/sqlhyperscale)
