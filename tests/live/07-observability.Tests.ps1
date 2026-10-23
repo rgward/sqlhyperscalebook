@@ -8,6 +8,21 @@ BeforeAll {
     $null = Assert-BookDatabase
 }
 
+# First, as the README advises: Azure takes from minutes to hours to start
+# sending a new diagnostic setting's errors, so the route is set up before the
+# other examples and checked at the end.
+Describe 'Chapter 7 - AzureSQLErrors setup' -Tag 'Ch07', 'LogAnalytics' {
+    It 'previews the setup (setup-azuresqlerrors.ps1 -WhatIf)' {
+        $r = Invoke-BookScript -Script "$ch/engineevents/azuresqlerrors/setup-azuresqlerrors.ps1" -Arguments '-WhatIf' -Name 'ch07/setup-azuresqlerrors-whatif' -TimeoutMinutes 10
+        $r.ExitCode | Should -Be 0 -Because $r.LogPath
+    }
+
+    It 'routes errors to Log Analytics (setup-azuresqlerrors.ps1)' {
+        $r = Invoke-BookScript -Script "$ch/engineevents/azuresqlerrors/setup-azuresqlerrors.ps1" -Arguments '-Confirm:$false' -Name 'ch07/setup-azuresqlerrors' -TimeoutMinutes 15
+        $r.ExitCode | Should -Be 0 -Because $r.LogPath
+    }
+}
+
 Describe 'Chapter 7 - performance investigation' -Tag 'Ch07' {
     It 'runs the cold-cache concurrent scans and drill-down (run-performance-demo.ps1)' {
         $out = Get-BookEvidencePath 'ch07/perf-evidence/.keep'
@@ -58,16 +73,6 @@ Describe 'Chapter 7 - Extended Events health session' -Tag 'Ch07' {
 }
 
 Describe 'Chapter 7 - AzureSQLErrors in Log Analytics' -Tag 'Ch07', 'LogAnalytics' {
-    It 'previews the setup (setup-azuresqlerrors.ps1 -WhatIf)' {
-        $r = Invoke-BookScript -Script "$ch/engineevents/azuresqlerrors/setup-azuresqlerrors.ps1" -Arguments '-WhatIf' -Name 'ch07/setup-azuresqlerrors-whatif' -TimeoutMinutes 10
-        $r.ExitCode | Should -Be 0 -Because $r.LogPath
-    }
-
-    It 'routes errors to Log Analytics (setup-azuresqlerrors.ps1)' {
-        $r = Invoke-BookScript -Script "$ch/engineevents/azuresqlerrors/setup-azuresqlerrors.ps1" -Arguments '-Confirm:$false' -Name 'ch07/setup-azuresqlerrors' -TimeoutMinutes 15
-        $r.ExitCode | Should -Be 0 -Because $r.LogPath
-    }
-
     It 'raises the qualifying test errors (generate-*.sql)' {
         $a = Invoke-BookSql -File "$ch/engineevents/azuresqlerrors/generate-azuresqlerror.sql" -Name 'ch07/generate-azuresqlerror' -AllowFailure
         $a.Text | Should -Match 'CH07_ENGINEEVENTS_AZURESQLERRORS_TEST'
@@ -75,18 +80,14 @@ Describe 'Chapter 7 - AzureSQLErrors in Log Analytics' -Tag 'Ch07', 'LogAnalytic
         $b.ExitCode | Should -Not -Be 0
     }
 
-    It 'finds the errors in AzureSQLErrors (azuresqlerrors.ps1, waits for routing and ingestion)' {
-        # Rows arrived about 10 minutes after setup in testing; allow 40. A fresh
-        # error each poll covers routing that starts after the first error. The
-        # row must carry the marker, so the query really reads this database.
-        $script:poll = 0
-        $found = Wait-BookCondition -Because 'AzureSQLErrors rows to arrive (routing start + ingestion delay)' -TimeoutSeconds 2400 -IntervalSeconds 180 -Condition {
-            $script:poll++
-            $null = Invoke-BookSql -File "$ch/engineevents/azuresqlerrors/generate-azuresqlerror.sql" -Name "ch07/generate-azuresqlerror-$($script:poll)" -AllowFailure
-            $r = Invoke-BookScript -Script "$ch/engineevents/azuresqlerrors/azuresqlerrors.ps1" -Arguments '-Hours 2' -Name "ch07/azuresqlerrors-$($script:poll)" -TimeoutMinutes 10
-            $r.Text -match 'Returned [1-9]\d* AzureSQLErrors row' -and $r.Text -match 'CH07_ENGINEEVENTS_AZURESQLERRORS_TEST'
-        }
-        $found | Should -BeTrue
+    It 'finds the test error in AzureSQLErrors (azuresqlerrors.ps1 -Wait)' {
+        # -Wait raises error 50001 and re-checks every 5 minutes until it
+        # arrives; live start delays have ranged from 1 minute to about 3 hours.
+        $r = Invoke-BookScript -Script "$ch/engineevents/azuresqlerrors/azuresqlerrors.ps1" -Arguments '-Wait -WaitMinutes 210 -Hours 8' -Name 'ch07/azuresqlerrors-wait' -TimeoutMinutes 225
+        $r.ExitCode | Should -Be 0 -Because $r.LogPath
+        $r.Text | Should -Match 'The test error has arrived in AzureSQLErrors'
+        $r.Text | Should -Match 'Returned [1-9]\d* AzureSQLErrors row'
+        $r.Text | Should -Match 'CH07_ENGINEEVENTS_AZURESQLERRORS_TEST'
     }
 
     AfterAll {

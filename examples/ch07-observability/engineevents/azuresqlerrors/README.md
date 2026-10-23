@@ -17,6 +17,12 @@ deletion is recoverable unless `-PermanentlyDelete` is explicitly supplied.
 
 ## Workflow
 
+> **Start here first.** Azure takes anything from a few minutes to a few hours
+> to start sending a new database's errors to Log Analytics, and an error
+> raised before then is never retained. Run step 1 at the **start** of your
+> Chapter 7 session, before the performance and availability examples, so the
+> route is ready by the time you get here.
+
 1. Preview and approve setup:
 
    ```powershell
@@ -24,39 +30,37 @@ deletion is recoverable unless `-PermanentlyDelete` is explicitly supplied.
    ./examples/ch07-observability/engineevents/azuresqlerrors/setup-azuresqlerrors.ps1
    ```
 
-2. Generate one controlled error. Use either error 50001:
+2. Raise the test error and wait for it to arrive:
 
-   ```text
-   azuresqlerrors/generate-azuresqlerror.sql
+   ```powershell
+   ./examples/ch07-observability/engineevents/azuresqlerrors/azuresqlerrors.ps1 -Wait
    ```
 
-   Or use the misspelled `clinical.Observaton` reference to generate system
-   error 208:
+   `-Wait` runs `generate-azuresqlerror.sql` (error 50001, marker
+   `CH07_ENGINEEVENTS_AZURESQLERRORS_TEST`), queries `AzureSQLErrors`, and
+   repeats every 5 minutes until the error appears, for up to 3 hours. It then
+   shows every retained error for the database. The test error is intentional
+   and changes no data or schema. Leave it running; most of the time it
+   finishes within 30 minutes.
+
+   To raise an error yourself instead, run either SQL file once against
+   `wardgeneral`, then query (step 3). A nonzero client exit is expected:
 
    ```text
-   azuresqlerrors/generate-object-not-found.sql
+   azuresqlerrors/generate-azuresqlerror.sql       error 50001
+   azuresqlerrors/generate-object-not-found.sql    error 208 (misspelled clinical.Observaton)
    ```
 
-   Run the selected SQL file once against `wardgeneral`. A nonzero client exit
-   is expected. Neither script changes data or schema.
-
-3. Query retained rows:
+3. Query retained rows at any time:
 
    ```powershell
    ./examples/ch07-observability/engineevents/azuresqlerrors/azuresqlerrors.ps1
    ```
 
-   Delivery is asynchronous. A qualifying event can take time to appear, and
-   the telemetry path can throttle. No rows does not prove that the application
-   saw no errors.
-
-   > **Just ran setup?** In testing, the first errors appeared about 10 minutes
-   > after setup, and later errors within minutes. Azure allows a new
-   > diagnostic setting
-   > [up to 90 minutes](https://learn.microsoft.com/azure/azure-monitor/essentials/diagnostic-settings#time-before-telemetry-gets-to-destination)
-   > to start sending events, and an error raised before then isn't retained.
-   > If the query returns no rows, wait 10–15 minutes, run
-   > `generate-azuresqlerror.sql` again, and re-query.
+   Delivery is asynchronous, and the telemetry path can throttle. No rows does
+   not prove that the application saw no errors. If you raised an error
+   yourself and it doesn't appear, it may have been raised before Azure started
+   sending; run step 2 (`-Wait`).
 
 4. Preview and approve teardown when the retained evidence is no longer needed:
 
@@ -72,7 +76,7 @@ deletion is recoverable unless `-PermanentlyDelete` is explicitly supplied.
 | `setup-azuresqlerrors.ps1` | Creates the tagged workspace and resource-specific `Errors` route. |
 | `generate-azuresqlerror.sql` | Raises controlled user error 50001. |
 | `generate-object-not-found.sql` | Raises system error 208 through a misspelled table name. |
-| `azuresqlerrors.ps1` | Queries retained `AzureSQLErrors` rows read-only. |
+| `azuresqlerrors.ps1` | Queries retained `AzureSQLErrors` rows read-only. With `-Wait`, raises the test error and repeats until it arrives. |
 | `teardown-azuresqlerrors.ps1` | Removes the owned diagnostic setting and workspace with safeguards. |
 
 ## Source
