@@ -24,7 +24,8 @@ map, compute-stage chart, and Azure ecosystem hub. Charts are illustrative,
 not measured performance results.
 Chapter 1 honors Project Socrates and the engineering of a new distributed,
 cloud-native SQL architecture, tracing SQL Server through Socrates to Hyperscale.
-The opening cover emphasizes the book and its subject, with a smaller note
+The actual front cover opens the animation, followed by an inside title page.
+That title page emphasizes the book and its subject, with a smaller note
 explicitly identifying the book examples as AI-assisted creation and guided
 learning, not describing Hyperscale itself as built with AI.
 The cover note and Chapter 2 illustrate both roles of AI: AI helped build the
@@ -33,8 +34,12 @@ including guided provisioning, connection, and schema setup.
 Chapter pages omit repetitive fine-print notes to keep the animation readable;
 the book and repository documentation provide the synthetic-data and
 illustrative-chart context.
-The architecture page distinguishes HA and named replicas, showing page-server
-reads from all compute types, the primary's log write, and replica log redo.
+The architecture page distinguishes HA and named replicas. Brown arrows show
+the primary writing to the log service and both the log service and page servers
+writing to Azure Storage. Teal arrows show log data flowing from the log service
+to HA replicas, named replicas, and page servers; blue arrows show pages flowing
+from page servers to the primary and replicas. Read arrows follow the returned
+data, not the requests. Shared read lanes keep these paths separate from writes.
 Chapter 5 shows
 vectors, DiskANN retrieval, and RAG orchestration inside the SQL engine, with
 the external model request and response routed through the APIM AI gateway
@@ -45,25 +50,37 @@ Chapter 10 highlights serverless, elastic pools, optimized locking, and automati
 index compaction alongside JSON indexing, memory grant feedback, and illustrative vCore scaling
 through 8, 16, 40, and 192. The 192-vCore point is not a measured demo stage;
 the repository's compute demo remains 8, 16, and 40 vCores.
-Chapter 11 includes change event streaming in its Azure ecosystem diagram.
+Chapter 11 surrounds Azure SQL Hyperscale with six talking points: Azure,
+Microsoft Foundry, Migrate, Azure App Service, Change Event Streaming, and
+Fabric Mirroring.
 Chapter 9 separates built-in HA, geo-replication, and point-in-time restore
 into three illustrations, with failover and application retries called out.
+The PITR caption emphasizes recovery: "Recover from a mistake quickly."
 Chapter 7 includes Database Hub, DMVs, and database agents alongside Azure Monitor,
 Query Store, and engine events.
-The opening and closing pages show both the book and code links.
-Square format, 768 x 768 pixels, about 110 seconds, looping, no audio.
-The opening page remains visible for twelve seconds.
-Each chapter remains visible for six seconds before the page turns.
-The summary page remains visible for fourteen seconds so readers can read the
+Chapter 6 places the handoff agent inside the Ward General app, connected to an
+external LLM for orchestration and to SQL MCP for database tool execution.
+Human approval gates saving the handoff.
+The inside title page and closing page show both the book and code links.
+Square format, 640 x 640 pixels, about 69 seconds, looping, no audio.
+The GIF uses 96 colors and fewer intermediate turn frames to stay below 5 MB.
+It starts slowly, then moves through the chapters faster; the 4K video is unchanged.
+The actual front cover remains visible for six seconds and opens smoothly over
+2.4 seconds; the inside title spread remains visible for six seconds.
+Each chapter remains visible for 2.5 seconds before the page turns.
+The summary page remains visible for seven seconds so readers can read the
 quote excerpt, attributed to Arun Ulag, Vice President of Azure (title updated
 from the book at the author's request).
-The book has a visible binding and layered paper edges; curved page turns
-show softly mirrored ink on the reverse and a moving shadow.
+Its subtitle is "Hyperscale is your database now and for the future."
+The camera pulls back as the actual front cover opens against black, then stays
+on the open two-page book. Pages lift toward the viewer and turn right to left
+around the center spine. The final open-book version is the primary animation;
+older chapter animations and opening-preview videos have been removed.
 Chapter titles and prose use Georgia serif typography for a printed-book feel;
 diagram labels retain sans-serif type for clarity.
 
 The editable generator is [make-book-chapters.py](../tools/make-book-chapters.py).
-On Windows, with Python, Pillow, PyMuPDF, and the Segoe UI and Georgia fonts available,
+On Windows, with Python, Pillow, and the Segoe UI and Georgia fonts available,
 regenerate it from the repository root:
 
 ```powershell
@@ -73,21 +90,92 @@ python .\tools\make-book-chapters.py
 Pass `--preview-dir` with a local directory to also save a storyboard and
 page-turn preview outside the repository.
 
-### Short promotional version
+### Book cover
 
-[View or download the book promo GIF](book-promo.gif): a square, looping
-animation themed **"Hyperscale: The cloud-native database for today and your
-future."** It explores the distributed architecture, SQL Server engine,
-scaling, security, and recovery; follows Ward General into AI assistance and
-approval-gated agents; and closes with why Azure is the best cloud for SQL.
-Suitable for sharing on social media (768 x 768 pixels, 40 seconds; no audio).
+The actual front cover, including the foreword credit, is available as a
+[300-dpi PNG](book-cover.png), 2100 x 3000 pixels, extracted from the author's
+supplied PDF. The generator uses this PNG directly; neither the cover PDF nor
+the full manuscript is distributed with these examples. The older short
+promotional GIF has been removed in favor of the chapter animation above.
 
-The opening and closing frames show separate destinations for the
-[book](https://aka.ms/sqlhyperscaleunveiled) and
-[code](https://aka.ms/sqlhyperscalebook), plus the full
-[GitHub repository address](https://github.com/rgward/sqlhyperscalebook).
+### Event-screen video
 
-The original [book cover PDF](book-cover.pdf) is also available.
+[Download the 4K chapter video](book-chapters-4k.mp4): a silent H.264 MP4 at
+3840 x 2160, 25 fps, lasting approximately 146 seconds. It follows the same
+chapter sequence as the GIF, with longer holds and page turns for presentations.
+The open book and turning pages are rendered natively at 4K
+against black, not upscaled from the GIF. Enable repeat/loop in the event's
+video player; MP4 does not carry
+the GIF's infinite-loop setting. Test playback on the actual event screen
+beforehand, since older players may not support 4K H.264.
+
+With FFmpeg and the chapter generator's Python dependencies installed, regenerate using
+[make-book-video.ps1](../tools/make-book-video.ps1):
+
+```powershell
+.\tools\make-book-video.ps1
+```
+
+Use `-FfmpegPath` for an encoder outside PATH and `-OutputPath` for a different
+destination. The script renders temporary widescreen PNG frames, removes them
+after encoding, refuses to overwrite existing output, and decodes the entire
+resulting video to check for errors. It does not transcode the square GIF.
+
+### Camera pullback and open-book spreads
+
+The primary [chapter GIF](book-chapters.gif) and
+[4K video](book-chapters-4k.mp4) begin close to the actual cover against black.
+The camera pulls back as
+the cover opens, then stays on the open two-page book throughout the chapter
+sequence. The first inside left page contains the book's exact dedication to the
+Microsoft team who brought Project Socrates to life, the technical-reviewer credit
+for Kendal Van Dyke, and thanks to quote contributors Shireesh Thota, Slava Oks,
+Krystyna Reisteter, Anna Hoffman, Kendal Van Dyke, Naveen Prakash, and Arun Ulag.
+The right page retains the cloud-native database theme, SQL Server and AI
+highlights, AI-assisted book examples, and book/code links. The full manuscript is
+not included in the repository. There is no separate invitation page.
+Each chapter has its title and takeaways at the top and a large illustration
+across the spread below. Pages lift toward the viewer and turn right to left
+around the center spine; the book never transforms into a full-screen slide.
+After Arun's summary and the closing links, the cover closes and the camera
+returns to its starting view.
+
+The video lasts about 146 seconds. The cover opens for 2.4 seconds; each
+chapter turn lasts 1.8 seconds. The first inside spread remains fourteen seconds.
+Chapter holds remain six seconds and Arun's summary remains fourteen seconds.
+The video runs at 25 fps. The square GIF lasts 68.8 seconds, uses approximately
+17 fps for motion, loops continuously, and has no audio. It holds the cover for
+six seconds and opens it over 2.4 seconds before accelerating to 0.9-second
+chapter turns and 2.5-second chapter holds. The final summary holds for seven
+seconds. The closing spread holds for four seconds, the cover closes over
+1.2 seconds, and the final cover holds for three seconds. Video-export
+timings remain unchanged.
+All text stays inside the book; the black background has no captions or overlays.
+The book URL, `aka.ms/sqlhyperscaleunveiled`, is printed at the bottom of every
+inside page, including both sides of each spread. The introduction and closing
+spreads also retain the prominent book and code links. The original cover art
+is unchanged.
+
+The 4K video renders the book, typography, diagrams, and rotating sheets from
+high-resolution page artwork, rather than switching from low-resolution turns
+to high-resolution held pages. The cover uses the high-resolution PNG.
+The Unit board uses the original screenshot crop, not the earlier thumbnail;
+its detail is still limited by that source image. The shareable GIF is 640 x 640
+with a 96-color palette; the generator validates that it stays below 5,000,000 bytes.
+
+### Microsoft product icons
+
+Chapters 2 and 11 use Microsoft's official Azure SQL Database icon, labeled
+"Azure SQL Hyperscale" beneath it. The unmodified [source SVG](icons/azure-sql-database.svg)
+is `10130-icon-service-SQL-Database.svg` from the official Azure architecture
+icons V24 package. Its [transparent 1024-pixel PNG](icons/azure-sql-database.png)
+preserves the original colors and proportions and keeps the generator's existing
+Python dependencies unchanged.
+
+These Microsoft icons are used under the
+[Azure architecture icon terms](https://learn.microsoft.com/azure/architecture/icons/#icon-terms),
+which permit use in architecture diagrams, training materials, and documentation.
+They are Microsoft assets, not artwork licensed under this repository's MIT license.
 
 | Chapter | Figures |
 | --- | --- |

@@ -97,3 +97,6 @@ TestResults/
 
 # Local maintainer follow-ups, not part of the public examples.
 /backlog.md
+
+# Author-supplied full manuscript; publish only the extracted front cover.
+/figures/book cover.pdf
