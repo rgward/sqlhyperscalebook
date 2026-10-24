@@ -10,7 +10,9 @@ Companion examples for the Apress book by **Bob Ward**
 [Code: aka.ms/sqlhyperscalebook](https://aka.ms/sqlhyperscalebook) •
 [GitHub repository](https://github.com/rgward/sqlhyperscalebook)
 
-[View or download the book cover (PDF)](figures/book-cover.pdf)
+[High-resolution book cover (PNG)](figures/book-cover.png) •
+[Book GIF](figures/book-chapters.gif) •
+[4K book video](figures/book-chapters-4k.mp4)
 
 Special thanks to **Kendal Van Dyke** for reviewing both the book and this repository.
 
