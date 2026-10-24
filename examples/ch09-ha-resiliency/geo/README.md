@@ -107,8 +107,8 @@ have a hot local HA standby or availability-zone distribution there. If its
 compute fails, Azure must create replacement compute before the geo-secondary
 is available again, so local recovery can take longer.
 
-Geo-replica creation is asynchronous. Wait until Azure reports the database
-online, then verify it:
+Geo-replica creation is asynchronous and includes the initial seeding described
+below. Wait until Azure reports the database online, then verify it:
 
 ```powershell
 ./examples/ch09-ha-resiliency/geo/verify-geo-replica.ps1 `
@@ -119,6 +119,36 @@ Require `GeoReplicaVerification=PASS`. The geo-secondary is read-only until a
 geo-failover promotes it. Replication is asynchronous with respect to commit,
 so the primary does not wait for the geo-secondary before acknowledging a
 transaction.
+
+## Supplement: initial seeding comes before log replication
+
+This repository supplement makes explicit a setup step not covered in the
+book's geo-replication discussion: **a new Hyperscale geo-replica must first be
+seeded from snapshots of the primary database's physical storage before it can
+start pulling changes from the log service.** The log stream alone does not
+provide the existing database contents.
+
+1. **Seed the data.** Azure uses storage snapshots to establish the initial
+   database contents in the target's own storage, served by its own page
+   servers.
+2. **Catch up and keep up.** After seeding, the geo-replica pulls changes from
+   the primary's log service to catch up, then continues asynchronous log
+   replication as the primary accepts new transactions.
+
+**Azure performs this seeding automatically as part of geo-replica creation.**
+There is no separate reader-run backup, restore, or synthetic-data seed script.
+The primary remains online and writable during setup.
+
+Unlike HA and named replicas, a geo-replica **does not share the primary's page
+servers or storage**, even when it is in the same region. This example creates
+it in another region, so the initial data must be copied there. Allow for a
+size-of-data operation, not just the time to start another compute replica;
+snapshot-based seeding does not make a cross-region data copy instantaneous.
+Do not treat a submitted creation request as an already protected database:
+wait for creation to finish and run the verification above.
+
+See [Microsoft Learn: Hyperscale geo-replicas](https://learn.microsoft.com/azure/azure-sql/database/service-tier-hyperscale-replicas#geo-replica)
+for the separate page-server architecture and initial data-copy requirement.
 
 ## Supplement: a planned geo-failover, step by step
 
