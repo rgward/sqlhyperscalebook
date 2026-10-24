@@ -26,6 +26,14 @@ The matching skills are `test-hyperscale-failover`,
 `recover-wardgeneral-pitr`, and `deploy-wardgeneral-geo-replica`. They drive the
 same commands and approval gates as the READMEs.
 
+> **Beyond the book: geo-replicas need an initial seed.** Azure first seeds the
+> new geo-replica from snapshots of the primary's physical storage into the
+> target's own storage and page servers. Only then can it pull changes from the
+> primary's log service to catch up and continue asynchronous replication.
+> Azure does this automatically, but the cross-region copy is a size-of-data
+> operation, not an instant compute-only addition. See
+> [initial seeding comes before log replication](geo/README.md#supplement-initial-seeding-comes-before-log-replication).
+
 The chapter explains HA replica count, continuous priming, failover groups,
 zone redundancy, backup policy, replica lag, maintenance windows, and RPO/RTO
 commitments without packaging each topic as another guided example. Chapter 7
