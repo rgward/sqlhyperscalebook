@@ -7,6 +7,88 @@ zoom in. Figures are reproduced as printed.
 
 Back to the [repository README](../README.md).
 
+## Book promotional animation
+
+### Chapter-by-chapter page-turn version
+
+[View or download the chapter flip-through GIF](book-chapters.gif): an animated
+book with a cover, a page for each of the eleven chapters, page-turn transitions,
+a summary with an attributed excerpt from Arun Ulag's Chapter 11 quote,
+and a closing invitation. Each chapter uses its book title and highlights its
+key concepts, from the architecture and SQL engine to applications, AI,
+observability, security, resiliency, performance, and the Azure platform.
+Each chapter has a distinct illustration and accent color: a story timeline,
+deployment terminal, architecture topology, real app preview, in-engine RAG
+diagram, approval workflow, telemetry chart, security shield, geo-replication
+map, compute-stage chart, and Azure ecosystem hub. Charts are illustrative,
+not measured performance results.
+Chapter 1 honors Project Socrates and the engineering of a new distributed,
+cloud-native SQL architecture, tracing SQL Server through Socrates to Hyperscale.
+The opening cover emphasizes the book and its subject, with a smaller note
+explicitly identifying the book examples as AI-assisted creation and guided
+learning, not describing Hyperscale itself as built with AI.
+The cover note and Chapter 2 illustrate both roles of AI: AI helped build the
+examples, and readers use GitHub Copilot and skills to explore and run them,
+including guided provisioning, connection, and schema setup.
+Chapter pages omit repetitive fine-print notes to keep the animation readable;
+the book and repository documentation provide the synthetic-data and
+illustrative-chart context.
+The architecture page distinguishes HA and named replicas, showing page-server
+reads from all compute types, the primary's log write, and replica log redo.
+Chapter 5 shows
+vectors, DiskANN retrieval, and RAG orchestration inside the SQL engine, with
+the external model request and response routed through the APIM AI gateway
+to and from Foundry.
+A separate, blue embeddings connection goes directly between SQL and Foundry,
+bypassing APIM.
+Chapter 10 highlights serverless, elastic pools, optimized locking, and automatic
+index compaction alongside JSON indexing, memory grant feedback, and illustrative vCore scaling
+through 8, 16, 40, and 192. The 192-vCore point is not a measured demo stage;
+the repository's compute demo remains 8, 16, and 40 vCores.
+Chapter 11 includes change event streaming in its Azure ecosystem diagram.
+Chapter 9 separates built-in HA, geo-replication, and point-in-time restore
+into three illustrations, with failover and application retries called out.
+Chapter 7 includes Database Hub, DMVs, and database agents alongside Azure Monitor,
+Query Store, and engine events.
+The opening and closing pages show both the book and code links.
+Square format, 768 x 768 pixels, about 110 seconds, looping, no audio.
+The opening page remains visible for twelve seconds.
+Each chapter remains visible for six seconds before the page turns.
+The summary page remains visible for fourteen seconds so readers can read the
+quote excerpt, attributed to Arun Ulag, Vice President of Azure (title updated
+from the book at the author's request).
+The book has a visible binding and layered paper edges; curved page turns
+show softly mirrored ink on the reverse and a moving shadow.
+Chapter titles and prose use Georgia serif typography for a printed-book feel;
+diagram labels retain sans-serif type for clarity.
+
+The editable generator is [make-book-chapters.py](../tools/make-book-chapters.py).
+On Windows, with Python, Pillow, PyMuPDF, and the Segoe UI and Georgia fonts available,
+regenerate it from the repository root:
+
+```powershell
+python .\tools\make-book-chapters.py
+```
+
+Pass `--preview-dir` with a local directory to also save a storyboard and
+page-turn preview outside the repository.
+
+### Short promotional version
+
+[View or download the book promo GIF](book-promo.gif): a square, looping
+animation themed **"Hyperscale: The cloud-native database for today and your
+future."** It explores the distributed architecture, SQL Server engine,
+scaling, security, and recovery; follows Ward General into AI assistance and
+approval-gated agents; and closes with why Azure is the best cloud for SQL.
+Suitable for sharing on social media (768 x 768 pixels, 40 seconds; no audio).
+
+The opening and closing frames show separate destinations for the
+[book](https://aka.ms/sqlhyperscaleunveiled) and
+[code](https://aka.ms/sqlhyperscalebook), plus the full
+[GitHub repository address](https://github.com/rgward/sqlhyperscalebook).
+
+The original [book cover PDF](book-cover.pdf) is also available.
+
 | Chapter | Figures |
 | --- | --- |
 | [Chapter 1](#chapter-1) | 2 |

@@ -6,6 +6,10 @@
 
 Companion examples for the Apress book by **Bob Ward**
 
+[Book: aka.ms/sqlhyperscaleunveiled](https://aka.ms/sqlhyperscaleunveiled) •
+[Code: aka.ms/sqlhyperscalebook](https://aka.ms/sqlhyperscalebook) •
+[GitHub repository](https://github.com/rgward/sqlhyperscalebook)
+
 [View or download the book cover (PDF)](figures/book-cover.pdf)
 
 Special thanks to **Kendal Van Dyke** for reviewing both the book and this repository.
@@ -43,9 +47,10 @@ printed in the book.
 - **Author:** Bob Ward, with a foreword by Priya Sathy
 - **Publisher:** [Apress](https://link.springer.com/book/10.1007/979-8-8688-3467-7)
 - **ISBN:** 979-8-8688-3466-0 (print) · 979-8-8688-3467-7 (eBook)
-- **Short link:** [aka.ms/sqlhyperscalebook](https://aka.ms/sqlhyperscalebook)
+- **Book short link:** [aka.ms/sqlhyperscaleunveiled](https://aka.ms/sqlhyperscaleunveiled)
+- **Code short link:** [aka.ms/sqlhyperscalebook](https://aka.ms/sqlhyperscalebook)
 
-The short link points to the author's repository,
+The code short link points to the author's repository,
 [rgward/sqlhyperscalebook](https://github.com/rgward/sqlhyperscalebook), where
 updates land first. The book's front matter also lists the Apress source-code
 repository, [Apress/Inside-Azure-SQL-Hyperscale](https://github.com/Apress/Inside-Azure-SQL-Hyperscale),
