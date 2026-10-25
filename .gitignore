@@ -100,3 +100,8 @@ TestResults/
 
 # Author-supplied full manuscript; publish only the extracted front cover.
 /figures/book cover.pdf
+
+# Local book-media build scripts and previews; publish only the finished media.
+/tools/make-book-*.py
+/tools/make-book-*.ps1
+/figures/opening-*.mp4
