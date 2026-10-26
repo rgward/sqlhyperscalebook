@@ -15,6 +15,9 @@ Back to the [repository README](../README.md).
 | [4K chapter video](book-chapters-4k.mp4) | A silent book flip-through for presentations and event screens. 3840 x 2160, about 2 minutes 26 seconds. |
 | [Book cover](book-cover.png) | The high-resolution front cover, including the foreword credit. 2100 x 3000 PNG. |
 
+The first inner page of both animations credits the book's quote contributors,
+including Joey D'Antonio.
+
 Microsoft Azure icons used in the media are Microsoft-owned and subject to the
 [Azure architecture icon terms](https://learn.microsoft.com/azure/architecture/icons/#icon-terms),
 not this repository's MIT license.
