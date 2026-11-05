@@ -12,6 +12,7 @@ Back to the [repository README](../README.md).
 | File | Description |
 | --- | --- |
 | [Chapter flip-through GIF](book-chapters.gif) | A looping, silent tour of all eleven chapters. 640 x 640, about 69 seconds, under 5 MB. |
+| [30-second chapter GIF](book-chapters-30s.gif) | The same frames and transitions, sped up to exactly 30 seconds per loop. 640 x 640, under 5 MB. |
 | [4K chapter video](book-chapters-4k.mp4) | A silent book flip-through for presentations and event screens. 3840 x 2160, about 2 minutes 26 seconds. |
 | [Book cover](book-cover.png) | The high-resolution front cover, including the foreword credit. 2100 x 3000 PNG. |
 
