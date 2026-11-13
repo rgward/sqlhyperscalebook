@@ -25,6 +25,10 @@ not this repository's MIT license.
 
 ## Chapter figures
 
+For an animated introduction, see [Inside Azure SQL Hyperscale - Level 200](ch03-architecture/level200/README.md):
+interactive HTML, 4K MP4, GIF, and five-slide PowerPoint formats with matching
+colored section indicators.
+
 | Chapter | Figures |
 | --- | --- |
 | [Chapter 1](#chapter-1) | 2 |

@@ -60,6 +60,10 @@ which carries the same examples.
 
 ## Contents
 
+**New architecture media:** [Inside Azure SQL Hyperscale - Level 200](figures/ch03-architecture/level200/README.md)
+provides an interactive HTML tour, 4K MP4, GIF, editable PowerPoint, and
+full-screen PowerPoint Show.
+
 - [Quick start](#quick-start)
 - [The scenario](#the-scenario)
 - [Chapter guide](#chapter-guide)
