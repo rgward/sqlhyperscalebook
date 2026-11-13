@@ -21,6 +21,11 @@ listed with their captions in the [figures index](../../figures/README.md#chapte
 
 ## What this is — and isn't
 
+For a conceptual overview before running the queries, use the
+[level 200 architecture assets](../../figures/ch03-architecture/level200/README.md):
+interactive HTML, 4K MP4, GIF, and PowerPoint formats. They play offline and
+do not require the Chapter 2 database.
+
 This is **architectural illustration only**. The queries show that the tiers
 exist and how a request touches them; they do not benchmark or tune anything.
 The same DMVs return as an **operational toolkit in Chapter 7** and as **tuning
